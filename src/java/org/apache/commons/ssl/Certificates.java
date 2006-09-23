@@ -203,6 +203,7 @@ public class Certificates {
             buf.append("CRL: ");
             buf.append((String) crls.next());
         }
+        buf.append(LINE_ENDING);
         return buf.toString();
     }
 
