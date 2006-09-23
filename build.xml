@@ -1,0 +1,106 @@
+<!--
+    $ ant -p
+    Buildfile: build.xml
+
+    Main targets:
+
+    clean     Deletes class files and other generated files.
+    jar       Jars compiled java class files.
+    javac     Compiles java source code.
+    javadocs  Generates javadocs.
+
+    Default target: jar
+-->
+<project name="commons-ssl" default="jar" basedir=".">
+
+  <property name="httpclient-jar" value="commons-httpclient-3.0.jar"/>
+  <property name="bouncyCastle-jar" value="bcprov-jdk14-133.jar"/>
+  <property name="log4j-jar" value="log4j-1.2.13.jar"/>
+  <property name="src" location="./src/java"/>
+  <property name="build" location="./build"/>
+  <property name="lib" location="./lib"/>
+  <property name="classes" value="${build}/classes"/>
+  <property name="jar-file" value="${ant.project.name}.jar"/>
+  <property name="javadocs" value="${build}/javadocs"/>
+  <property name="rmic.includes" value="**/*RMI.class"/>
+
+  <path id="compile-classpath">
+    <pathelement location="${classes}"/>
+    <pathelement location="${lib}/${httpclient-jar}"/>
+    <pathelement location="${lib}/${bouncyCastle-jar}"/>
+    <pathelement location="${lib}/${log4j-jar}"/>
+  </path>
+
+  <target name="init">
+    <tstamp>
+      <format property="date" pattern="zzz:yyyy-MM-dd/HH:mm:ss" locale="en"/>
+    </tstamp>
+    <mkdir dir="${build}"/>
+  </target>
+
+  <target name="javac" depends="init" description="Compiles java source code.">
+    <mkdir dir="${classes}"/>
+    <javac
+      includeAntRuntime="false"
+      destdir="${classes}"
+      debug="true"
+      optimize="false"
+      srcdir="${src}"
+      excludes="${javac.exclude}"
+    >
+      <classpath refid="compile-classpath"/>
+    </javac>
+    <copy todir="${classes}">
+      <fileset dir="${src}" excludes="**/*.java"/>
+    </copy>
+  </target>
+
+  <target name="rmic" depends="javac" description="Rmics java class files named &quot;*RMI.class&quot;.">                   
+    <rmic
+      base="${classes}"
+      includes="${rmic.includes}"
+      classpathref="compile-classpath"
+    />
+  </target>
+
+  <target name="jar" depends="rmic" description="Jars compiled java class files.">
+    <jar
+      basedir="${classes}"
+      destfile="${build}/${jar-file}"
+      index="true"
+      duplicate="fail"
+    >
+      <manifest>
+        <attribute name="Built-By" value="cucbc.com"/>
+        <attribute name="Created-By" value="cucbc.com"/>
+        <attribute name="Main-Class" value="org.apache.commons.ssl.Ping"/>
+      </manifest>
+     </jar>
+  </target>
+
+  <!-- Alias for "javadocs". -->
+  <target name="javadoc" depends="javadocs"/>
+
+  <target name="javadocs" depends="init" description="Generates javadocs.">
+    <mkdir dir="${javadocs}"/>
+      <javadoc
+        sourcepath="${src}"
+        destdir="${javadocs}"
+        packagenames="*"
+        classpathref="compile-classpath"
+        access="private"
+        source="yes"
+        linksource="yes"
+      >
+        <link href="http://java.sun.com/j2se/1.5.0/docs/api/"/>
+        <link href="http://java.sun.com/j2ee/1.4/docs/api/"/>
+        <link href="http://jakarta.apache.org/commons/httpclient/apidocs/"/>
+      </javadoc>
+  </target>
+
+  <target name="clean" description="Deletes class files and other generated files.">
+    <delete dir="${build}"/>
+  </target>
+
+
+</project>

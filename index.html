@@ -1,0 +1,83 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+		<meta name="Author" content="Made by 'tree'">
+		<meta name="GENERATOR" content="$Version: $ tree v1.5.0 (c) 1996 - 2004 by Steve Baker, Thomas Moore, Francesc Rocher, Kyosuke Tokoro $">
+		<title>commons-ssl proposal - may 3rd, 2006</title>
+		<style type="text/css">
+			<!-- 
+			BODY { font-family : courier, monospace, sans-serif; }
+			P { font-weight: normal; font-family : courier, monospace, sans-serif; color: black; background-color: transparent;}
+			B { font-weight: normal; color: black; background-color: transparent;}
+			A:visited { font-weight : normal; text-decoration : none; background-color : transparent; margin : 0px 0px 0px 0px; padding : 0px 0px 0px 0px; display: inline; }
+			A:link    { font-weight : normal; text-decoration : none; margin : 0px 0px 0px 0px; padding : 0px 0px 0px 0px; display: inline; }
+			A:hover   { color : #000000; font-weight : normal; text-decoration : underline; background-color : yellow; margin : 0px 0px 0px 0px; padding : 0px 0px 0px 0px; display: inline; }
+			A:active  { color : #000000; font-weight: normal; background-color : transparent; margin : 0px 0px 0px 0px; padding : 0px 0px 0px 0px; display: inline; }
+			.VERSION { font-size: small; font-family : arial, sans-serif; }
+			.NORM { color: black; background-color: transparent;}
+			.FIFO { color: purple; background-color: transparent;}
+			.CHAR { color: yellow; background-color: transparent;}
+			.DIR  { color: blue; background-color: transparent;}
+			.BLOCK { color: yellow; background-color: transparent;}
+			.LINK { color: aqua; background-color: transparent;}
+			.SOCK { color: fuchsia; background-color: transparent;}
+			.EXEC { color: green; background-color: transparent;}
+			-->
+		</style>
+	</head>
+	<body>
+		<h1>commons-ssl proposal - may 3rd, 2006</h1>
+<h3>Requires Java 1.4.x or higher.</h3>
+<a href="commons-ssl.zip">./commons-ssl.zip</a> <em style="color: red;"> &nbsp; &nbsp; &lt;-- Download this guy!</em></pre>
+<br/><a href="commons-ssl.jar">./commons-ssl.jar</a> <em style="color: red;"> &nbsp; &nbsp; &lt;-- Or, for those in a rush!</em></pre>
+<br/>&nbsp;
+<pre style="border: 1px solid red; padding: 10px; float: left;"><u><b>Client Example:</b></u>
+
+SSLClient client = new SSLClient();
+
+<em style="color: green;">// Let's trust usual "cacerts" that come with Java.</em>
+<em style="color: green;">// Plus, let's also trust a self-signed cert we know of.</em>
+<em style="color: green;">// We have some additional certs to trust inside a java keystore file.</em>
+client.addTrustMaterial( TrustMaterial.CACERTS );
+client.addTrustMaterial( new TrustMaterial( "/path/to/self-signed.pem" ) );
+client.addTrustMaterial( new KeyMaterial( "/path/to/keystore.jks", "changeit".toCharArray() ) );
+
+<em style="color: green;">// Let's load a client certificate (max: 1 per SSLClient instance).</em>
+client.setKeyMaterial( new KeyMaterial( "/path/to/client.pfx", "secret".toCharArray() ) );
+SSLSocket s = (SSLSocket) client.createSocket( "www.cucbc.com", 443 );</pre>
+<br clear="all"><pre style="border: 1px solid red; padding: 10px; float: left;"><u><b>Server Example</b></u>
+
+SSLServer server = new SSLServer();
+
+<em style="color: green;">// server needs some key material </em>
+server.setKeyMaterial( new KeyMaterial( "/path/to/.keystore", "changeit".toCharArray() ) );
+
+<em style="color: green;">// this server trusts all client certificates presented (usually people won't present</em>
+<em style="color: green;">// client certs, but if they do, we'll give them a socket at the very least).</em>
+server.addTrustMaterial( TrustMaterial.TRUST_ALL );
+SSLServerSocket ss = (SSLServerSocket) server.createServerSocket( 7443 );
+SSLSocket socket = (SSLSocket) ss.accept();</pre>
+<br clear="all">
+<pre style="border: 1px solid red; padding: 10px; float: left;"><u><b>"Ping" Utility Attempts "HEAD / HTTP/1.1" Request:</b></u>
+This utility is very handy because it can get you the server's public
+certificate even if your client certificate is bad (so even though the SSL
+handshake fails).  And unlike "openssl s_client", this utility can bind
+against any IP address available.
+
+Usage:  java -jar commons-ssl.jar [options]
+Options:   (*=required)
+*  -t  --target           [hostname[:port]]             default port=443
+   -b  --bind             [hostname[:port]]             default port=0 "ANY"
+   -r  --proxy            [hostname[:port]]             default port=80
+   -c  --client-cert      [path to client certificate]  *.jks or *.pfx
+   -p  --password         [client cert password]
+
+Example:
+
+java -jar commons-ssl.jar -t cucbc.com:443 -c ./client.pfx -p `cat ./pass.txt`</pre><br clear="all"/>
+
+
+<!--#include virtual="tree.html" -->
+</body>
+</html>

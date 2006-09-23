@@ -1,0 +1,7 @@
+This product includes software developed by
+The Apache Software Foundation (http://www.apache.org/).
+
+This software was originally developed by
+Credit Union Central of British Columbia (http://www.cucbc.com/).
+
+It was donated to the Apache Software Foundation on May 3rd, 2006.
