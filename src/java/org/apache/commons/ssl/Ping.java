@@ -84,6 +84,7 @@ public class Ping {
                 System.out.println("* Error: " + parseException.getMessage() + ".");
                 System.out.println();
             }
+	         System.out.println( Version.versionString() );
             System.out.println("Usage:  java -jar commons-ssl.jar [options]");
             System.out.println("Options:   (*=required)");
             Iterator it = ARGS.iterator();
