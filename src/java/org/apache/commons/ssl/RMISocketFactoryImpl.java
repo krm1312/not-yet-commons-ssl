@@ -418,6 +418,7 @@ public class RMISocketFactoryImpl extends RMISocketFactory
 		}
 		catch ( GeneralSecurityException gse )
 		{
+			throw new RuntimeException( "can't happen because we're using plain socket", gse );
 			// won't happen because we're using plain socket, not SSL.
 		}
 
