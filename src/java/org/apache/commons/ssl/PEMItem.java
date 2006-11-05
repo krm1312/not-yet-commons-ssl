@@ -54,33 +54,43 @@ public class PEMItem
 		}
 		this.dekInfo = diCipher;
 		this.iv = PEMUtil.hexToBytes( diIV );
-		this.mode = dekInfo.substring( dekInfo.length() - 3 ).toUpperCase();
-		if ( dekInfo.startsWith( "des-cbc" ) )
+		if ( !"".equals( diCipher ) )
 		{
-			cipher = "DES";
-			keySizeInBits = 64;
-		}
-		else if ( dekInfo.startsWith( "des-ede3" ) )
-		{
-			cipher = "DESede";
-			keySizeInBits = 192;
-		}
-		else if ( dekInfo.startsWith( "aes-" ) )
-		{
-			String keySize = dekInfo.substring( 4, 7 );
-			cipher = "AES";
-			keySizeInBits = Integer.parseInt( keySize );
+			this.mode = dekInfo.substring( dekInfo.length() - 3 ).toUpperCase();
+			if ( dekInfo.startsWith( "des-cbc" ) )
+			{
+				cipher = "DES";
+				keySizeInBits = 64;
+			}
+			else if ( dekInfo.startsWith( "des-ede3" ) )
+			{
+				cipher = "DESede";
+				keySizeInBits = 192;
+			}
+			else if ( dekInfo.startsWith( "aes-" ) )
+			{
+				String keySize = dekInfo.substring( 4, 7 );
+				cipher = "AES";
+				keySizeInBits = Integer.parseInt( keySize );
+			}
+			else
+			{
+				cipher = "UNKNOWN";
+				keySizeInBits = -1;
+			}
 		}
 		else
 		{
+			this.mode = "";
 			cipher = "UNKNOWN";
 			keySizeInBits = -1;
 		}
+
 	}
 
 	public byte[] getDerBytes()
 	{
-		byte[] b = new byte[ derBytes.length ];
+		byte[] b = new byte[derBytes.length];
 		System.arraycopy( derBytes, 0, b, 0, derBytes.length );
 		return b;
 	}

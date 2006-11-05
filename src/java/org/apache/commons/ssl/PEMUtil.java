@@ -1,22 +1,14 @@
 package org.apache.commons.ssl;
 
-import javax.crypto.Cipher;
-import javax.crypto.CipherInputStream;
-import javax.crypto.SecretKey;
-import javax.crypto.spec.IvParameterSpec;
-import javax.crypto.spec.SecretKeySpec;
 import java.io.ByteArrayInputStream;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigInteger;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.security.interfaces.RSAPrivateCrtKey;
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -28,81 +20,97 @@ public class PEMUtil
 {
 	final static String LINE_SEPARATOR = System.getProperty( "line.separator" );
 
-	public static List decode( String pathToPEM ) throws IOException
+	public static List decode( byte[] pemBytes ) throws IOException
 	{
-		int len = 0;
-		byte[] decoded = null;
-		ArrayList listOfByteArrays = new ArrayList( 64 );
-		Map properties = new LinkedHashMap();
-		FileInputStream in = new FileInputStream( pathToPEM );
+		LinkedList pemItems = new LinkedList();
+		InputStream in = new ByteArrayInputStream( pemBytes );
 		String line = Util.readLine( in );
-		while ( line != null && !beginBase64( line ) )
+		while ( line != null )
 		{
-			line = Util.readLine( in );
-		}
-		if ( line != null )
-		{
-			line = Util.readLine( in );
-		}
-		while ( line != null && !endBase64( line ) )
-		{
-			line = line.trim();
-			if ( !"".equals( line ) )
+			int len = 0;
+			byte[] decoded = null;
+			ArrayList listOfByteArrays = new ArrayList( 64 );
+			Map properties = new HashMap();
+			String type = "[unknown]";
+			while ( line != null && !beginBase64( line ) )
 			{
-				int x = line.indexOf( ':' );
-				if ( x > 0 )
+				line = Util.readLine( in );
+			}
+			if ( line != null )
+			{
+				String upperLine = line.toUpperCase();
+				int x = upperLine.indexOf( "-BEGIN" ) + "-BEGIN".length();
+				int y = upperLine.indexOf( "-", x );
+				type = upperLine.substring( x, y ).trim();
+				line = Util.readLine( in );
+			}
+			while ( line != null && !endBase64( line ) )
+			{
+				line = Util.trim( line );
+				if ( !"".equals( line ) )
 				{
-					String k = line.substring( 0, x ).trim();
-					String v = "";
-					if ( line.length() > x + 1 )
+					int x = line.indexOf( ':' );
+					if ( x > 0 )
 					{
-						v = line.substring( x + 1 ).trim();
+						String k = line.substring( 0, x ).trim();
+						String v = "";
+						if ( line.length() > x + 1 )
+						{
+							v = line.substring( x + 1 ).trim();
+						}
+						properties.put( k.toLowerCase(), v.toLowerCase() );
 					}
-					properties.put( k.toLowerCase(), v.toLowerCase() );
+					else
+					{
+						byte[] base64 = line.getBytes();
+						byte[] rawBinary = Base64.decodeBase64( base64 );
+						listOfByteArrays.add( rawBinary );
+						len += rawBinary.length;
+					}
 				}
-				else
+				line = Util.readLine( in );
+			}
+			if ( line != null )
+			{
+				line = Util.readLine( in );
+			}
+
+			if ( !listOfByteArrays.isEmpty() )
+			{
+				decoded = new byte[len];
+				int pos = 0;
+				Iterator it = listOfByteArrays.iterator();
+				while ( it.hasNext() )
 				{
-					byte[] base64 = line.getBytes();
-					byte[] rawBinary = Base64.decodeBase64( base64 );
-					listOfByteArrays.add( rawBinary );
-					len += rawBinary.length;
+					byte[] oneLine = (byte[]) it.next();
+					System.arraycopy( oneLine, 0, decoded, pos, oneLine.length );
+					pos += oneLine.length;
 				}
 			}
-			line = Util.readLine( in );
+			PEMItem item = new PEMItem( decoded, type, properties );
+			pemItems.add( item );
 		}
 		in.close();
-		if ( !listOfByteArrays.isEmpty() )
-		{
-			decoded = new byte[ len ];
-			int pos = 0;
-			Iterator it = listOfByteArrays.iterator();
-			while ( it.hasNext() )
-			{
-				byte[] oneLine = (byte[]) it.next();
-				System.arraycopy( oneLine, 0, decoded, pos, oneLine.length );
-				pos += oneLine.length;
-			}
-		}
-		PEMItem item = new PEMItem( decoded, "-BEGIN", properties );
-		return Collections.singletonList( item );
+		return pemItems;
 	}
 
 	private static boolean beginBase64( String line )
 	{
 		line = line != null ? line.trim().toUpperCase() : "";
 		int x = line.indexOf( "-BEGIN" );
-		return x > 0 ? startsAndEndsWithDashes( line ) : false;
+		return x > 0 && startsAndEndsWithDashes( line );
 	}
 
 	private static boolean endBase64( String line )
 	{
 		line = line != null ? line.trim().toUpperCase() : "";
 		int x = line.indexOf( "-END" );
-		return x > 0 ? startsAndEndsWithDashes( line ) : false;
+		return x > 0 && startsAndEndsWithDashes( line );
 	}
 
 	private static boolean startsAndEndsWithDashes( String line )
 	{
+		line = Util.trim( line );
 		char c = line.charAt( 0 );
 		char d = line.charAt( line.length() - 1 );
 		return c == '-' && d == '-';
@@ -117,7 +125,8 @@ public class PEMUtil
 		buf.append( LINE_SEPARATOR );
 		buf.append( formatBigInteger( key.getModulus(), 129 * 2 ) );
 		buf.append( LINE_SEPARATOR );
-		buf.append( "publicExponent: " + key.getPublicExponent() );
+		buf.append( "publicExponent: " );
+		buf.append( key.getPublicExponent() );
 		buf.append( LINE_SEPARATOR );
 		buf.append( "privateExponent:" );
 		buf.append( LINE_SEPARATOR );
@@ -181,7 +190,7 @@ public class PEMUtil
 
 	public static byte[] hexToBytes( String s )
 	{
-		byte[] b = new byte[ s.length() / 2 ];
+		byte[] b = new byte[s.length() / 2];
 		for ( int i = 0; i < b.length; i++ )
 		{
 			String hex = s.substring( 2 * i, 2 * ( i + 1 ) );
@@ -209,10 +218,12 @@ public class PEMUtil
 		return buf.toString();
 	}
 
-
+	/*
 	public static void main( String[] args ) throws Exception
 	{
-		PEMItem item = (PEMItem) decode( args[ 0 ] ).get( 0 );
+		FileInputStream fin = new FileInputStream( args[ 0 ] );
+		byte[] pemBytes = Util.streamToBytes( fin );
+		PEMItem item = (PEMItem) decode( pemBytes ).get( 0 );
 		String transformation = item.cipher + "/" + item.mode + "/PKCS5Padding";
 		System.out.println( item.properties );
 		System.out.println( transformation );
@@ -237,9 +248,9 @@ public class PEMUtil
 	public static byte[] ssleayCreateKey( char[] password, byte[] salt,
 	                                      int keySizeInBits )
 	{
-		byte[] key = new byte[ keySizeInBits / 8 ];
+		byte[] key = new byte[keySizeInBits / 8];
 
-		MessageDigest md5 = null;
+		MessageDigest md5;
 		try
 		{
 			md5 = MessageDigest.getInstance( "MD5" );
@@ -250,7 +261,7 @@ public class PEMUtil
 			throw new RuntimeException( nsae );
 		}
 
-		byte[] pwd = new byte[ password.length ];
+		byte[] pwd = new byte[password.length];
 		for ( int i = 0; i < pwd.length; i++ )
 		{
 			pwd[ i ] = (byte) password[ i ];
@@ -265,7 +276,7 @@ public class PEMUtil
 			// Digest gave us more than we need.  Let's truncate it.
 			if ( result.length > stillNeed )
 			{
-				byte[] b = new byte[ stillNeed ];
+				byte[] b = new byte[stillNeed];
 				System.arraycopy( result, 0, b, 0, b.length );
 				result = b;
 			}
@@ -280,4 +291,5 @@ public class PEMUtil
 		}
 		return key;
 	}
+	*/
 }
