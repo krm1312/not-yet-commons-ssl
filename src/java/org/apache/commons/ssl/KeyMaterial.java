@@ -195,7 +195,7 @@ System.out.println( pk.getAlgorithm() + " " + pk.getFormat() );
 	     FileInputStream fin = new FileInputStream( args[ 1 ] );
 	     byte[] certChain = Util.streamToBytes( fin );
 
-	     List l = PEMUtil.decode( keypath );
+	     List l = PEMUtil.decode( keypath.getBytes() );
 	     PEMItem item = (PEMItem) l.get( 0 );
 	     KeyMaterial km = new KeyMaterial( item.getDerBytes(), certChain, null );
 
