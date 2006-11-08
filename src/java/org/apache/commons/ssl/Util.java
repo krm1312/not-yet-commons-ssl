@@ -282,6 +282,29 @@ public class Util
 		return buf.length() >= 1 ? buf.toString() : null;
 	}
 
+	public static String readLine( final ByteArrayInputStream in )
+	{
+		StringBuffer buf = new StringBuffer( 64 );
+		int b = in.read();
+		while ( b != -1 )
+		{
+			char c = (char) b;
+			if ( c == '\n' || c == '\r' )
+			{
+				if ( buf.length() >= 1 )
+				{
+					return buf.toString();
+				}
+			}
+			else
+			{
+				buf.append( c );
+			}
+			b = in.read();
+		}
+		return buf.length() >= 1 ? buf.toString() : null;
+	}
+
 	public static HostPort toAddress( final String target,
 	                                  final int defaultPort )
 			throws UnknownHostException
