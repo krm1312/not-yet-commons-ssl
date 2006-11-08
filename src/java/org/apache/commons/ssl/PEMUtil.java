@@ -1,8 +1,6 @@
 package org.apache.commons.ssl;
 
 import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
 import java.math.BigInteger;
 import java.security.interfaces.RSAPrivateCrtKey;
 import java.util.ArrayList;
@@ -20,10 +18,10 @@ public class PEMUtil
 {
 	final static String LINE_SEPARATOR = System.getProperty( "line.separator" );
 
-	public static List decode( byte[] pemBytes ) throws IOException
+	public static List decode( byte[] pemBytes )
 	{
 		LinkedList pemItems = new LinkedList();
-		InputStream in = new ByteArrayInputStream( pemBytes );
+		ByteArrayInputStream in = new ByteArrayInputStream( pemBytes );
 		String line = Util.readLine( in );
 		while ( line != null )
 		{
@@ -86,11 +84,14 @@ public class PEMUtil
 					System.arraycopy( oneLine, 0, decoded, pos, oneLine.length );
 					pos += oneLine.length;
 				}
+				PEMItem item = new PEMItem( decoded, type, properties );
+				pemItems.add( item );
 			}
-			PEMItem item = new PEMItem( decoded, type, properties );
-			pemItems.add( item );
 		}
-		in.close();
+
+		// closing ByteArrayInputStream is a NO-OP
+		// in.close();
+
 		return pemItems;
 	}
 
@@ -201,8 +202,14 @@ public class PEMUtil
 
 	public static String bytesToHex( byte[] b )
 	{
+		return bytesToHex( b, 0, b.length );
+	}
+
+	public static String bytesToHex( byte[] b, int offset, int length )
+	{
 		StringBuffer buf = new StringBuffer();
-		for ( int i = 0; i < b.length; i++ )
+		int len = Math.min( offset + length, b.length );
+		for ( int i = offset; i < len; i++ )
 		{
 			int c = (int) b[ i ];
 			if ( c < 0 )
