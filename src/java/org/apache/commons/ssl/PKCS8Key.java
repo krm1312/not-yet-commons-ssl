@@ -1,13 +1,6 @@
 package org.apache.commons.ssl;
 
-import org.apache.commons.asn1.ASN1InputStream;
-import org.apache.commons.asn1.DEREncodable;
-import org.apache.commons.asn1.DERInteger;
-import org.apache.commons.asn1.DERObjectIdentifier;
-import org.apache.commons.asn1.DEROctetString;
-import org.apache.commons.asn1.DERPrintableString;
-import org.apache.commons.asn1.DERSequence;
-import org.apache.commons.asn1.DERSet;
+import org.apache.commons.asn1.*;
 
 import javax.crypto.Cipher;
 import javax.crypto.CipherInputStream;
@@ -17,16 +10,17 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigInteger;
+import java.security.GeneralSecurityException;
 import java.security.InvalidKeyException;
 import java.security.KeyFactory;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
-import java.security.GeneralSecurityException;
 import java.security.interfaces.RSAPrivateCrtKey;
 import java.security.spec.KeySpec;
 import java.security.spec.PKCS8EncodedKeySpec;
@@ -47,8 +41,10 @@ public class PKCS8Key
 			new BigInteger( Integer.toString( Integer.MAX_VALUE ) );
 	public final static Map OID_CIPHER_MAPPINGS;
 
-	public final static String UNENCRYPTED_PEM_TYPE = "PRIVATE KEY";
-	public final static String ENCRYPTED_PEM_TYPE = "ENCRYPTED PRIVATE KEY";
+	public final static String PKCS8_UNENCRYPTED = "PRIVATE KEY";
+	public final static String PKCS8_ENCRYPTED = "ENCRYPTED PRIVATE KEY";
+	public final static String OPENSSL_RSA = "RSA PRIVATE KEY";
+	public final static String OPENSSL_DSA = "DSA PRIVATE KEY";	
 
 	static
 	{
@@ -76,6 +72,7 @@ public class PKCS8Key
 	PKCS8Key( final byte[] encoded, char[] password )
 	{
 		List pemItems = PEMUtil.decode( encoded );
+		PEMItem keyItem = null;
 		byte[] derBytes = null;
 		if ( pemItems.isEmpty() )
 		{
@@ -85,25 +82,70 @@ public class PKCS8Key
 		else
 		{
 			Iterator it = pemItems.iterator();
+			boolean opensslRSA = false;
+			boolean opensslDSA = false;
 			while ( it.hasNext() )
 			{
 				PEMItem item = (PEMItem) it.next();
 				String type = item.pemType.trim().toUpperCase();
-				boolean unencryptedType = type.startsWith( UNENCRYPTED_PEM_TYPE );
-				boolean encryptedType = type.startsWith( ENCRYPTED_PEM_TYPE );
-				if ( unencryptedType || encryptedType )
+				boolean plainPKCS8 = type.startsWith( PKCS8_UNENCRYPTED );
+				boolean encryptedPKCS8 = type.startsWith( PKCS8_ENCRYPTED );
+				opensslRSA = type.startsWith( OPENSSL_RSA );
+				opensslDSA = type.startsWith( OPENSSL_DSA );
+				if ( plainPKCS8 || encryptedPKCS8 || opensslDSA || opensslRSA )
 				{
 					if ( derBytes != null )
 					{
 						throw new RuntimeException( "more than one pkcs8 key found in supplied byte array!" );
 					}
 					derBytes = item.getDerBytes();
+					keyItem = item;
 				}
 			}
 			// after the loop is finished, did we find anything?
 			if ( derBytes == null )
 			{
 				throw new RuntimeException( "no pkcs8 key found in supplied byte array!" );
+			}
+
+			if ( opensslDSA || opensslRSA )
+			{
+				String c = keyItem.cipher.trim();
+				boolean encrypted = !"UNKNOWN".equals( c ) && !"".equals( c );
+				byte[] decryptedBytes;
+				if ( encrypted )
+				{
+					decryptedBytes = opensslDecrypt( keyItem, password );
+				}
+				else
+				{
+					decryptedBytes = derBytes;
+				}
+
+				try
+				{
+					DERInteger derZero = DERInteger.valueOf( 0 );
+					DERObjectIdentifier oid = DERObjectIdentifier.valueOf( "1.2.840.113549.1.1.1" );
+					DEROctetString octet = new DEROctetString( decryptedBytes );
+					DERSequence outter = new DERSequence();
+					DERSequence inner = new DERSequence();
+					inner.add( oid );
+					inner.add( DERNull.DER_NULL );
+					outter.add( derZero );
+					outter.add( inner );
+					outter.add( octet );
+
+					ByteArrayOutputStream baos = new ByteArrayOutputStream( 2048 );
+					ASN1OutputStream out = new ASN1OutputStream( baos );
+					outter.encode( out );
+					out.close();
+
+					derBytes = baos.toByteArray();
+				}
+				catch ( IOException ioe )
+				{
+					throw new RuntimeException( ioe );
+				}
 			}
 		}
 
@@ -141,12 +183,28 @@ System.out.println( pkcs8 );
 
 		System.out.println( Certificates.toString( decryptedPKCS8 ) );
 
-		/*
-		  asn = new ASN1InputStream( rsaKey );
-		  seq = (DERSequence) asn.readObject();
-		  pkcs8 = new PKCS8();
-		  analyzeASN1( seq, pkcs8, 0 );
-		  */
+		try
+		{
+	  asn = new ASN1InputStream( decryptedPKCS8 );
+	  seq = (DERSequence) asn.readObject();
+	  pkcs8 = new PKCS8Asn1Structure();
+	  analyzeASN1( seq, pkcs8, 0 );
+
+System.out.println( pkcs8 );
+
+		asn = new ASN1InputStream( pkcs8.payload );
+		seq = (DERSequence) asn.readObject();
+		pkcs8 = new PKCS8Asn1Structure();
+		analyzeASN1( seq, pkcs8, 0 );
+
+ System.out.println( pkcs8 );
+
+
+		}
+		catch( Exception e )
+		{
+			e.printStackTrace( System.out );
+		}
 
 
 		KeySpec spec = new PKCS8EncodedKeySpec( decryptedPKCS8 );
@@ -167,6 +225,47 @@ System.out.println( pkcs8 );
 		}
 		
 
+	}
+
+	private byte[] opensslDecrypt( PEMItem item, char[] password )
+	{
+		String cipher = item.cipher;
+		String hash = "MD5";
+		String mode = item.mode;
+		int keySize = item.keySizeInBits;
+		byte[] salt = item.iv;
+
+		MessageDigest md;
+		try
+		{
+			md = MessageDigest.getInstance( hash );
+		}
+		catch ( NoSuchAlgorithmException nsae )
+		{
+			throw new RuntimeException( nsae );
+		}
+
+		DerivedKey dk = deriveKeyOpenSSL( password, salt, keySize, md );
+
+		String transformation = cipher + "/" + mode + "/PKCS5Padding";
+System.out.println( "transformation: " + transformation );
+System.out.println( "hash: " + hash );
+
+		InputStream in = new ByteArrayInputStream( item.getDerBytes() );
+
+		SecretKey sk = new SecretKeySpec( dk.key, cipher );
+		IvParameterSpec ivParams = new IvParameterSpec( dk.iv );
+		try
+		{
+			Cipher c = Cipher.getInstance( transformation );
+			c.init( Cipher.DECRYPT_MODE, sk, ivParams );
+			in = new CipherInputStream( in, c );
+			return Util.streamToBytes( in );
+		}
+		catch ( Exception e )
+		{
+			throw new RuntimeException( e );
+		}
 	}
 
 	private byte[] decrypt( PKCS8Asn1Structure pkcs8, char[] password )
@@ -291,9 +390,17 @@ System.out.println( "hash: " + hash );
 		{
 			ivParams = new IvParameterSpec( dk.iv );
 		}
+
 		try
 		{
-			c.init( Cipher.DECRYPT_MODE, secret, ivParams );
+			if ( "RC2".equalsIgnoreCase( cipher ) )
+			{
+				c.init( Cipher.DECRYPT_MODE, secret );
+			}
+			else
+			{
+				c.init( Cipher.DECRYPT_MODE, secret, ivParams );
+			}
 			ByteArrayInputStream bIn = new ByteArrayInputStream( pkcs8.payload );
 			InputStream in = new CipherInputStream( bIn, c );
 			return Util.streamToBytes( in );
@@ -302,6 +409,44 @@ System.out.println( "hash: " + hash );
 		{
 			throw new RuntimeException( e );
 		}
+	}
+
+	public static DerivedKey deriveKeyOpenSSL( char[] password, byte[] salt,
+	                                           int keySizeInBits,
+	                                           MessageDigest md )
+	{
+		md.reset();
+		byte[] key = new byte[keySizeInBits / 8];
+		byte[] pwd = new byte[password.length];
+		for ( int i = 0; i < pwd.length; i++ )
+		{
+			pwd[ i ] = (byte) password[ i ];
+		}
+		byte[] result;
+		int currentPos = 0;
+		while ( currentPos < key.length )
+		{
+			md.update( pwd );
+			md.update( salt, 0, 8 ); // First 8 bytes of salt ONLY!
+			result = md.digest();
+			int stillNeed = key.length - currentPos;
+			// Digest gave us more than we need.  Let's truncate it.
+			if ( result.length > stillNeed )
+			{
+				byte[] b = new byte[stillNeed];
+				System.arraycopy( result, 0, b, 0, b.length );
+				result = b;
+			}
+			System.arraycopy( result, 0, key, currentPos, result.length );
+			currentPos += result.length;
+			if ( currentPos < key.length )
+			{
+				// Next round starts with a hash of the hash.
+				md.reset();
+				md.update( result );
+			}
+		}
+		return new DerivedKey( key, salt );
 	}
 
 	public static DerivedKey deriveKeyV1( byte[] password, byte[] salt,
