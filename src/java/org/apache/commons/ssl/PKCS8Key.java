@@ -8,6 +8,7 @@ import javax.crypto.Mac;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.RC2ParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -21,7 +22,6 @@ import java.security.KeyFactory;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
-import java.security.interfaces.RSAPrivateCrtKey;
 import java.security.spec.KeySpec;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.Collections;
@@ -30,6 +30,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.LinkedList;
 
 /**
  * @author Julius Davies
@@ -41,13 +42,19 @@ public class PKCS8Key
 			new BigInteger( Integer.toString( Integer.MAX_VALUE ) );
 	public final static Map OID_CIPHER_MAPPINGS;
 
+	public final static String RSA_OID = "1.2.840.113549.1.1.1";
+	public final static String DSA_OID = "1.2.840.10040.4.1";
+
+
 	public final static String PKCS8_UNENCRYPTED = "PRIVATE KEY";
 	public final static String PKCS8_ENCRYPTED = "ENCRYPTED PRIVATE KEY";
 	public final static String OPENSSL_RSA = "RSA PRIVATE KEY";
-	public final static String OPENSSL_DSA = "DSA PRIVATE KEY";	
+	public final static String OPENSSL_DSA = "DSA PRIVATE KEY";
 
 	static
 	{
+		JavaImpl.load();
+
 		Map m1 = new TreeMap();
 
 		// 1.2.840.113549.1.5.3 --> pbeWithMD5AndDES-CBC
@@ -122,30 +129,12 @@ public class PKCS8Key
 					decryptedBytes = derBytes;
 				}
 
-				try
+				String oid = RSA_OID;
+				if ( opensslDSA )
 				{
-					DERInteger derZero = DERInteger.valueOf( 0 );
-					DERObjectIdentifier oid = DERObjectIdentifier.valueOf( "1.2.840.113549.1.1.1" );
-					DEROctetString octet = new DEROctetString( decryptedBytes );
-					DERSequence outter = new DERSequence();
-					DERSequence inner = new DERSequence();
-					inner.add( oid );
-					inner.add( DERNull.DER_NULL );
-					outter.add( derZero );
-					outter.add( inner );
-					outter.add( octet );
-
-					ByteArrayOutputStream baos = new ByteArrayOutputStream( 2048 );
-					ASN1OutputStream out = new ASN1OutputStream( baos );
-					outter.encode( out );
-					out.close();
-
-					derBytes = baos.toByteArray();
+					oid = DSA_OID;
 				}
-				catch ( IOException ioe )
-				{
-					throw new RuntimeException( ioe );
-				}
+				derBytes = formatAsPKCS8( decryptedBytes, oid, null );
 			}
 		}
 
@@ -162,10 +151,29 @@ public class PKCS8Key
 
 		PKCS8Asn1Structure pkcs8 = new PKCS8Asn1Structure();
 		analyzeASN1( seq, pkcs8, 0 );
-System.out.println( pkcs8 );
 
-		String oid = pkcs8.oid1;
-		boolean encrypted = !"1.2.840.113549.1.1.1".equals( oid );
+		String oid = RSA_OID;
+		int derIntegerCount = -1;
+		if ( pkcs8.derIntegers != null )
+		{
+			derIntegerCount = pkcs8.derIntegers.size();
+		}
+		switch ( derIntegerCount )
+		{
+			case 6:
+				oid = DSA_OID;
+			case 9:
+				derBytes = formatAsPKCS8( derBytes, oid, pkcs8 );
+				pkcs8.oid1 = oid;
+				break;
+			default:
+				break;
+		}
+
+		oid = pkcs8.oid1;
+		boolean isRSA = RSA_OID.equals( oid );
+		boolean isDSA = DSA_OID.equals( oid );
+		boolean encrypted = !isRSA && !isDSA;
 		byte[] decryptedPKCS8 = encrypted ? null : derBytes;
 
 		if ( encrypted )
@@ -176,42 +184,43 @@ System.out.println( pkcs8 );
 			}
 			catch ( GeneralSecurityException gse )
 			{
-				throw new RuntimeException( gse );
+				throw JavaImpl.newRuntimeException( gse );
 			}
 		}
 
 
 		System.out.println( Certificates.toString( decryptedPKCS8 ) );
 
-		try
+		if ( encrypted )
 		{
-	  asn = new ASN1InputStream( decryptedPKCS8 );
-	  seq = (DERSequence) asn.readObject();
-	  pkcs8 = new PKCS8Asn1Structure();
-	  analyzeASN1( seq, pkcs8, 0 );
-
-System.out.println( pkcs8 );
-
-		asn = new ASN1InputStream( pkcs8.payload );
-		seq = (DERSequence) asn.readObject();
-		pkcs8 = new PKCS8Asn1Structure();
-		analyzeASN1( seq, pkcs8, 0 );
-
- System.out.println( pkcs8 );
-
-
+			asn = new ASN1InputStream( decryptedPKCS8 );
+			try
+			{
+				seq = (DERSequence) asn.readObject();
+			}
+			catch ( IOException ioe )
+			{
+				throw new RuntimeException( ioe );
+			}
+			pkcs8 = new PKCS8Asn1Structure();
+			analyzeASN1( seq, pkcs8, 0 );
+			oid = pkcs8.oid1;
+			isDSA = DSA_OID.equals( oid );
 		}
-		catch( Exception e )
-		{
-			e.printStackTrace( System.out );
-		}
-
 
 		KeySpec spec = new PKCS8EncodedKeySpec( decryptedPKCS8 );
 		PrivateKey pk = null;
 		try
 		{
-			KeyFactory KF = KeyFactory.getInstance( "RSA" );
+			KeyFactory KF;
+			if ( isDSA )
+			{
+				KF = KeyFactory.getInstance( "DSA" );
+			}
+			else
+			{
+				KF = KeyFactory.getInstance( "RSA" );
+			}
 			pk = KF.generatePrivate( spec );
 		}
 		catch ( Exception e )
@@ -220,10 +229,11 @@ System.out.println( pkcs8 );
 		}
 		if ( pk != null )
 		{
-			System.out.println( PEMUtil.formatRSAPrivateKey( (RSAPrivateCrtKey) pk ) );
+			System.out.println( pk );
+			// System.out.println( PEMUtil.formatRSAPrivateKey( (RSAPrivateCrtKey) pk ) );
 			// System.out.println( Certificates.toString( pk.getEncoded() ) );
 		}
-		
+
 
 	}
 
@@ -248,8 +258,8 @@ System.out.println( pkcs8 );
 		DerivedKey dk = deriveKeyOpenSSL( password, salt, keySize, md );
 
 		String transformation = cipher + "/" + mode + "/PKCS5Padding";
-System.out.println( "transformation: " + transformation );
-System.out.println( "hash: " + hash );
+		System.out.println( "transformation: " + transformation );
+		System.out.println( "hash: " + hash );
 
 		InputStream in = new ByteArrayInputStream( item.getDerBytes() );
 
@@ -308,7 +318,7 @@ System.out.println( "hash: " + hash );
 		{
 			oid = pkcs8.oid2;
 		}
-		
+
 		if ( "1.2.840.113549.1.5.12".equals( oid ) )
 		{
 			useKeyDeriverVersion1 = false;
@@ -322,25 +332,41 @@ System.out.println( "hash: " + hash );
 			cipher = "AES";
 			int x = oid.lastIndexOf( '.' );
 			int finalDigit = Integer.parseInt( oid.substring( x + 1 ) );
-System.out.println( "AES final digit: " + finalDigit );
+			System.out.println( "AES final digit: " + finalDigit );
 			switch ( finalDigit % 10 )
 			{
-				case 1: mode = "ECB"; break; 
-				case 2: mode = "CBC"; break;
-				case 3: mode = "OFB"; break;
-				case 4: mode = "CFB"; break;
-				default: throw new RuntimeException( "Unknown AES final digit: " + finalDigit );
+				case 1:
+					mode = "ECB";
+					break;
+				case 2:
+					mode = "CBC";
+					break;
+				case 3:
+					mode = "OFB";
+					break;
+				case 4:
+					mode = "CFB";
+					break;
+				default:
+					throw new RuntimeException( "Unknown AES final digit: " + finalDigit );
 			}
 			switch ( finalDigit / 10 )
 			{
-				case 0: keySize = 128; break;
-				case 2: keySize = 192; break;
-				case 4: keySize = 256; break;
-				default: throw new RuntimeException( "Unknown AES final digit: " + finalDigit );
+				case 0:
+					keySize = 128;
+					break;
+				case 2:
+					keySize = 192;
+					break;
+				case 4:
+					keySize = 256;
+					break;
+				default:
+					throw new RuntimeException( "Unknown AES final digit: " + finalDigit );
 			}
 		}
 
-System.out.println( "using oid: " + oid );
+		System.out.println( "using oid: " + oid );
 
 		if ( OID_CIPHER_MAPPINGS.containsKey( oid ) )
 		{
@@ -351,14 +377,13 @@ System.out.println( "using oid: " + oid );
 			}
 		}
 
-
 		// Is the cipher even available?
 		Cipher c = Cipher.getInstance( cipher );
 		System.out.println( cipher + " is available!" );
 
 		String transformation = cipher + "/" + mode + "/PKCS5Padding";
-System.out.println( "transformation: " + transformation );
-System.out.println( "hash: " + hash );
+		System.out.println( "transformation: " + transformation );
+		System.out.println( "hash: " + hash );
 
 		byte[] salt = pkcs8.salt1;
 		int ic = pkcs8.iterationCount;
@@ -366,7 +391,7 @@ System.out.println( "hash: " + hash );
 		for ( int i = 0; i < pwd.length; i++ )
 		{
 			pwd[ i ] = (byte) password[ i ];
-		}		
+		}
 
 		DerivedKey dk;
 		if ( useKeyDeriverVersion1 )
@@ -395,19 +420,22 @@ System.out.println( "hash: " + hash );
 		{
 			if ( "RC2".equalsIgnoreCase( cipher ) )
 			{
-				c.init( Cipher.DECRYPT_MODE, secret );
+				byte[] iv = ivParams.getIV();
+				RC2ParameterSpec rcParams = new RC2ParameterSpec( keySize, iv );
+				c.init( Cipher.DECRYPT_MODE, secret, rcParams );
 			}
 			else
 			{
 				c.init( Cipher.DECRYPT_MODE, secret, ivParams );
 			}
-			ByteArrayInputStream bIn = new ByteArrayInputStream( pkcs8.payload );
+			byte[] encrypted = pkcs8.bigPayload;
+			ByteArrayInputStream bIn = new ByteArrayInputStream( encrypted );
 			InputStream in = new CipherInputStream( bIn, c );
 			return Util.streamToBytes( in );
 		}
 		catch ( Exception e )
 		{
-			throw new RuntimeException( e );
+			throw JavaImpl.newRuntimeException( e );
 		}
 	}
 
@@ -427,7 +455,9 @@ System.out.println( "hash: " + hash );
 		while ( currentPos < key.length )
 		{
 			md.update( pwd );
-			md.update( salt, 0, 8 ); // First 8 bytes of salt ONLY!
+			// First 8 bytes of salt ONLY!  (That wasn't obvious for me with those
+			// longer AES salts.   MUCH gnashing of teeth.)
+			md.update( salt, 0, 8 );
 			result = md.digest();
 			int stillNeed = key.length - currentPos;
 			// Digest gave us more than we need.  Let's truncate it.
@@ -459,18 +489,16 @@ System.out.println( "hash: " + hash );
 		}
 		int keySize = keySizeInBits / 8;
 		int ivSize = ivSizeInBits / 8;
-
 		md.reset();
 		md.update( password );
 		byte[] result = md.digest( salt );
 		for ( int i = 1; i < iterations; i++ )
 		{
+			// Hash of the hash for each of the iterations.
 			result = md.digest( result );
 		}
-
-		byte[] key = new byte[ keySize ];
-		byte[] iv = new byte[ ivSize ];
-
+		byte[] key = new byte[keySize];
+		byte[] iv = new byte[ivSize];
 		System.arraycopy( result, 0, key, 0, key.length );
 		System.arraycopy( result, key.length, iv, 0, iv.length );
 		return new DerivedKey( key, iv );
@@ -494,21 +522,19 @@ System.out.println( "hash: " + hash );
 		catch ( InvalidKeyException ike )
 		{
 			throw new RuntimeException( ike );
-		}		
-
-		int hLen = mac.getMacLength();
-		int dkLen = keySize + ivSize;
-		int l = ( dkLen + hLen - 1 ) / hLen;
+		}
+		int macLength = mac.getMacLength();
+		int derivedKeyLength = keySize + ivSize;
+		int blocks = ( derivedKeyLength + macLength - 1 ) / macLength;
 		byte[] blockIndex = new byte[4];
-		byte[] finalResult = new byte[l * hLen];
-		for ( int i = 1; i <= l; i++ )
+		byte[] finalResult = new byte[blocks * macLength];
+		for ( int i = 1; i <= blocks; i++ )
 		{
-			int offset = ( i - 1 ) * hLen;
+			int offset = ( i - 1 ) * macLength;
 			blockIndex[ 0 ] = (byte) ( i >>> 24 );
 			blockIndex[ 1 ] = (byte) ( i >>> 16 );
 			blockIndex[ 2 ] = (byte) ( i >>> 8 );
 			blockIndex[ 3 ] = (byte) i;
-
 			mac.reset();
 			mac.update( salt );
 			byte[] result = mac.doFinal( blockIndex );
@@ -523,7 +549,6 @@ System.out.println( "hash: " + hash );
 				}
 			}
 		}
-
 		byte[] key = new byte[keySize];
 		byte[] iv = new byte[ivSize];
 		System.arraycopy( finalResult, 0, key, 0, key.length );
@@ -534,6 +559,10 @@ System.out.println( "hash: " + hash );
 	private static void analyzeASN1( DEREncodable seq, PKCS8Asn1Structure pkcs8,
 	                                 int depth )
 	{
+		if ( depth >= 2 )
+		{
+			pkcs8.derIntegers = null;
+		}
 		Enumeration en = null;
 		if ( seq instanceof DERSequence )
 		{
@@ -559,7 +588,24 @@ System.out.println( "hash: " + hash );
 				{
 					name = "  " + name;
 				}
-				if ( obj instanceof DERObjectIdentifier )
+				if ( obj instanceof DERInteger )
+				{
+					DERInteger dInt = (DERInteger) obj;
+					if ( pkcs8.derIntegers != null )
+					{
+						pkcs8.derIntegers.add( dInt );
+					}
+					BigInteger big = dInt.toBigInteger();
+					if ( BIGGEST.compareTo( big ) >= 0 )
+					{
+						if ( pkcs8.iterationCount == 0 )
+						{
+							pkcs8.iterationCount = big.intValue();
+						}
+					}
+					str = dInt.toBigInteger().toString();
+				}
+				else if ( obj instanceof DERObjectIdentifier )
 				{
 					DERObjectIdentifier id = (DERObjectIdentifier) obj;
 					str = id.getIdentifier();
@@ -576,67 +622,70 @@ System.out.println( "hash: " + hash );
 						pkcs8.oid3 = str;
 					}
 				}
-				else if ( obj instanceof DEROctetString )
+				else
 				{
-					DEROctetString oct = (DEROctetString) obj;
-					byte[] octets = oct.getOctets();
-					int len = Math.min( 10, octets.length );
-					boolean probablyBinary = false;
-					for ( int i = 0; i < len; i++ )
+					pkcs8.derIntegers = null;
+					if ( obj instanceof DERTaggedObject )
 					{
-						byte b = octets[ i ];
-						boolean isBinary = b > 128 || b < 0;
-						if ( isBinary )
-						{
-							probablyBinary = true;
-							break;
-						}
+						DERTaggedObject tag = (DERTaggedObject) obj;
+						str = tag.getTagNo() + ": " + tag.getObject();
 					}
-					if ( probablyBinary && octets.length > 64 )
+					if ( obj instanceof DEROctetString )
 					{
-						if ( pkcs8.payload == null )
+						DEROctetString oct = (DEROctetString) obj;
+						byte[] octets = oct.getOctets();
+						int len = Math.min( 10, octets.length );
+						boolean probablyBinary = false;
+						for ( int i = 0; i < len; i++ )
 						{
-							pkcs8.payload = octets;
+							byte b = octets[ i ];
+							boolean isBinary = b > 128 || b < 0;
+							if ( isBinary )
+							{
+								probablyBinary = true;
+								break;
+							}
 						}
-						str = "probably binary (length=" + octets.length + ")";
-					}
-					else
-					{
-						if ( octets.length % 8 == 0 && octets.length <= 64 )
+						if ( probablyBinary && octets.length > 64 )
 						{
-							if ( pkcs8.salt1 == null )
+							if ( pkcs8.bigPayload == null )
 							{
-								pkcs8.salt1 = octets;
+								pkcs8.bigPayload = octets;
 							}
-							else if ( pkcs8.salt2 == null )
-							{
-								pkcs8.salt2 = octets;
-							}
-							str = PEMUtil.bytesToHex( octets );
+							str = "probably binary";
 						}
 						else
 						{
-							str = new String( oct.getOctets() );
+							str = PEMUtil.bytesToHex( octets );
+							if ( octets.length <= 64 )
+							{
+								if ( octets.length % 8 == 0 )
+								{
+									if ( pkcs8.salt1 == null )
+									{
+										pkcs8.salt1 = octets;
+									}
+									else if ( pkcs8.salt2 == null )
+									{
+										pkcs8.salt2 = octets;
+									}
+								}
+								else
+								{
+									if ( pkcs8.smallPayload == null )
+									{
+								      pkcs8.smallPayload = octets;
+									}
+								}
+							}
 						}
+						str += " (length=" + octets.length + ")";
 					}
-				}
-				else if ( obj instanceof DERInteger )
-				{
-					DERInteger dInt = (DERInteger) obj;
-					BigInteger big = dInt.toBigInteger();
-					if ( BIGGEST.compareTo( big ) >= 0 )
+					else if ( obj instanceof DERPrintableString )
 					{
-						if ( pkcs8.iterationCount == 0 )
-						{
-							pkcs8.iterationCount = big.intValue();
-						}
+						DERPrintableString dps = (DERPrintableString) obj;
+						str = dps.getString();
 					}
-					str = dInt.toBigInteger().toString();
-				}
-				else if ( obj instanceof DERPrintableString )
-				{
-					DERPrintableString dps = (DERPrintableString) obj;
-					str = dps.getString();
 				}
 				System.out.println( name + ": [" + str + "]" );
 			}
@@ -650,13 +699,15 @@ System.out.println( "hash: " + hash );
 
 	private static class PKCS8Asn1Structure
 	{
+		protected List derIntegers = new LinkedList();
 		protected String oid1;
 		protected String oid2;
 		protected String oid3;
 		protected byte[] salt1;
 		protected byte[] salt2;
 		protected int iterationCount;
-		protected byte[] payload;
+		protected byte[] bigPayload;
+		protected byte[] smallPayload;
 
 		public String toString()
 		{
@@ -699,6 +750,80 @@ System.out.println( "hash: " + hash );
 			}
 			return buf.toString();
 		}
+	}
+
+	public static byte[] formatAsPKCS8( byte[] privateKey, String oid,
+	                                    PKCS8Asn1Structure pkcs8 )
+	{
+		DERInteger derZero = DERInteger.valueOf( 0 );
+		DERSequence outter = new DERSequence();
+		DERSequence inner = new DERSequence();
+		outter.add( derZero );
+		outter.add( inner );
+		try
+		{
+			DERObjectIdentifier derOID = DERObjectIdentifier.valueOf( oid );
+			inner.add( derOID );
+			if ( DSA_OID.equals( oid ) )
+			{
+				if ( pkcs8 == null )
+				{
+					ASN1InputStream asn = new ASN1InputStream( privateKey );
+					DERSequence seq;
+					try
+					{
+						seq = (DERSequence) asn.readObject();
+					}
+					catch ( IOException ioe )
+					{
+						throw new RuntimeException( "asn1 parse failure", ioe );
+					}
+					pkcs8 = new PKCS8Asn1Structure();
+					analyzeASN1( seq, pkcs8, 0 );
+				}
+				if ( pkcs8.derIntegers == null || pkcs8.derIntegers.size() < 6 )
+				{
+					throw new RuntimeException( "invalid DSA key - can't find P, Q, G, X" );
+				}
+
+				DERInteger[] ints = new DERInteger[ pkcs8.derIntegers.size() ];
+				pkcs8.derIntegers.toArray( ints );
+				DERInteger p = ints[ 1 ];
+				DERInteger q = ints[ 2 ];
+				DERInteger g = ints[ 3 ];
+				DERInteger x = ints[ 5 ];
+
+				byte[] encodedX = encode( x );
+				DEROctetString xAsOctets = new DEROctetString( encodedX );
+				DERSequence pqg = new DERSequence();
+				pqg.add( p );
+				pqg.add( q );
+				pqg.add( g );
+
+				inner.add( pqg );
+				outter.add( xAsOctets );
+			}
+			else
+			{
+				inner.add( DERNull.DER_NULL );
+				DEROctetString octet = new DEROctetString( privateKey );
+				outter.add( octet );
+			}
+			return encode( outter );			
+		}
+		catch ( IOException ioe )
+		{
+			throw JavaImpl.newRuntimeException( ioe );
+		}
+	}
+
+	public static byte[] encode( DEREncodable der ) throws IOException
+	{
+		ByteArrayOutputStream baos = new ByteArrayOutputStream( 1024 );
+		ASN1OutputStream out = new ASN1OutputStream( baos );
+		der.encode( out );
+		out.close();
+		return baos.toByteArray();
 	}
 
 
