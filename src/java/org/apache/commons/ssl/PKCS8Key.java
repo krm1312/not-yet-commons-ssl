@@ -24,13 +24,11 @@ import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.spec.KeySpec;
 import java.security.spec.PKCS8EncodedKeySpec;
-import java.util.Collections;
 import java.util.Enumeration;
 import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
 import java.util.LinkedList;
+import java.util.List;
+import java.util.Arrays;
 
 /**
  * @author Julius Davies
@@ -38,45 +36,71 @@ import java.util.LinkedList;
  */
 public class PKCS8Key
 {
+	private final static boolean DEBUG = false;
+
 	public final static BigInteger BIGGEST =
 			new BigInteger( Integer.toString( Integer.MAX_VALUE ) );
-	public final static Map OID_CIPHER_MAPPINGS;
 
 	public final static String RSA_OID = "1.2.840.113549.1.1.1";
 	public final static String DSA_OID = "1.2.840.10040.4.1";
-
 
 	public final static String PKCS8_UNENCRYPTED = "PRIVATE KEY";
 	public final static String PKCS8_ENCRYPTED = "ENCRYPTED PRIVATE KEY";
 	public final static String OPENSSL_RSA = "RSA PRIVATE KEY";
 	public final static String OPENSSL_DSA = "DSA PRIVATE KEY";
 
+	private final byte[] decryptedBytes;
+
 	static
 	{
 		JavaImpl.load();
-
-		Map m1 = new TreeMap();
-
-		// 1.2.840.113549.1.5.3 --> pbeWithMD5AndDES-CBC
-		// 1.3.14.3.2.7  --> DES-EDE-CBC
-
-		// 1.2.840.113549.3.7 --> DES-EDE3-CBC
-		m1.put( "1.2.840.113549.3.7", "DESede" );
-
-		// 2.16.840.1.101.3.4.1.* --> aes variations
-
-		OID_CIPHER_MAPPINGS = Collections.unmodifiableMap( m1 );
 	}
 
 	public static void main( String[] args ) throws Exception
 	{
-		FileInputStream in = new FileInputStream( args[ 0 ] );
-		byte[] bytes = Util.streamToBytes( in );
+		byte[] original = null;
+		for ( int i = 0; i < args.length; i++ )
+		{
+			FileInputStream in = new FileInputStream( args[ i ] );
+			byte[] bytes = Util.streamToBytes( in );
+			PKCS8Key key = null;
+			try
+			{
+				key = new PKCS8Key( bytes, "changeit".toCharArray() );
+			}
+			catch ( Exception e )
+			{
+				System.out.println( " FAILED! " + args[ i ] );
+				e.printStackTrace( System.out );
+			}
+			if ( key != null )
+			{
+				byte[] decrypted = key.getDecryptedBytes();
+				if ( original == null )
+				{
+					original = decrypted;
+					System.out.println( "  " + args[ i ] + " serving as ORIGINAL" );
+				}
+				else
+				{
+					boolean identical = Arrays.equals( original, decrypted );
+					if ( !identical )
+					{
+						throw new RuntimeException( "failed on: " + args[ i ] );
+					}
+					else
+					{
+						System.out.println( "  " + args[ i ] + " PASSED!" );
+					}
+				}
+			}
+		}
 
-		new PKCS8Key( bytes, "changeit".toCharArray() );
+
 	}
 
 	PKCS8Key( final byte[] encoded, char[] password )
+			throws GeneralSecurityException
 	{
 		List pemItems = PEMUtil.decode( encoded );
 		PEMItem keyItem = null;
@@ -188,8 +212,7 @@ public class PKCS8Key
 			}
 		}
 
-
-		System.out.println( Certificates.toString( decryptedPKCS8 ) );
+		// System.out.println( Certificates.toString( decryptedPKCS8 ) );
 
 		if ( encrypted )
 		{
@@ -229,17 +252,36 @@ public class PKCS8Key
 		}
 		if ( pk != null )
 		{
-			System.out.println( pk );
+			this.decryptedBytes = decryptedPKCS8;
+			// System.out.println( pk );
 			// System.out.println( PEMUtil.formatRSAPrivateKey( (RSAPrivateCrtKey) pk ) );
 			// System.out.println( Certificates.toString( pk.getEncoded() ) );
 		}
+		else
+		{
+			throw new GeneralSecurityException( "failed to decrypt/parse PKCS8 bytes" );
+		}
+	}
 
-
+	public byte[] getDecryptedBytes()
+	{
+		return decryptedBytes;
 	}
 
 	private byte[] opensslDecrypt( PEMItem item, char[] password )
+			throws GeneralSecurityException
 	{
-		String cipher = item.cipher;
+		byte[] pwd = new byte[password.length];
+		for ( int i = 0; i < password.length; i++ )
+		{
+			pwd[ i ] = (byte) password[ i ];
+		}
+
+		String cipher = item.cipher.trim();
+
+		// Is the cipher even available?
+		Cipher.getInstance( cipher );
+
 		String hash = "MD5";
 		String mode = item.mode;
 		int keySize = item.keySizeInBits;
@@ -255,25 +297,34 @@ public class PKCS8Key
 			throw new RuntimeException( nsae );
 		}
 
-		DerivedKey dk = deriveKeyOpenSSL( password, salt, keySize, md );
-
 		String transformation = cipher + "/" + mode + "/PKCS5Padding";
-		System.out.println( "transformation: " + transformation );
-		System.out.println( "hash: " + hash );
-
-		InputStream in = new ByteArrayInputStream( item.getDerBytes() );
-
-		SecretKey sk = new SecretKeySpec( dk.key, cipher );
+System.out.print( transformation + " keysize: " + keySize );
+		DerivedKey dk = deriveKeyOpenSSL( pwd, salt, keySize, md );
+		SecretKey secret = new SecretKeySpec( dk.key, cipher );
 		IvParameterSpec ivParams = new IvParameterSpec( dk.iv );
+		InputStream in = new ByteArrayInputStream( item.getDerBytes() );
 		try
 		{
 			Cipher c = Cipher.getInstance( transformation );
-			c.init( Cipher.DECRYPT_MODE, sk, ivParams );
+			if ( "RC2".equalsIgnoreCase( cipher ) )
+			{
+				RC2ParameterSpec rcParams = new RC2ParameterSpec( keySize, dk.iv );
+				c.init( Cipher.DECRYPT_MODE, secret, rcParams );
+			}
+			else if ( "RC4".equalsIgnoreCase( cipher ) )
+			{
+				c.init( Cipher.DECRYPT_MODE, secret );
+			}
+			else
+			{
+				c.init( Cipher.DECRYPT_MODE, secret, ivParams );
+			}
 			in = new CipherInputStream( in, c );
 			return Util.streamToBytes( in );
 		}
-		catch ( Exception e )
+		catch ( IOException e )
 		{
+			// unlikely to happen, since we're backed by a ByteArrayInputStream
 			throw new RuntimeException( e );
 		}
 	}
@@ -281,6 +332,12 @@ public class PKCS8Key
 	private byte[] decrypt( PKCS8Asn1Structure pkcs8, char[] password )
 			throws NoSuchAlgorithmException, NoSuchPaddingException
 	{
+
+		if ( DEBUG )
+		{
+			System.out.println( "Trying to decrypt: " + pkcs8 );
+		}
+
 		boolean useKeyDeriverVersion1 = true;
 		String cipher = "DES";
 		String hash = "MD5";
@@ -324,66 +381,77 @@ public class PKCS8Key
 			useKeyDeriverVersion1 = false;
 			hash = "HmacSHA1";
 			oid = pkcs8.oid3;
+			// AES
+			if ( oid.startsWith( "2.16.840.1.101.3.4.1" ) )
+			{
+				cipher = "AES";
+				int x = oid.lastIndexOf( '.' );
+				int finalDigit = Integer.parseInt( oid.substring( x + 1 ) );
+				switch ( finalDigit % 10 )
+				{
+					case 1:
+						mode = "ECB";
+						break;
+					case 2:
+						mode = "CBC";
+						break;
+					case 3:
+						mode = "OFB";
+						break;
+					case 4:
+						mode = "CFB";
+						break;
+					default:
+						throw new RuntimeException( "Unknown AES final digit: " + finalDigit );
+				}
+				switch ( finalDigit / 10 )
+				{
+					case 0:
+						keySize = 128;
+						break;
+					case 2:
+						keySize = 192;
+						break;
+					case 4:
+						keySize = 256;
+						break;
+					default:
+						throw new RuntimeException( "Unknown AES final digit: " + finalDigit );
+				}
+			}
+			else if ( "1.2.840.113549.3.2".equals( oid ) )
+			{
+				cipher = "RC2";
+			}
+			else if ( "1.2.840.113549.3.4".equals( oid ) )
+			{
+				cipher = "RC4";
+			}
+			else if ( "1.2.840.113549.3.7".equals( oid ) )
+			{
+				cipher = "DESede";
+			}
+			else if ( "1.2.840.113549.3.9".equals( oid ) )
+			{
+				cipher = "RC5";
+			}
 		}
 
-		// AES
-		if ( oid.startsWith( "2.16.840.1.101.3.4.1" ) )
+		String CIPHER = cipher.toUpperCase();
+		if ( CIPHER.startsWith( "RC" ) && pkcs8.keySize != 0 )
 		{
-			cipher = "AES";
-			int x = oid.lastIndexOf( '.' );
-			int finalDigit = Integer.parseInt( oid.substring( x + 1 ) );
-			System.out.println( "AES final digit: " + finalDigit );
-			switch ( finalDigit % 10 )
-			{
-				case 1:
-					mode = "ECB";
-					break;
-				case 2:
-					mode = "CBC";
-					break;
-				case 3:
-					mode = "OFB";
-					break;
-				case 4:
-					mode = "CFB";
-					break;
-				default:
-					throw new RuntimeException( "Unknown AES final digit: " + finalDigit );
-			}
-			switch ( finalDigit / 10 )
-			{
-				case 0:
-					keySize = 128;
-					break;
-				case 2:
-					keySize = 192;
-					break;
-				case 4:
-					keySize = 256;
-					break;
-				default:
-					throw new RuntimeException( "Unknown AES final digit: " + finalDigit );
-			}
+			keySize = pkcs8.keySize * 8;
 		}
-
-		System.out.println( "using oid: " + oid );
-
-		if ( OID_CIPHER_MAPPINGS.containsKey( oid ) )
+		else if ( cipher.startsWith( "DESede" ) )
 		{
-			cipher = (String) OID_CIPHER_MAPPINGS.get( oid );
-			if ( "DESede".equalsIgnoreCase( cipher ) )
-			{
-				keySize = 192;
-			}
+			keySize = 192;
 		}
 
 		// Is the cipher even available?
-		Cipher c = Cipher.getInstance( cipher );
-		System.out.println( cipher + " is available!" );
+		Cipher.getInstance( cipher );
 
 		String transformation = cipher + "/" + mode + "/PKCS5Padding";
-		System.out.println( "transformation: " + transformation );
-		System.out.println( "hash: " + hash );
+		System.out.print( transformation + " keySize: " + keySize );
 
 		byte[] salt = pkcs8.salt1;
 		int ic = pkcs8.iterationCount;
@@ -405,7 +473,7 @@ public class PKCS8Key
 			dk = deriveKeyV2( pwd, salt, ic, keySize, ivSize, mac );
 		}
 		SecretKey secret = new SecretKeySpec( dk.key, cipher );
-		c = Cipher.getInstance( transformation );
+		Cipher c = Cipher.getInstance( transformation );
 		IvParameterSpec ivParams;
 		if ( pkcs8.salt2 != null )
 		{
@@ -439,25 +507,24 @@ public class PKCS8Key
 		}
 	}
 
-	public static DerivedKey deriveKeyOpenSSL( char[] password, byte[] salt,
+	public static DerivedKey deriveKeyOpenSSL( byte[] password, byte[] salt,
 	                                           int keySizeInBits,
 	                                           MessageDigest md )
 	{
 		md.reset();
 		byte[] key = new byte[keySizeInBits / 8];
-		byte[] pwd = new byte[password.length];
-		for ( int i = 0; i < pwd.length; i++ )
-		{
-			pwd[ i ] = (byte) password[ i ];
-		}
 		byte[] result;
 		int currentPos = 0;
 		while ( currentPos < key.length )
 		{
-			md.update( pwd );
-			// First 8 bytes of salt ONLY!  (That wasn't obvious for me with those
-			// longer AES salts.   MUCH gnashing of teeth.)
-			md.update( salt, 0, 8 );
+			md.update( password );
+			// salt is only null for RC4
+			if ( salt != null )
+			{
+				// First 8 bytes of salt ONLY!  (That wasn't obvious to me with those
+				// longer AES salts.   MUCH gnashing of teeth.)
+				md.update( salt, 0, 8 );
+			}
 			result = md.digest();
 			int stillNeed = key.length - currentPos;
 			// Digest gave us more than we need.  Let's truncate it.
@@ -483,10 +550,6 @@ public class PKCS8Key
 	                                      int iterations, int keySizeInBits,
 	                                      int ivSizeInBits, MessageDigest md )
 	{
-		if ( iterations <= 0 )
-		{
-			throw new IllegalArgumentException( "iteration count must be greater than 0" );
-		}
 		int keySize = keySizeInBits / 8;
 		int ivSize = ivSizeInBits / 8;
 		md.reset();
@@ -508,10 +571,6 @@ public class PKCS8Key
 	                                      int iterations, int keySizeInBits,
 	                                      int ivSizeInBits, Mac mac )
 	{
-		if ( iterations <= 0 )
-		{
-			throw new IllegalArgumentException( "iteration count must be greater than 0" );
-		}
 		int keySize = keySizeInBits / 8;
 		int ivSize = ivSizeInBits / 8;
 		try
@@ -574,7 +633,7 @@ public class PKCS8Key
 		}
 		else
 		{
-			System.out.println( "BAD BAD BAD" );
+			System.out.println( "BAD BAD BAD analyzeASN1 error" );
 		}
 		while ( en != null && en.hasMoreElements() )
 		{
@@ -596,11 +655,16 @@ public class PKCS8Key
 						pkcs8.derIntegers.add( dInt );
 					}
 					BigInteger big = dInt.toBigInteger();
-					if ( BIGGEST.compareTo( big ) >= 0 )
+					int intValue = big.intValue();
+					if ( BIGGEST.compareTo( big ) >= 0 && intValue > 0 )
 					{
 						if ( pkcs8.iterationCount == 0 )
 						{
-							pkcs8.iterationCount = big.intValue();
+							pkcs8.iterationCount = intValue;
+						}
+						else if ( pkcs8.keySize == 0 )
+						{
+							pkcs8.keySize = intValue;
 						}
 					}
 					str = dInt.toBigInteger().toString();
@@ -674,7 +738,7 @@ public class PKCS8Key
 								{
 									if ( pkcs8.smallPayload == null )
 									{
-								      pkcs8.smallPayload = octets;
+										pkcs8.smallPayload = octets;
 									}
 								}
 							}
@@ -687,7 +751,10 @@ public class PKCS8Key
 						str = dps.getString();
 					}
 				}
-				System.out.println( name + ": [" + str + "]" );
+				if ( DEBUG )
+				{
+					System.out.println( name + ": [" + str + "]" );
+				}
 			}
 			else
 			{
@@ -706,6 +773,7 @@ public class PKCS8Key
 		protected byte[] salt1;
 		protected byte[] salt2;
 		protected int iterationCount;
+		protected int keySize;
 		protected byte[] bigPayload;
 		protected byte[] smallPayload;
 
@@ -713,14 +781,14 @@ public class PKCS8Key
 		{
 			StringBuffer buf = new StringBuffer( 256 );
 			buf.append( "---------- pkcs8 ------------" );
-			buf.append( "\noid1:  " );
+			buf.append( "\noid1:    " );
 			buf.append( oid1 );
 			if ( oid2 != null )
 			{
-				buf.append( "\noid2:  " );
+				buf.append( "\noid2:    " );
 				buf.append( oid2 );
 			}
-			buf.append( "\nsalt1: " );
+			buf.append( "\nsalt1:   " );
 			if ( salt1 != null )
 			{
 				buf.append( PEMUtil.bytesToHex( salt1 ) );
@@ -729,16 +797,21 @@ public class PKCS8Key
 			{
 				buf.append( "[null]" );
 			}
-			buf.append( "\nic:    " );
+			buf.append( "\nic:      " );
 			buf.append( Integer.toString( iterationCount ) );
+			if ( keySize != 0 )
+			{
+				buf.append( "\nkeySize: " );
+				buf.append( Integer.toString( keySize * 8 ) );
+			}
 			if ( oid2 != null )
 			{
-				buf.append( "\noid3:  " );
+				buf.append( "\noid3:    " );
 				buf.append( oid3 );
 			}
 			if ( oid2 != null )
 			{
-				buf.append( "\nsalt2: " );
+				buf.append( "\nsalt2:   " );
 				if ( salt2 != null )
 				{
 					buf.append( PEMUtil.bytesToHex( salt2 ) );
@@ -786,7 +859,7 @@ public class PKCS8Key
 					throw new RuntimeException( "invalid DSA key - can't find P, Q, G, X" );
 				}
 
-				DERInteger[] ints = new DERInteger[ pkcs8.derIntegers.size() ];
+				DERInteger[] ints = new DERInteger[pkcs8.derIntegers.size()];
 				pkcs8.derIntegers.toArray( ints );
 				DERInteger p = ints[ 1 ];
 				DERInteger q = ints[ 2 ];
@@ -809,7 +882,7 @@ public class PKCS8Key
 				DEROctetString octet = new DEROctetString( privateKey );
 				outter.add( octet );
 			}
-			return encode( outter );			
+			return encode( outter );
 		}
 		catch ( IOException ioe )
 		{

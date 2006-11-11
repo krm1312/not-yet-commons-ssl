@@ -56,27 +56,62 @@ public class PEMItem
 		this.iv = PEMUtil.hexToBytes( diIV );
 		if ( !"".equals( diCipher ) )
 		{
-			this.mode = dekInfo.substring( dekInfo.length() - 3 ).toUpperCase();
-			if ( dekInfo.startsWith( "des-cbc" ) )
+			String CIPHER = "UNKNOWN";
+			String MODE = "";
+			int keySize = -1;
+			StringTokenizer st = new StringTokenizer( dekInfo, "-" );
+			if ( st.hasMoreTokens() )
 			{
-				cipher = "DES";
-				keySizeInBits = 64;
+				CIPHER = st.nextToken().toUpperCase();
+				if ( st.hasMoreTokens() )
+				{
+					// Is this the middle token?  Or the last token?
+					String tok = st.nextToken();
+					if ( st.hasMoreTokens() )
+					{
+						try
+						{
+							keySize = Integer.parseInt( tok );
+						}
+						catch ( NumberFormatException nfe )
+						{
+							// I guess 2nd token isn't an integer
+							String upper = tok.toUpperCase();
+							if ( "EDE3".equals( upper ) )
+							{
+								CIPHER = "DESede";
+							}
+						}
+						MODE = st.nextToken().toUpperCase();
+					}
+					else
+					{
+						// It's the last token, so must be mode (usually "CBC").
+						MODE = tok.toUpperCase();
+					}
+				}
 			}
-			else if ( dekInfo.startsWith( "des-ede3" ) )
+			this.mode = MODE;
+			this.cipher = CIPHER;
+			if ( keySize == -1 )
 			{
-				cipher = "DESede";
-				keySizeInBits = 192;
-			}
-			else if ( dekInfo.startsWith( "aes-" ) )
-			{
-				String keySize = dekInfo.substring( 4, 7 );
-				cipher = "AES";
-				keySizeInBits = Integer.parseInt( keySize );
+				if ( CIPHER.startsWith( "DESede" ) )
+				{
+					keySizeInBits = 192;
+				}
+				else if ( CIPHER.startsWith( "DES" ) )
+				{
+					keySizeInBits = 64;
+				}
+				else
+				{
+					// RC2 and RC4?
+					keySizeInBits = 128;
+				}
 			}
 			else
 			{
-				cipher = "UNKNOWN";
-				keySizeInBits = -1;
+				keySizeInBits = keySize;
 			}
 		}
 		else
