@@ -24,11 +24,11 @@ import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.spec.KeySpec;
 import java.security.spec.PKCS8EncodedKeySpec;
+import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Arrays;
 
 /**
  * @author Julius Davies
@@ -298,7 +298,7 @@ public class PKCS8Key
 		}
 
 		String transformation = cipher + "/" + mode + "/PKCS5Padding";
-System.out.print( transformation + " keysize: " + keySize );
+		System.out.print( transformation + " keysize: " + keySize );
 		DerivedKey dk = deriveKeyOpenSSL( pwd, salt, keySize, md );
 		SecretKey secret = new SecretKeySpec( dk.key, cipher );
 		IvParameterSpec ivParams = new IvParameterSpec( dk.iv );
@@ -338,7 +338,10 @@ System.out.print( transformation + " keysize: " + keySize );
 			System.out.println( "Trying to decrypt: " + pkcs8 );
 		}
 
-		boolean useKeyDeriverVersion1 = true;
+		boolean isVersion1 = true;
+		boolean isVersion2 = false;
+		boolean usePKCS12PasswordPadding = false;
+		boolean use2DES = false;
 		String cipher = "DES";
 		String hash = "MD5";
 		String mode = "CBC";
@@ -349,7 +352,38 @@ System.out.print( transformation + " keysize: " + keySize );
 			ivSize = 64;
 		}
 		String oid = pkcs8.oid1;
-		if ( "1.2.840.113549.1.5.1".equals( oid ) )
+		if ( oid.startsWith( "1.2.840.113549.1.12" ) )
+		{
+			usePKCS12PasswordPadding = true;
+			oid = oid.substring( "1.2.840.113549.1.12".length() );
+			hash = "SHA1";
+			cipher = "DESede";
+			if ( oid.startsWith( ".1.1" ) )
+			{
+				cipher = "RC4";
+				keySize = 128;
+			}
+			else if ( oid.startsWith( ".1.2" ) )
+			{
+				cipher = "RC4";
+				keySize = 40;				
+			}
+			else if ( oid.startsWith( ".1.4" ) )
+			{
+				use2DES = true;
+			}
+			else if ( oid.startsWith( ".1.5" ) )
+			{
+				cipher = "RC2";
+				keySize = 128;
+			}
+			else if ( oid.startsWith( ".1.6" ) )
+			{
+				cipher = "RC2";
+				keySize = 40;
+			}
+		}
+		else if ( "1.2.840.113549.1.5.1".equals( oid ) )
 		{
 			hash = "MD2";
 		}
@@ -373,67 +407,71 @@ System.out.print( transformation + " keysize: " + keySize );
 		}
 		else if ( "1.2.840.113549.1.5.13".equals( oid ) )
 		{
-			oid = pkcs8.oid2;
+			isVersion2 = true;
 		}
 
-		if ( "1.2.840.113549.1.5.12".equals( oid ) )
+		if ( isVersion2 )
 		{
-			useKeyDeriverVersion1 = false;
-			hash = "HmacSHA1";
-			oid = pkcs8.oid3;
-			// AES
-			if ( oid.startsWith( "2.16.840.1.101.3.4.1" ) )
+			oid = pkcs8.oid2;
+			if ( "1.2.840.113549.1.5.12".equals( oid ) )
 			{
-				cipher = "AES";
-				int x = oid.lastIndexOf( '.' );
-				int finalDigit = Integer.parseInt( oid.substring( x + 1 ) );
-				switch ( finalDigit % 10 )
+				isVersion1 = false;
+				hash = "HmacSHA1";
+				oid = pkcs8.oid3;
+				// AES
+				if ( oid.startsWith( "2.16.840.1.101.3.4.1" ) )
 				{
-					case 1:
-						mode = "ECB";
-						break;
-					case 2:
-						mode = "CBC";
-						break;
-					case 3:
-						mode = "OFB";
-						break;
-					case 4:
-						mode = "CFB";
-						break;
-					default:
-						throw new RuntimeException( "Unknown AES final digit: " + finalDigit );
+					cipher = "AES";
+					int x = oid.lastIndexOf( '.' );
+					int finalDigit = Integer.parseInt( oid.substring( x + 1 ) );
+					switch ( finalDigit % 10 )
+					{
+						case 1:
+							mode = "ECB";
+							break;
+						case 2:
+							mode = "CBC";
+							break;
+						case 3:
+							mode = "OFB";
+							break;
+						case 4:
+							mode = "CFB";
+							break;
+						default:
+							throw new RuntimeException( "Unknown AES final digit: " + finalDigit );
+					}
+					switch ( finalDigit / 10 )
+					{
+						case 0:
+							keySize = 128;
+							break;
+						case 2:
+							keySize = 192;
+							break;
+						case 4:
+							keySize = 256;
+							break;
+						default:
+							throw new RuntimeException( "Unknown AES final digit: " + finalDigit );
+					}
 				}
-				switch ( finalDigit / 10 )
+				else if ( "1.2.840.113549.3.2".equals( oid ) )
 				{
-					case 0:
-						keySize = 128;
-						break;
-					case 2:
-						keySize = 192;
-						break;
-					case 4:
-						keySize = 256;
-						break;
-					default:
-						throw new RuntimeException( "Unknown AES final digit: " + finalDigit );
+					cipher = "RC2";
 				}
-			}
-			else if ( "1.2.840.113549.3.2".equals( oid ) )
-			{
-				cipher = "RC2";
-			}
-			else if ( "1.2.840.113549.3.4".equals( oid ) )
-			{
-				cipher = "RC4";
-			}
-			else if ( "1.2.840.113549.3.7".equals( oid ) )
-			{
-				cipher = "DESede";
-			}
-			else if ( "1.2.840.113549.3.9".equals( oid ) )
-			{
-				cipher = "RC5";
+				else if ( "1.2.840.113549.3.4".equals( oid ) )
+				{
+					cipher = "RC4";
+				}
+				else if ( "1.2.840.113549.3.7".equals( oid ) )
+				{
+					cipher = "DESede";
+				}
+				else if ( "1.2.840.113549.3.9".equals( oid ) )
+				{
+					cipher = "RC5";
+				}
 			}
 		}
 
@@ -451,27 +489,61 @@ System.out.print( transformation + " keysize: " + keySize );
 		Cipher.getInstance( cipher );
 
 		String transformation = cipher + "/" + mode + "/PKCS5Padding";
+		if ( CIPHER.startsWith( "RC4" ) )
+		{
+			transformation = cipher;
+		}
 		System.out.print( transformation + " keySize: " + keySize );
 
 		byte[] salt = pkcs8.salt1;
 		int ic = pkcs8.iterationCount;
-		byte[] pwd = new byte[password.length];
-		for ( int i = 0; i < pwd.length; i++ )
-		{
-			pwd[ i ] = (byte) password[ i ];
-		}
+		byte[] pwd;
 
 		DerivedKey dk;
-		if ( useKeyDeriverVersion1 )
+		if ( usePKCS12PasswordPadding )
 		{
+			if ( password.length > 0 )
+			{
+				pwd = new byte[( password.length + 1 ) * 2];
+				for ( int i = 0; i < password.length; i++ )
+				{
+					pwd[ i * 2 ] = (byte) ( password[ i ] >>> 8 );
+					pwd[ i * 2 + 1 ] = (byte) password[ i ];
+				}
+			}
+			else
+			{
+				pwd = new byte[0];
+			}
 			MessageDigest md = MessageDigest.getInstance( hash );
-			dk = deriveKeyV1( pwd, salt, ic, keySize, ivSize, md );
+			dk = deriveKeyPKCS12( pwd, salt, ic, keySize, ivSize, md );
 		}
 		else
 		{
-			Mac mac = Mac.getInstance( hash );
-			dk = deriveKeyV2( pwd, salt, ic, keySize, ivSize, mac );
+			pwd = new byte[password.length];
+			for ( int i = 0; i < pwd.length; i++ )
+			{
+				pwd[ i ] = (byte) password[ i ];
+			}
+			if ( isVersion1 )
+			{
+				MessageDigest md = MessageDigest.getInstance( hash );
+				dk = deriveKeyV1( pwd, salt, ic, keySize, ivSize, md );
+			}
+			else
+			{
+				Mac mac = Mac.getInstance( hash );
+				dk = deriveKeyV2( pwd, salt, ic, keySize, ivSize, mac );
+			}
 		}
+
+		if ( use2DES && dk.key.length >= 24 )
+		{
+			byte[] key = dk.key;
+			// copy first 8 bytes into last 8 bytes to create 2DES key.
+			System.arraycopy( dk.key, 0, dk.key, 16, 8 );
+		}
+
 		SecretKey secret = new SecretKeySpec( dk.key, cipher );
 		Cipher c = Cipher.getInstance( transformation );
 		IvParameterSpec ivParams;
@@ -486,11 +558,16 @@ System.out.print( transformation + " keysize: " + keySize );
 
 		try
 		{
-			if ( "RC2".equalsIgnoreCase( cipher ) )
+			if ( CIPHER.startsWith( "RC2" ) )
 			{
 				byte[] iv = ivParams.getIV();
 				RC2ParameterSpec rcParams = new RC2ParameterSpec( keySize, iv );
 				c.init( Cipher.DECRYPT_MODE, secret, rcParams );
+			}
+			else if ( CIPHER.startsWith( "RC4" ) )
+			{
+				// rc4 doesn't take any params.
+				c.init( Cipher.DECRYPT_MODE, secret );
 			}
 			else
 			{
@@ -565,6 +642,109 @@ System.out.print( transformation + " keysize: " + keySize );
 		System.arraycopy( result, 0, key, 0, key.length );
 		System.arraycopy( result, key.length, iv, 0, iv.length );
 		return new DerivedKey( key, iv );
+	}
+
+	public static DerivedKey deriveKeyPKCS12( byte[] password, byte[] salt,
+	                                          int iterations, int keySizeInBits,
+	                                          int ivSizeInBits, MessageDigest md )
+	{
+		int keySize = keySizeInBits / 8;
+		int ivSize = ivSizeInBits / 8;
+		byte[] key = pkcs12( 1, keySize, salt, password, iterations, md );
+		byte[] iv = pkcs12( 2, ivSize, salt, password, iterations, md );
+		return new DerivedKey( key, iv );
+	}
+
+	private static byte[] pkcs12( int idByte, int n, byte[] salt,
+	                              byte[] password, int iterationCount,
+	                              MessageDigest md )
+	{
+		int u = md.getDigestLength();
+		int v = 512 / 8;
+		md.reset();
+		byte[] D = new byte[v];
+		byte[] dKey = new byte[n];
+		for ( int i = 0; i != D.length; i++ )
+		{
+			D[ i ] = (byte) idByte;
+		}
+		byte[] S;
+		if ( ( salt != null ) && ( salt.length != 0 ) )
+		{
+			S = new byte[v * ( ( salt.length + v - 1 ) / v )];
+			for ( int i = 0; i != S.length; i++ )
+			{
+				S[ i ] = salt[ i % salt.length ];
+			}
+		}
+		else
+		{
+			S = new byte[0];
+		}
+		byte[] P;
+		if ( ( password != null ) && ( password.length != 0 ) )
+		{
+			P = new byte[v * ( ( password.length + v - 1 ) / v )];
+			for ( int i = 0; i != P.length; i++ )
+			{
+				P[ i ] = password[ i % password.length ];
+			}
+		}
+		else
+		{
+			P = new byte[0];
+		}
+		byte[] I = new byte[S.length + P.length];
+		System.arraycopy( S, 0, I, 0, S.length );
+		System.arraycopy( P, 0, I, S.length, P.length );
+		byte[] B = new byte[v];
+		int c = ( n + u - 1 ) / u;
+		for ( int i = 1; i <= c; i++ )
+		{
+			md.update( D );
+			byte[] result = md.digest( I );
+			for ( int j = 1; j != iterationCount; j++ )
+			{
+				result = md.digest( result );
+			}
+			for ( int j = 0; j != B.length; j++ )
+			{
+				B[ j ] = result[ j % result.length ];
+			}
+			for ( int j = 0; j != I.length / v; j++ )
+			{
+				adjust( I, j * v, B );
+			}
+			if ( i == c )
+			{
+				System.arraycopy( result, 0, dKey, ( i - 1 ) * u, dKey.length - ( ( i - 1 ) * u ) );
+			}
+			else
+			{
+				System.arraycopy( result, 0, dKey, ( i - 1 ) * u, result.length );
+			}
+		}
+		return dKey;
+	}
+
+	/**
+	 * add a + b + 1, returning the result in a. The a value is treated
+	 * as a BigInteger of length (b.length * 8) bits. The result is
+	 * modulo 2^b.length in case of overflow.
+	 */
+	private static void adjust( byte[] a, int aOff, byte[] b )
+	{
+		int x = ( b[ b.length - 1 ] & 0xff ) + ( a[ aOff + b.length - 1 ] & 0xff ) + 1;
+
+		a[ aOff + b.length - 1 ] = (byte) x;
+		x >>>= 8;
+
+		for ( int i = b.length - 2; i >= 0; i-- )
+		{
+			x += ( b[ i ] & 0xff ) + ( a[ aOff + i ] & 0xff );
+			a[ aOff + i ] = (byte) x;
+			x >>>= 8;
+		}
 	}
 
 	public static DerivedKey deriveKeyV2( byte[] password, byte[] salt,
