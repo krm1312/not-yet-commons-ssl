@@ -342,189 +342,329 @@ public class PKCS8Key
 		boolean isVersion2 = false;
 		boolean usePKCS12PasswordPadding = false;
 		boolean use2DES = false;
-		String cipher = "DES";
-		String hash = "MD5";
+		String cipher = null;
+		String hash = null;
+		int keySize = -1;
+		// Almost all PKCS8 encrypted keys use CBC.  Looks like the AES OID's can
+		// support different modes, and RC4 doesn't use any mode at all!
 		String mode = "CBC";
-		int keySize = 64; // default for DES, might be changed below.
+
+		// In PKCS8 Version 2 the IV is stored in the ASN.1 structure for
+		// us, so we don't need to derive it.  Just leave "ivSize" set to 0 for
+		// those ones.
 		int ivSize = 0;
-		if ( pkcs8.salt2 == null )
+
+		// In PKCS8 Version 1.5 we need to derive an 8 byte IV.  In those cases
+		// the ASN.1 structure doesn't have the IV, anyway, so I can use that
+		// to decide whether to derive one or not.
+		if ( pkcs8.iv == null )
 		{
 			ivSize = 64;
 		}
 		String oid = pkcs8.oid1;
-		if ( oid.startsWith( "1.2.840.113549.1.12" ) )
+		if ( oid.startsWith( "1.2.840.113549.1.12." ) )  // PKCS12 key derivation!
 		{
 			usePKCS12PasswordPadding = true;
-			oid = oid.substring( "1.2.840.113549.1.12".length() );
-			hash = "SHA1";
-			cipher = "DESede";
-			if ( oid.startsWith( ".1.1" ) )
+
+			// Let's trim this OID to make life a little easier.
+			oid = oid.substring( "1.2.840.113549.1.12.".length() );
+
+			if ( oid.equals( "1.1" ) || oid.startsWith( "1.1." ) )      
 			{
+				// 1.2.840.113549.1.12.1.1
+				hash = "SHA1";
 				cipher = "RC4";
 				keySize = 128;
 			}
-			else if ( oid.startsWith( ".1.2" ) )
+			else if ( oid.equals( "1.2" ) || oid.startsWith( "1.2." ) )
 			{
+				// 1.2.840.113549.1.12.1.2
+				hash = "SHA1";
 				cipher = "RC4";
-				keySize = 40;				
+				keySize = 40;
 			}
-			else if ( oid.startsWith( ".1.4" ) )
+			else if ( oid.equals( "1.3" ) || oid.startsWith( "1.3." ) )
 			{
+				// 1.2.840.113549.1.12.1.3
+				hash = "SHA1";
+				cipher = "DESede";
+				keySize = 192;
+			}
+			else if ( oid.equals( "1.4" ) || oid.startsWith( "1.4." ) )
+			{
+				// DES2 !!!
+
+				// 1.2.840.113549.1.12.1.4
+				hash = "SHA1";
+				cipher = "DESede";
+				keySize = 192;
 				use2DES = true;
+				// later on we'll copy the first 8 bytes of the 24 byte DESede key
+				// over top the last 8 bytes, making the key look like K1-K2-K1
+				// instead of the usual K1-K2-K3.
 			}
-			else if ( oid.startsWith( ".1.5" ) )
+			else if ( oid.equals( "1.5" ) || oid.startsWith( "1.5." ) )
 			{
+				// 1.2.840.113549.1.12.1.5
+				hash = "SHA1";
 				cipher = "RC2";
 				keySize = 128;
 			}
-			else if ( oid.startsWith( ".1.6" ) )
+			else if ( oid.equals( "1.6" ) || oid.startsWith( "1.6." ) )
 			{
+				// 1.2.840.113549.1.12.1.6
+				hash = "SHA1";
 				cipher = "RC2";
 				keySize = 40;
 			}
 		}
-		else if ( "1.2.840.113549.1.5.1".equals( oid ) )
+		else if ( oid.startsWith( "1.2.840.113549.1.5." ) )
 		{
-			hash = "MD2";
-		}
-		else if ( "1.2.840.113549.1.5.4".equals( oid ) )
-		{
-			hash = "MD2";
-			cipher = "RC2";
-		}
-		else if ( "1.2.840.113549.1.5.6".equals( oid ) )
-		{
-			cipher = "RC2";
-		}
-		else if ( "1.2.840.113549.1.5.10".equals( oid ) )
-		{
-			hash = "SHA1";
-		}
-		else if ( "1.2.840.113549.1.5.11".equals( oid ) )
-		{
-			hash = "SHA1";
-			cipher = "RC2";
-		}
-		else if ( "1.2.840.113549.1.5.13".equals( oid ) )
-		{
-			isVersion2 = true;
-		}
+			// Let's trim this OID to make life a little easier.
+			oid = oid.substring( "1.2.840.113549.1.5.".length() );
 
+			if ( oid.equals( "1" ) || oid.startsWith( "1." ) )
+			{
+				// 1.2.840.113549.1.5.1 -- pbeWithMD2AndDES-CBC
+				hash = "MD2";
+				cipher = "DES";
+				keySize = 64;
+			}
+			else if ( oid.equals( "3" ) || oid.startsWith( "3." ) )
+			{
+				// 1.2.840.113549.1.5.3 -- pbeWithMD5AndDES-CBC
+				hash = "MD5";
+				cipher = "DES";
+				keySize = 64;
+			}
+			else if ( oid.equals( "4" ) || oid.startsWith( "4." ) )
+			{
+				// 1.2.840.113549.1.5.4 -- pbeWithMD2AndRC2_CBC
+				hash = "MD2";
+				cipher = "RC2";
+				keySize = 64;
+			}
+			else if ( oid.equals( "6" ) || oid.startsWith( "6." ) )
+			{
+				// 1.2.840.113549.1.5.6 -- pbeWithMD5AndRC2_CBC
+				hash = "MD5";
+				cipher = "RC2";
+				keySize = 64;
+			}
+			else if ( oid.equals( "10" ) || oid.startsWith( "10." ) )
+			{
+				// 1.2.840.113549.1.5.10 -- pbeWithSHA1AndDES-CBC
+				hash = "SHA1";
+				cipher = "DES";
+				keySize = 64;
+			}
+			else if ( oid.equals( "11" ) || oid.startsWith( "11." ) )
+			{
+				// 1.2.840.113549.1.5.11 -- pbeWithSHA1AndRC2_CBC
+				hash = "SHA1";
+				cipher = "RC2";
+				keySize = 64;
+			}
+			else if ( oid.equals( "12" ) || oid.startsWith( "12." ) )
+			{
+				// 1.2.840.113549.1.5.12 - id-PBKDF2 - Key Derivation Function
+				isVersion2 = true;
+			}
+			else if ( oid.equals( "13" ) || oid.startsWith( "13." ) )
+			{
+				// 1.2.840.113549.1.5.13 - id-PBES2: PBES2 encryption scheme
+				isVersion2 = true;
+			}
+			else if ( oid.equals( "14" ) || oid.startsWith( "14." ) )
+			{
+				// 1.2.840.113549.1.5.14 - id-PBMAC1 message authentication scheme
+				isVersion2 = true;
+			}
+		}
 		if ( isVersion2 )
 		{
+			isVersion1 = false;
+			hash = "HmacSHA1";
 			oid = pkcs8.oid2;
-			if ( "1.2.840.113549.1.5.12".equals( oid ) )
+
+			// really ought to be:
+			//
+			// if ( oid.startsWith( "1.2.840.113549.1.5.12" ) )
+			//
+			// but all my tests still pass, and I figure this to be more robust:
+			if ( pkcs8.oid3 != null )
 			{
-				isVersion1 = false;
-				hash = "HmacSHA1";
 				oid = pkcs8.oid3;
-				// AES
-				if ( oid.startsWith( "2.16.840.1.101.3.4.1" ) )
+			}
+
+			if ( oid.startsWith( "1.3.14.3.2." ) )
+			{
+				oid = oid.substring( "1.3.14.3.2.".length() );
+				if ( oid.equals( "6" ) || oid.startsWith( "6." ) )
 				{
-					cipher = "AES";
-					int x = oid.lastIndexOf( '.' );
-					int finalDigit = Integer.parseInt( oid.substring( x + 1 ) );
-					switch ( finalDigit % 10 )
-					{
-						case 1:
-							mode = "ECB";
-							break;
-						case 2:
-							mode = "CBC";
-							break;
-						case 3:
-							mode = "OFB";
-							break;
-						case 4:
-							mode = "CFB";
-							break;
-						default:
-							throw new RuntimeException( "Unknown AES final digit: " + finalDigit );
-					}
-					switch ( finalDigit / 10 )
-					{
-						case 0:
-							keySize = 128;
-							break;
-						case 2:
-							keySize = 192;
-							break;
-						case 4:
-							keySize = 256;
-							break;
-						default:
-							throw new RuntimeException( "Unknown AES final digit: " + finalDigit );
-					}
+					// 1.3.14.3.2.6 - desECB
+					cipher = "DES";
+					mode = "ECB";
+					keySize = 64;
 				}
-				else if ( "1.2.840.113549.3.2".equals( oid ) )
+				else if ( oid.equals( "7" ) || oid.startsWith( "7." ) )
 				{
-					cipher = "RC2";
+					// 1.3.14.3.2.7 - desCBC
+					cipher = "DES";
+					mode = "CBC";
+					keySize = 64;
 				}
-				else if ( "1.2.840.113549.3.4".equals( oid ) )
+				else if ( oid.equals( "8" ) || oid.startsWith( "8." ) )
 				{
-					cipher = "RC4";
+					// 1.3.14.3.2.8 - desOFB
+					cipher = "DES";
+					mode = "OFB";
+					keySize = 64;
 				}
-				else if ( "1.2.840.113549.3.7".equals( oid ) )
+				else if ( oid.equals( "9" ) || oid.startsWith( "9." ) )
 				{
+					// 1.3.14.3.2.9 - desCFB
+					cipher = "DES";
+					mode = "CFB";
+					keySize = 64;
+				}
+				else if ( oid.equals( "17" ) || oid.startsWith( "17." ) )
+				{
+					// 1.3.14.3.2.17 - desEDE
 					cipher = "DESede";
+					mode = "CBC";
+					keySize = 192;
 				}
-				else if ( "1.2.840.113549.3.9".equals( oid ) )
+			}
+
+			// AES
+			// 2.16.840.1.101.3.4.1.1  - id-aes128-ECB
+			// 2.16.840.1.101.3.4.1.2  - id-aes128-CBC
+			// 2.16.840.1.101.3.4.1.3  - id-aes128-OFB
+			// 2.16.840.1.101.3.4.1.4  - id-aes128-CFB
+			// 2.16.840.1.101.3.4.1.21 - id-aes192-ECB
+			// 2.16.840.1.101.3.4.1.22 - id-aes192-CBC
+			// 2.16.840.1.101.3.4.1.23 - id-aes192-OFB
+			// 2.16.840.1.101.3.4.1.24 - id-aes192-CFB
+			// 2.16.840.1.101.3.4.1.41 - id-aes256-ECB
+			// 2.16.840.1.101.3.4.1.42 - id-aes256-CBC
+			// 2.16.840.1.101.3.4.1.43 - id-aes256-OFB
+			// 2.16.840.1.101.3.4.1.44 - id-aes256-CFB
+			else if ( oid.startsWith( "2.16.840.1.101.3.4.1." ) )
+			{
+				oid = oid.substring( "2.16.840.1.101.3.4.1.".length() );
+
+				cipher = "AES";
+				int x = oid.indexOf( '.' );
+				int finalDigit;
+				if ( x >= 0 )
 				{
+					finalDigit = Integer.parseInt( oid.substring( 0, x ) );
+				}
+				else
+				{
+					finalDigit = Integer.parseInt( oid );
+				}
+				switch ( finalDigit % 10 )
+				{
+					case 1:
+						mode = "ECB";
+						break;
+					case 2:
+						mode = "CBC";
+						break;
+					case 3:
+						mode = "OFB";
+						break;
+					case 4:
+						mode = "CFB";
+						break;
+					default:
+						throw new RuntimeException( "Unknown AES final digit: " + finalDigit );
+				}
+				switch ( finalDigit / 10 )
+				{
+					case 0:
+						keySize = 128;
+						break;
+					case 2:
+						keySize = 192;
+						break;
+					case 4:
+						keySize = 256;
+						break;
+					default:
+						throw new RuntimeException( "Unknown AES final digit: " + finalDigit );
+				}
+			}
+			else if ( oid.startsWith( "1.2.840.113549.3." ) )
+			{
+				// Let's trim this OID to make life a little easier.
+				oid = oid.substring( "1.2.840.113549.3.".length() );
+
+				if ( oid.equals( "2" ) || oid.startsWith( "2." ) )
+				{
+					// 1.2.840.113549.3.2 - RC2-CBC
+					// Note:  keysize determined in PKCS8 Version 2.0 ASN.1 field.
+					cipher = "RC2";
+					keySize = pkcs8.keySize * 8;
+				}
+				else if ( oid.equals( "4" ) || oid.startsWith( "4." ) )
+				{
+					// 1.2.840.113549.3.4 - RC4
+					// Note:  keysize determined in PKCS8 Version 2.0 ASN.1 field.
+					cipher = "RC4";
+					keySize = pkcs8.keySize * 8;
+				}
+				else if ( oid.equals( "7" ) || oid.startsWith( "7." ) )
+				{
+					// 1.2.840.113549.3.7 - DES-EDE3-CBC
+					cipher = "DESede";
+					keySize = 192;
+				}
+				else if ( oid.equals( "9" ) || oid.startsWith( "9." ) )
+				{
+					// 1.2.840.113549.3.9 - RC5 CBC Pad
+					// Note:  keysize determined in PKCS8 Version 2.0 ASN.1 field.
+					keySize = pkcs8.keySize * 8;
 					cipher = "RC5";
 				}
 			}
-		}
-
-		String CIPHER = cipher.toUpperCase();
-		if ( CIPHER.startsWith( "RC" ) && pkcs8.keySize != 0 )
-		{
-			keySize = pkcs8.keySize * 8;
-		}
-		else if ( cipher.startsWith( "DESede" ) )
-		{
-			keySize = 192;
 		}
 
 		// Is the cipher even available?
 		Cipher.getInstance( cipher );
 
 		String transformation = cipher + "/" + mode + "/PKCS5Padding";
+		String CIPHER = cipher.trim().toUpperCase();
 		if ( CIPHER.startsWith( "RC4" ) )
 		{
+			// RC4 doesn't have mode or padding.			
 			transformation = cipher;
 		}
+
 		System.out.print( transformation + " keySize: " + keySize );
 
-		byte[] salt = pkcs8.salt1;
+		byte[] salt = pkcs8.salt;
 		int ic = pkcs8.iterationCount;
-		byte[] pwd;
+
+		// PKCS8 converts the password to a byte[] array using a simple
+		// cast.  This byte[] array is ignored if we're using the PKCS12
+		// key derivation, since that employs a different technique.
+		byte[] pwd = new byte[password.length];
+		for ( int i = 0; i < pwd.length; i++ )
+		{
+			pwd[ i ] = (byte) password[ i ];
+		}
 
 		DerivedKey dk;
 		if ( usePKCS12PasswordPadding )
 		{
-			if ( password.length > 0 )
-			{
-				pwd = new byte[( password.length + 1 ) * 2];
-				for ( int i = 0; i < password.length; i++ )
-				{
-					pwd[ i * 2 ] = (byte) ( password[ i ] >>> 8 );
-					pwd[ i * 2 + 1 ] = (byte) password[ i ];
-				}
-			}
-			else
-			{
-				pwd = new byte[0];
-			}
 			MessageDigest md = MessageDigest.getInstance( hash );
-			dk = deriveKeyPKCS12( pwd, salt, ic, keySize, ivSize, md );
+			dk = deriveKeyPKCS12( password, salt, ic, keySize, ivSize, md );
 		}
 		else
 		{
-			pwd = new byte[password.length];
-			for ( int i = 0; i < pwd.length; i++ )
-			{
-				pwd[ i ] = (byte) password[ i ];
-			}
 			if ( isVersion1 )
 			{
 				MessageDigest md = MessageDigest.getInstance( hash );
@@ -539,7 +679,6 @@ public class PKCS8Key
 
 		if ( use2DES && dk.key.length >= 24 )
 		{
-			byte[] key = dk.key;
 			// copy first 8 bytes into last 8 bytes to create 2DES key.
 			System.arraycopy( dk.key, 0, dk.key, 16, 8 );
 		}
@@ -547,9 +686,9 @@ public class PKCS8Key
 		SecretKey secret = new SecretKeySpec( dk.key, cipher );
 		Cipher c = Cipher.getInstance( transformation );
 		IvParameterSpec ivParams;
-		if ( pkcs8.salt2 != null )
+		if ( pkcs8.iv != null )
 		{
-			ivParams = new IvParameterSpec( pkcs8.salt2 );
+			ivParams = new IvParameterSpec( pkcs8.iv );
 		}
 		else
 		{
@@ -560,17 +699,19 @@ public class PKCS8Key
 		{
 			if ( CIPHER.startsWith( "RC2" ) )
 			{
+				// RC2 requires special params to inform engine of keysize.
 				byte[] iv = ivParams.getIV();
 				RC2ParameterSpec rcParams = new RC2ParameterSpec( keySize, iv );
 				c.init( Cipher.DECRYPT_MODE, secret, rcParams );
 			}
 			else if ( CIPHER.startsWith( "RC4" ) )
 			{
-				// rc4 doesn't take any params.
+				// RC4 doesn't take any params.
 				c.init( Cipher.DECRYPT_MODE, secret );
 			}
 			else
 			{
+				// DES, DESede, and AES only require IVParams.
 				c.init( Cipher.DECRYPT_MODE, secret, ivParams );
 			}
 			byte[] encrypted = pkcs8.bigPayload;
@@ -644,14 +785,28 @@ public class PKCS8Key
 		return new DerivedKey( key, iv );
 	}
 
-	public static DerivedKey deriveKeyPKCS12( byte[] password, byte[] salt,
+	public static DerivedKey deriveKeyPKCS12( char[] password, byte[] salt,
 	                                          int iterations, int keySizeInBits,
 	                                          int ivSizeInBits, MessageDigest md )
 	{
+		byte[] pwd;
+		if ( password.length > 0 )
+		{
+			pwd = new byte[( password.length + 1 ) * 2];
+			for ( int i = 0; i < password.length; i++ )
+			{
+				pwd[ i * 2 ] = (byte) ( password[ i ] >>> 8 );
+				pwd[ i * 2 + 1 ] = (byte) password[ i ];
+			}
+		}
+		else
+		{
+			pwd = new byte[0];
+		}
 		int keySize = keySizeInBits / 8;
 		int ivSize = ivSizeInBits / 8;
-		byte[] key = pkcs12( 1, keySize, salt, password, iterations, md );
-		byte[] iv = pkcs12( 2, ivSize, salt, password, iterations, md );
+		byte[] key = pkcs12( 1, keySize, salt, pwd, iterations, md );
+		byte[] iv = pkcs12( 2, ivSize, salt, pwd, iterations, md );
 		return new DerivedKey( key, iv );
 	}
 
@@ -731,14 +886,17 @@ public class PKCS8Key
 	 * add a + b + 1, returning the result in a. The a value is treated
 	 * as a BigInteger of length (b.length * 8) bits. The result is
 	 * modulo 2^b.length in case of overflow.
+	 *
+	 * @param a
+	 * @param aOff
+	 * @param b
 	 */
 	private static void adjust( byte[] a, int aOff, byte[] b )
 	{
-		int x = ( b[ b.length - 1 ] & 0xff ) + ( a[ aOff + b.length - 1 ] & 0xff ) + 1;
-
-		a[ aOff + b.length - 1 ] = (byte) x;
+		int bLast = b.length - 1;
+		int x = ( b[ bLast ] & 0xff ) + ( a[ aOff + bLast ] & 0xff ) + 1;
+		a[ aOff + bLast ] = (byte) x;
 		x >>>= 8;
-
 		for ( int i = b.length - 2; i >= 0; i-- )
 		{
 			x += ( b[ i ] & 0xff ) + ( a[ aOff + i ] & 0xff );
@@ -905,13 +1063,13 @@ public class PKCS8Key
 							{
 								if ( octets.length % 8 == 0 )
 								{
-									if ( pkcs8.salt1 == null )
+									if ( pkcs8.salt == null )
 									{
-										pkcs8.salt1 = octets;
+										pkcs8.salt = octets;
 									}
-									else if ( pkcs8.salt2 == null )
+									else if ( pkcs8.iv == null )
 									{
-										pkcs8.salt2 = octets;
+										pkcs8.iv = octets;
 									}
 								}
 								else
@@ -950,8 +1108,8 @@ public class PKCS8Key
 		protected String oid1;
 		protected String oid2;
 		protected String oid3;
-		protected byte[] salt1;
-		protected byte[] salt2;
+		protected byte[] salt;
+		protected byte[] iv;
 		protected int iterationCount;
 		protected int keySize;
 		protected byte[] bigPayload;
@@ -968,10 +1126,10 @@ public class PKCS8Key
 				buf.append( "\noid2:    " );
 				buf.append( oid2 );
 			}
-			buf.append( "\nsalt1:   " );
-			if ( salt1 != null )
+			buf.append( "\nsalt:   " );
+			if ( salt != null )
 			{
-				buf.append( PEMUtil.bytesToHex( salt1 ) );
+				buf.append( PEMUtil.bytesToHex( salt ) );
 			}
 			else
 			{
@@ -991,10 +1149,10 @@ public class PKCS8Key
 			}
 			if ( oid2 != null )
 			{
-				buf.append( "\nsalt2:   " );
-				if ( salt2 != null )
+				buf.append( "\niv:      " );
+				if ( iv != null )
 				{
-					buf.append( PEMUtil.bytesToHex( salt2 ) );
+					buf.append( PEMUtil.bytesToHex( iv ) );
 				}
 				else
 				{
