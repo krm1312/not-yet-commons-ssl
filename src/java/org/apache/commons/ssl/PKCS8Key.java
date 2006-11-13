@@ -283,7 +283,7 @@ public class PKCS8Key
 		Cipher.getInstance( cipher );
 
 		String hash = "MD5";
-		String mode = item.mode;
+		String mode = item.mode.trim().toUpperCase();
 		int keySize = item.keySizeInBits;
 		byte[] salt = item.iv;
 
@@ -297,9 +297,22 @@ public class PKCS8Key
 			throw new RuntimeException( nsae );
 		}
 
-		String transformation = cipher + "/" + mode + "/PKCS5Padding";
+		String padding = "PKCS5Padding";
+		if ( "CFB".equals( mode ) || "OFB".equals( mode ) )
+		{
+			padding = "NoPadding";
+		}
+
+		String transformation = cipher + "/" + mode + "/" + padding;
 		System.out.print( transformation + " keysize: " + keySize );
 		DerivedKey dk = deriveKeyOpenSSL( pwd, salt, keySize, md );
+
+		if ( item.des2 )
+		{
+			// des2
+			System.arraycopy( dk.key, 0, dk.key, 16, 8 );
+		}
+
 		SecretKey secret = new SecretKeySpec( dk.key, cipher );
 		IvParameterSpec ivParams = new IvParameterSpec( dk.iv );
 		InputStream in = new ByteArrayInputStream( item.getDerBytes() );
@@ -311,7 +324,7 @@ public class PKCS8Key
 				RC2ParameterSpec rcParams = new RC2ParameterSpec( keySize, dk.iv );
 				c.init( Cipher.DECRYPT_MODE, secret, rcParams );
 			}
-			else if ( "RC4".equalsIgnoreCase( cipher ) )
+			else if ( "RC4".equalsIgnoreCase( cipher ) || mode.equals( "ECB" ) )
 			{
 				c.init( Cipher.DECRYPT_MODE, secret );
 			}
@@ -357,6 +370,8 @@ public class PKCS8Key
 		// In PKCS8 Version 1.5 we need to derive an 8 byte IV.  In those cases
 		// the ASN.1 structure doesn't have the IV, anyway, so I can use that
 		// to decide whether to derive one or not.
+		//
+		// Note:  if AES, then IV has to be 16 bytes.
 		if ( pkcs8.iv == null )
 		{
 			ivSize = 64;
@@ -496,8 +511,14 @@ public class PKCS8Key
 			{
 				oid = pkcs8.oid3;
 			}
-
-			if ( oid.startsWith( "1.3.14.3.2." ) )
+			if ( oid.startsWith( "1.3.6.1.4.1.3029.1.2" ) )
+			{
+				// 1.3.6.1.4.1.3029.1.2 - Blowfish
+				cipher = "Blowfish";
+				mode = "CBC";
+				keySize = 128;
+			}
+			else if ( oid.startsWith( "1.3.14.3.2." ) )
 			{
 				oid = oid.substring( "1.3.14.3.2.".length() );
 				if ( oid.equals( "6" ) || oid.startsWith( "6." ) )
@@ -552,9 +573,12 @@ public class PKCS8Key
 			// 2.16.840.1.101.3.4.1.44 - id-aes256-CFB
 			else if ( oid.startsWith( "2.16.840.1.101.3.4.1." ) )
 			{
-				oid = oid.substring( "2.16.840.1.101.3.4.1.".length() );
-
 				cipher = "AES";
+				if ( pkcs8.iv == null )
+				{
+					ivSize = 128;
+				}
+				oid = oid.substring( "2.16.840.1.101.3.4.1.".length() );
 				int x = oid.indexOf( '.' );
 				int finalDigit;
 				if ( x >= 0 )
@@ -628,6 +652,10 @@ public class PKCS8Key
 					// Note:  keysize determined in PKCS8 Version 2.0 ASN.1 field.
 					keySize = pkcs8.keySize * 8;
 					cipher = "RC5";
+
+					// Need to find out more about RC5.
+					// How do I create the RC5ParameterSpec?
+					// (int version, int rounds, int wordSize, byte[] iv)
 				}
 			}
 		}
@@ -635,13 +663,20 @@ public class PKCS8Key
 		// Is the cipher even available?
 		Cipher.getInstance( cipher );
 
-		String transformation = cipher + "/" + mode + "/PKCS5Padding";
+		String padding = "PKCS5Padding";
+		if ( "CFB".equals( mode ) || "OFB".equals( mode ) )
+		{
+			padding = "NoPadding";
+		}		
+
+		String transformation = cipher + "/" + mode + "/" + padding;
 		String CIPHER = cipher.trim().toUpperCase();
 		if ( CIPHER.startsWith( "RC4" ) )
 		{
 			// RC4 doesn't have mode or padding.			
 			transformation = cipher;
 		}
+		
 
 		System.out.print( transformation + " keySize: " + keySize );
 
@@ -704,7 +739,7 @@ public class PKCS8Key
 				RC2ParameterSpec rcParams = new RC2ParameterSpec( keySize, iv );
 				c.init( Cipher.DECRYPT_MODE, secret, rcParams );
 			}
-			else if ( CIPHER.startsWith( "RC4" ) )
+			else if ( CIPHER.startsWith( "RC4" ) || mode.equals( "ECB" ) )
 			{
 				// RC4 doesn't take any params.
 				c.init( Cipher.DECRYPT_MODE, secret );

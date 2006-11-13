@@ -20,6 +20,7 @@ public class PEMItem
 	public final String dekInfo;
 	public final byte[] iv;
 	public final String cipher;
+	public final boolean des2;
 	public final String mode;
 	public final int keySizeInBits;
 
@@ -30,6 +31,7 @@ public class PEMItem
 
 	public PEMItem( byte[] derBytes, String type, Map properties )
 	{
+		boolean doubleDES = false;
 		this.derBytes = derBytes;
 		this.pemType = type;
 		if ( properties == null )
@@ -81,6 +83,11 @@ public class PEMItem
 							{
 								CIPHER = "DESede";
 							}
+							if ( "EDE".equals( upper ) )
+							{
+								CIPHER = "DESede";
+								doubleDES = true;
+							}
 						}
 						MODE = st.nextToken().toUpperCase();
 					}
@@ -88,6 +95,17 @@ public class PEMItem
 					{
 						// It's the last token, so must be mode (usually "CBC").
 						MODE = tok.toUpperCase();
+						if ( "EDE".equals( MODE ) )
+						{
+							CIPHER = "DESede";
+							MODE = "ECB";
+							doubleDES = true;
+						}
+						else if ( "EDE3".equals( MODE ) )
+						{
+							CIPHER = "DESede";
+							MODE = "ECB";
+						}
 					}
 				}
 			}
@@ -120,7 +138,7 @@ public class PEMItem
 			cipher = "UNKNOWN";
 			keySizeInBits = -1;
 		}
-
+		this.des2 = doubleDES;
 	}
 
 	public byte[] getDerBytes()
