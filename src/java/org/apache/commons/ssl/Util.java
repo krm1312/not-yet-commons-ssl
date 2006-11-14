@@ -119,9 +119,55 @@ public class Util
 		return buf;
 	}
 
+	public static byte[] streamToBytes( final ByteArrayInputStream in )
+	{
+		byte[] buf = new byte[4096];
+		int[] status = fill( buf, 0, in );
+		int size = status[ SIZE_KEY ];
+		int lastRead = status[ LAST_READ_KEY ];
+		while ( lastRead != -1 )
+		{
+			buf = resizeArray( buf );
+			status = fill( buf, size, in );
+			size = status[ SIZE_KEY ];
+			lastRead = status[ LAST_READ_KEY ];
+		}
+		if ( buf.length != size )
+		{
+			byte[] smallerBuf = new byte[size];
+			System.arraycopy( buf, 0, smallerBuf, 0, size );
+			buf = smallerBuf;
+		}
+		// in.close();  <-- this is a no-op on ByteArrayInputStream.
+		return buf;
+	}
+
 	public static int[] fill( final byte[] buf, final int offset,
 	                          final InputStream in )
 			throws IOException
+	{
+		int read = in.read( buf, offset, buf.length - offset );
+		int lastRead = read;
+		if ( read == -1 )
+		{
+			read = 0;
+		}
+		while ( lastRead != -1 && read + offset < buf.length )
+		{
+			lastRead = in.read( buf, offset + read, buf.length - read - offset );
+			if ( lastRead != -1 )
+			{
+				read += lastRead;
+			}
+		}
+		int[] status = new int[2];
+		status[ SIZE_KEY ] = offset + read;
+		status[ LAST_READ_KEY ] = lastRead;
+		return status;
+	}
+
+	public static int[] fill( final byte[] buf, final int offset,
+	                          final ByteArrayInputStream in )
 	{
 		int read = in.read( buf, offset, buf.length - offset );
 		int lastRead = read;

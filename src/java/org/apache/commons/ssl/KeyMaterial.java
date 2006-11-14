@@ -29,30 +29,19 @@
 
 package org.apache.commons.ssl;
 
-import org.bouncycastle.asn1.ASN1Sequence;
-import org.bouncycastle.asn1.ASN1InputStream;
-import org.bouncycastle.asn1.DERObject;
-import org.bouncycastle.asn1.pkcs.RSAPrivateKeyStructure;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.FileOutputStream;
 import java.net.URL;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableKeyException;
-import java.security.KeyFactory;
-import java.security.PrivateKey;
-import java.security.spec.InvalidKeySpecException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Enumeration;
-import java.util.List;
-import java.util.Set;
 
 /**
  * @author Credit Union Central of British Columbia
@@ -72,12 +61,26 @@ public class KeyMaterial extends TrustMaterial {
         this(Util.streamToBytes(jks), password);
     }
 
+	public KeyMaterial(InputStream jks, InputStream key, char[] password)
+	        throws KeyStoreException, CertificateException,
+	        NoSuchAlgorithmException, IOException,
+	        UnrecoverableKeyException {
+	    this(Util.streamToBytes(jks), Util.streamToBytes(key), password);
+	}
+
     public KeyMaterial(String pathToJksFile, char[] password)
             throws KeyStoreException, CertificateException,
             NoSuchAlgorithmException, IOException,
             UnrecoverableKeyException {
         this(new File(pathToJksFile), password);
     }
+
+	public KeyMaterial(String pathToCerts, String pathToKey, char[] password)
+	        throws KeyStoreException, CertificateException,
+	        NoSuchAlgorithmException, IOException,
+	        UnrecoverableKeyException {
+	    this(new File(pathToCerts), new File(pathToKey), password);
+	}
 
     public KeyMaterial(File jksFile, char[] password)
             throws KeyStoreException, CertificateException,
@@ -86,6 +89,14 @@ public class KeyMaterial extends TrustMaterial {
         this(new FileInputStream(jksFile), password);
     }
 
+	public KeyMaterial(File certsFile, File keyFile, char[] password)
+	        throws KeyStoreException, CertificateException,
+	        NoSuchAlgorithmException, IOException,
+	        UnrecoverableKeyException {
+	    this(new FileInputStream(certsFile), new FileInputStream(keyFile), password);
+	}
+
+
     public KeyMaterial(URL urlToJKS, char[] password)
             throws KeyStoreException, CertificateException,
             NoSuchAlgorithmException, IOException,
@@ -93,87 +104,53 @@ public class KeyMaterial extends TrustMaterial {
         this(urlToJKS.openStream(), password);
     }
 
+	public KeyMaterial(URL urlToCerts, URL urlToKey, char[] password)
+	        throws KeyStoreException, CertificateException,
+	        NoSuchAlgorithmException, IOException,
+	        UnrecoverableKeyException {
+	    this(urlToCerts.openStream(), urlToKey.openStream(), password);
+	}
+
     public KeyMaterial(byte[] jks, char[] password)
             throws KeyStoreException, CertificateException,
             NoSuchAlgorithmException, IOException,
             UnrecoverableKeyException {
-        super(jks, password);
-        KeyStore ks = getKeyStore();
-        Enumeration en = ks.aliases();
-        int privateKeyCount = 0;
-        while (en.hasMoreElements()) {
-            String alias = (String) en.nextElement();
-            if (ks.isKeyEntry(alias)) {
-                privateKeyCount++;
-                if (privateKeyCount > 1) {
-                    throw new KeyStoreException("commons-ssl KeyMaterial only supports keystores with a single private key.");
-                }
-                this.alias = alias;
-            }
-        }
-	     if ( alias != null )
-	     {
-		     Certificate[] chain = ks.getCertificateChain(alias);
-		     if (chain != null) {
-			     X509Certificate[] x509Chain = new X509Certificate[chain.length];
-			     for (int i = 0; i < chain.length; i++) {
-				     x509Chain[i] = (X509Certificate) chain[i];
-			     }
-			     this.associatedChain = x509Chain;
-		     } else {
-			     // is password wrong?
-		     }
-	     }
-	    this.keyManagerFactory = JavaImpl.newKeyManagerFactory(ks, password);
+        this( jks, null, password );
     }
 
-	public KeyMaterial(byte[] key, byte[] certificateChain, char[] password)
+	public KeyMaterial(byte[] jksOrCerts, byte[] key, char[] password)
 	        throws KeyStoreException, CertificateException,
 	        NoSuchAlgorithmException, IOException,
 	        UnrecoverableKeyException
 	{
-		TrustMaterial tm = new TrustMaterial( certificateChain );
-		Set set = tm.getCertificates();
-		X509Certificate[] chain = new X509Certificate[ set.size() ];
-		chain = (X509Certificate[]) set.toArray( chain );
-
-		ASN1InputStream in = new ASN1InputStream( key );
-		DERObject obj = in.readObject();
-		ASN1Sequence seq = (ASN1Sequence) obj;
-		RSAPrivateKeyStructure rsa = new RSAPrivateKeyStructure( seq );
-		KeyHelper.RSAPrivateCrtKeyImpl spec;
-		spec = new KeyHelper.RSAPrivateCrtKeyImpl( rsa.getModulus(),
-		                                           rsa.getPublicExponent(),
-		                                           rsa.getPrivateExponent(),
-		                                           rsa.getPrime1(),
-		                                           rsa.getPrime2(),
-		                                           rsa.getExponent1(),
-		                                           rsa.getExponent2(),
-		                                           rsa.getCoefficient() );
-
-		KeyFactory kf = KeyFactory.getInstance( "RSA" );
-		PrivateKey pk = null;
-		try
-		{
-			pk = kf.generatePrivate( spec );
+		super( KeyStoreBuilder.build( jksOrCerts, key, password ) );
+		KeyStore ks = getKeyStore();
+		Enumeration en = ks.aliases();
+		int privateKeyCount = 0;
+		while (en.hasMoreElements()) {
+		    String alias = (String) en.nextElement();
+		    if (ks.isKeyEntry(alias)) {
+		        privateKeyCount++;
+		        if (privateKeyCount > 1) {
+		            throw new KeyStoreException("commons-ssl KeyMaterial only supports keystores with a single private key.");
+		        }
+		        this.alias = alias;
+		    }
 		}
-		catch( InvalidKeySpecException ikse )
+		if ( alias != null )
 		{
-			ikse.printStackTrace( System.out );
+			Certificate[] chain = ks.getCertificateChain(alias);
+			if (chain != null) {
+				X509Certificate[] x509Chain = new X509Certificate[chain.length];
+				for (int i = 0; i < chain.length; i++) {
+					x509Chain[i] = (X509Certificate) chain[i];
+				}
+				this.associatedChain = x509Chain;
+			} else {
+				// is password wrong?
+			}
 		}
-
-System.out.println( pk.getAlgorithm() + " " + pk.getFormat() );		
-
-
-		KeyStore ks = KeyStore.getInstance("jks");
-		ks.load( null, null );
-		ks.setKeyEntry( "julius-key", pk, "changeit".toCharArray(), chain );
-		FileOutputStream out = new FileOutputStream( "new.jks" );
-		ks.store( out, "changeit".toCharArray() );
-		out.close();
-
-		System.out.println( PEMUtil.formatRSAPrivateKey( spec ) );
-
+	  this.keyManagerFactory = JavaImpl.newKeyManagerFactory(ks, password);
 	}
 
     public Object[] getKeyManagers() {
@@ -189,20 +166,9 @@ System.out.println( pk.getAlgorithm() + " " + pk.getFormat() );
             System.out.println("Usage:  java org.apache.commons.ssl.KeyMaterial [client-cert] [password]");
             System.exit(1);
         }
-
         String keypath = args[0];
-	     String certPath = args[ 1 ];
-	     FileInputStream fin = new FileInputStream( args[ 1 ] );
-	     byte[] certChain = Util.streamToBytes( fin );
-
-	     List l = PEMUtil.decode( keypath.getBytes() );
-	     PEMItem item = (PEMItem) l.get( 0 );
-	     KeyMaterial km = new KeyMaterial( item.getDerBytes(), certChain, null );
-
-	     if ( true ) return;
-
         char[] password = args[1].toCharArray();
-        km = new KeyMaterial(keypath, password);
+        KeyMaterial km = new KeyMaterial(keypath, password);
         X509Certificate[] certs = km.getAssociatedCertificateChain();
         for (int i = 0; i < certs.length; i++) {
             System.out.println(Certificates.toString(certs[i]));

@@ -50,21 +50,10 @@ public class Certificates {
 
     public final static CertificateFactory CF;
     private final static HashMap crls = new HashMap();
-    private final static BouncyHelper bouncyHelper;
 
     public final static String CRL_EXTENSION = "2.5.29.31";
     public final static String OCSP_EXTENSION = "1.3.6.1.5.5.7.1.1";
     private final static DateFormat DF = new SimpleDateFormat("yyyy/MMM/dd");
-
-    static {
-        BouncyHelper bh = null;
-        try {
-            bh = BouncyHelper.getInstance();
-        } catch (Throwable t) {
-            System.out.println(t);
-        }
-        bouncyHelper = bh;
-    }
 
     public interface SerializableComparator extends Comparator, Serializable {
     }
@@ -207,15 +196,15 @@ public class Certificates {
         return buf.toString();
     }
 
-    public final static void verifyHostName(String host, Certificate[] chain)
+    public static void verifyHostName(String host, Certificate[] chain)
             throws SSLException {
         verifyHostName(host, (X509Certificate) chain[0]);
     }
 
-    public final static void verifyHostName(String host, X509Certificate cert)
+    public static void verifyHostName(String host, X509Certificate cert)
             throws SSLException {
         String cn = getCN(cert);
-        boolean match = false;
+        boolean match;
         if (cn == null) {
             String s = JavaImpl.getSubjectX500(cert);
             throw new SSLException("certificate doesn't contain CN: " + s);
@@ -239,7 +228,7 @@ public class Certificates {
         }
     }
 
-    public final static String getCN(X509Certificate cert) {
+    public static String getCN(X509Certificate cert) {
         /*
         // toString() seems to do a better job than getName() on some
         // of the complicated conversions with X500 - at least in SUN's
@@ -265,16 +254,11 @@ public class Certificates {
         // (Thanks to Sebastian Hauer's StrictSSLProtocolSocketFactory for
         // pointing out how tricky X500 parsing can be!)
         */
-        String cn = subjectPrincipal.substring(x + 3, y);
-        return cn;
+        return subjectPrincipal.substring(x + 3, y);
     }
 
 
     public static List getCRLs(X509Extension cert) {
-
-        if (bouncyHelper != null) {
-            cert = bouncyHelper.bouncyParse(cert);
-        }
 
         // What follows is a poor man's CRL extractor, for those lacking
         // a BouncyCastle "bcprov.jar" in their classpath.
@@ -291,7 +275,7 @@ public class Certificates {
         if (bytes == null) {
             return crls;
         } else {
-            String s = "";
+            String s;
             try {
                 s = new String(bytes, "UTF-8");
             } catch (UnsupportedEncodingException uee) {
@@ -301,7 +285,7 @@ public class Certificates {
             }
             int pos = 0;
             while (pos >= 0) {
-                int x = -1, y = s.length();
+                int x = -1, y;
                 int[] indexes = new int[4];
                 indexes[0] = s.indexOf("http", pos);
                 indexes[1] = s.indexOf("ldap", pos);

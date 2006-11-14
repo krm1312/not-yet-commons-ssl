@@ -36,7 +36,7 @@ import javax.net.ssl.SSLSocket;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.net.SocketTimeoutException;
+import java.io.InterruptedIOException;
 import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
 
@@ -125,7 +125,7 @@ public class SSLEchoServer {
                 } catch (Exception e) {
                 }
 
-                if (ioe instanceof SocketTimeoutException) {
+                if (ioe instanceof InterruptedIOException ) {
                     System.out.println("Socket closed after 30 second timeout.");
                 } else {
                     ioe.printStackTrace();

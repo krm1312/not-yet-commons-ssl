@@ -17,6 +17,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigInteger;
 import java.security.GeneralSecurityException;
+import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.KeyFactory;
 import java.security.MessageDigest;
@@ -31,12 +32,21 @@ import java.util.LinkedList;
 import java.util.List;
 
 /**
+ * Utility for decrypting PKCS8 private keys.  Way easier to use than
+ * javax.crypto.EncryptedPrivateKeyInfo since all you need is the byte[] array
+ * and the password.  You don't need to know anything else about the PKCS8
+ * key you pass in.
+ *
+ * Can handle base64 PEM, or raw DER.
+ * Can handle PKCS8 Version 1.5 and 2.0.
+ * Can also handle OpenSSL encrypted or unencrypted private keys (DSA or RSA). 
+ *
  * @author Julius Davies
  * @since 7-Nov-2006
  */
 public class PKCS8Key
 {
-	private final static boolean DEBUG = false;
+	private static boolean DEBUG = false;
 
 	public final static BigInteger BIGGEST =
 			new BigInteger( Integer.toString( Integer.MAX_VALUE ) );
@@ -49,59 +59,68 @@ public class PKCS8Key
 	public final static String OPENSSL_RSA = "RSA PRIVATE KEY";
 	public final static String OPENSSL_DSA = "DSA PRIVATE KEY";
 
+	private final PrivateKey privateKey;	
 	private final byte[] decryptedBytes;
+	private final String transformation;
+	private final int keySize;
+	private final boolean isDSA;
+	private final boolean isRSA;
 
 	static
 	{
 		JavaImpl.load();
 	}
 
-	public static void main( String[] args ) throws Exception
+	/**
+	 *
+	 * @param in  pkcs8 file to parse (pem or der, encrypted or unencrypted)
+	 *
+	 * @param password  password to decrypt the pkcs8 file.  Ignored if the
+	 *                  supplied pkcs8 is already unencrypted.
+	 *
+	 * @throws GeneralSecurityException  If a parsing or decryption problem
+	 *                                   occured.
+	 *
+	 * @throws IOException  If the supplied InputStream could not be read.
+	 */
+	PKCS8Key( final InputStream in, char[] password )
+			throws GeneralSecurityException, IOException
 	{
-		byte[] original = null;
-		for ( int i = 0; i < args.length; i++ )
-		{
-			FileInputStream in = new FileInputStream( args[ i ] );
-			byte[] bytes = Util.streamToBytes( in );
-			PKCS8Key key = null;
-			try
-			{
-				key = new PKCS8Key( bytes, "changeit".toCharArray() );
-			}
-			catch ( Exception e )
-			{
-				System.out.println( " FAILED! " + args[ i ] );
-				e.printStackTrace( System.out );
-			}
-			if ( key != null )
-			{
-				byte[] decrypted = key.getDecryptedBytes();
-				if ( original == null )
-				{
-					original = decrypted;
-					System.out.println( "  " + args[ i ] + " serving as ORIGINAL" );
-				}
-				else
-				{
-					boolean identical = Arrays.equals( original, decrypted );
-					if ( !identical )
-					{
-						throw new RuntimeException( "failed on: " + args[ i ] );
-					}
-					else
-					{
-						System.out.println( "  " + args[ i ] + " PASSED!" );
-					}
-				}
-			}
-		}
-
-
+	   this( Util.streamToBytes( in ), password );
 	}
 
+	/**
+	 *
+	 * @param in  pkcs8 file to parse (pem or der, encrypted or unencrypted)
+	 *
+	 * @param password  password to decrypt the pkcs8 file.  Ignored if the
+	 *                  supplied pkcs8 is already unencrypted.
+	 *
+	 * @throws GeneralSecurityException  If a parsing or decryption problem
+	 *                                   occured.
+	 */
+	PKCS8Key( final ByteArrayInputStream in, char[] password )
+			throws GeneralSecurityException
+	{
+	   this( Util.streamToBytes( in ), password );	
+	}
+
+	/**
+	 *
+	 * @param encoded  pkcs8 file to parse (pem or der, encrypted or unencrypted)
+	 *
+	 * @param password  password to decrypt the pkcs8 file.  Ignored if the
+	 *                  supplied pkcs8 is already unencrypted.
+	 *
+	 * @throws GeneralSecurityException  If a parsing or decryption problem
+	 *                                   occured.
+	 */		
 	PKCS8Key( final byte[] encoded, char[] password )
 			throws GeneralSecurityException
 	{
+		DecryptResult decryptResult =
+				new DecryptResult( "UNENCRYPTED", 0, encoded );
+
 		List pemItems = PEMUtil.decode( encoded );
 		PEMItem keyItem = null;
 		byte[] derBytes = null;
@@ -131,6 +150,7 @@ public class PKCS8Key
 					}
 					derBytes = item.getDerBytes();
 					keyItem = item;
+					decryptResult = new DecryptResult( "UNENCRYPTED", 0, derBytes );
 				}
 			}
 			// after the loop is finished, did we find anything?
@@ -143,14 +163,9 @@ public class PKCS8Key
 			{
 				String c = keyItem.cipher.trim();
 				boolean encrypted = !"UNKNOWN".equals( c ) && !"".equals( c );
-				byte[] decryptedBytes;
 				if ( encrypted )
 				{
-					decryptedBytes = opensslDecrypt( keyItem, password );
-				}
-				else
-				{
-					decryptedBytes = derBytes;
+					decryptResult = opensslDecrypt( keyItem, password );
 				}
 
 				String oid = RSA_OID;
@@ -158,7 +173,11 @@ public class PKCS8Key
 				{
 					oid = DSA_OID;
 				}
-				derBytes = formatAsPKCS8( decryptedBytes, oid, null );
+				derBytes = formatAsPKCS8( decryptResult.bytes, oid, null );
+
+				String tf = decryptResult.transformation;
+				int ks = decryptResult.keySize;
+				decryptResult = new DecryptResult( tf, ks, derBytes );
 			}
 		}
 
@@ -170,13 +189,17 @@ public class PKCS8Key
 		}
 		catch ( IOException ioe )
 		{
-			throw new RuntimeException( "asn1 parse failure", ioe );
+			ioe.printStackTrace();
+			throw new RuntimeException( "asn1 parse failure: " + ioe );
 		}
 
 		PKCS8Asn1Structure pkcs8 = new PKCS8Asn1Structure();
 		analyzeASN1( seq, pkcs8, 0 );
 
 		String oid = RSA_OID;
+		// With the OpenSSL unencrypted private keys in DER format, the only way
+		// to even have a hope of guessing what we've got (DSA or RSA?) is to
+		// count the number of DERIntegers occurring in the first DERSequence.
 		int derIntegerCount = -1;
 		if ( pkcs8.derIntegers != null )
 		{
@@ -189,6 +212,10 @@ public class PKCS8Key
 			case 9:
 				derBytes = formatAsPKCS8( derBytes, oid, pkcs8 );
 				pkcs8.oid1 = oid;
+
+				String tf = decryptResult.transformation;
+				int ks = decryptResult.keySize;
+				decryptResult = new DecryptResult( tf, ks, derBytes );
 				break;
 			default:
 				break;
@@ -202,18 +229,9 @@ public class PKCS8Key
 
 		if ( encrypted )
 		{
-			try
-			{
-				decryptedPKCS8 = decrypt( pkcs8, password );
-			}
-			catch ( GeneralSecurityException gse )
-			{
-				throw JavaImpl.newRuntimeException( gse );
-			}
+			decryptResult = decryptPKCS8( pkcs8, password );
+			decryptedPKCS8 = decryptResult.bytes;
 		}
-
-		// System.out.println( Certificates.toString( decryptedPKCS8 ) );
-
 		if ( encrypted )
 		{
 			asn = new ASN1InputStream( decryptedPKCS8 );
@@ -223,7 +241,8 @@ public class PKCS8Key
 			}
 			catch ( IOException ioe )
 			{
-				throw new RuntimeException( ioe );
+				ioe.printStackTrace();
+				throw new RuntimeException( "asn1 parse failure: " + ioe );
 			}
 			pkcs8 = new PKCS8Asn1Structure();
 			analyzeASN1( seq, pkcs8, 0 );
@@ -252,10 +271,12 @@ public class PKCS8Key
 		}
 		if ( pk != null )
 		{
+			this.privateKey = pk;
+			this.isDSA = isDSA;
+			this.isRSA = !isDSA;
 			this.decryptedBytes = decryptedPKCS8;
-			// System.out.println( pk );
-			// System.out.println( PEMUtil.formatRSAPrivateKey( (RSAPrivateCrtKey) pk ) );
-			// System.out.println( Certificates.toString( pk.getEncoded() ) );
+			this.transformation = decryptResult.transformation;
+			this.keySize = decryptResult.keySize;
 		}
 		else
 		{
@@ -263,40 +284,88 @@ public class PKCS8Key
 		}
 	}
 
+	public boolean isRSA()
+	{
+		return isRSA;
+	}
+
+	public boolean isDSA()
+	{
+		return isDSA;
+	}
+
+	public String getTransformation()
+	{
+		return transformation;
+	}
+
+	public int getKeySize()
+	{
+		return keySize;
+	}
+
 	public byte[] getDecryptedBytes()
 	{
 		return decryptedBytes;
 	}
 
-	private byte[] opensslDecrypt( PEMItem item, char[] password )
+	public PrivateKey getPrivateKey()
+	{
+		return privateKey;
+	}
+
+	private static class DecryptResult
+	{
+		public final String transformation;
+		public final int keySize;
+		public final byte[] bytes;
+
+		protected DecryptResult( String transformation, int keySize,
+		                         byte[] decryptedBytes )
+		{
+			this.transformation = transformation;
+			this.keySize = keySize;
+			this.bytes = decryptedBytes;
+		}
+	}	
+
+	private static DecryptResult opensslDecrypt( PEMItem item, char[] password )
 			throws GeneralSecurityException
 	{
+		String cipher = item.cipher;
+		String mode = item.mode;
+		int keySize = item.keySizeInBits;
+		byte[] salt = item.iv;
 		byte[] pwd = new byte[password.length];
 		for ( int i = 0; i < password.length; i++ )
 		{
 			pwd[ i ] = (byte) password[ i ];
 		}
+		MessageDigest md = MessageDigest.getInstance( "MD5" );
+		DerivedKey dk = deriveKeyOpenSSL( pwd, salt, keySize, md );
+		return decrypt( cipher, mode, dk, item.des2, null, item.getDerBytes() );
+	}
 
-		String cipher = item.cipher.trim();
+	public static DecryptResult decrypt( String cipher, String mode,
+	                                     final DerivedKey dk,
+	                                     final boolean des2,
+	                                     final byte[] iv,
+	                                     final byte[] encryptedBytes )
 
+			throws NoSuchAlgorithmException, NoSuchPaddingException,
+			       InvalidKeyException, InvalidAlgorithmParameterException
+	{
+		if ( des2 && dk.key.length >= 24 )
+		{
+			// copy first 8 bytes into last 8 bytes to create 2DES key.
+			System.arraycopy( dk.key, 0, dk.key, 16, 8 );
+		}
+
+		int keySize = dk.key.length * 8;
+		cipher = cipher.trim();
+		mode = mode.trim().toUpperCase();
 		// Is the cipher even available?
 		Cipher.getInstance( cipher );
-
-		String hash = "MD5";
-		String mode = item.mode.trim().toUpperCase();
-		int keySize = item.keySizeInBits;
-		byte[] salt = item.iv;
-
-		MessageDigest md;
-		try
-		{
-			md = MessageDigest.getInstance( hash );
-		}
-		catch ( NoSuchAlgorithmException nsae )
-		{
-			throw new RuntimeException( nsae );
-		}
-
 		String padding = "PKCS5Padding";
 		if ( "CFB".equals( mode ) || "OFB".equals( mode ) )
 		{
@@ -304,46 +373,71 @@ public class PKCS8Key
 		}
 
 		String transformation = cipher + "/" + mode + "/" + padding;
-		System.out.print( transformation + " keysize: " + keySize );
-		DerivedKey dk = deriveKeyOpenSSL( pwd, salt, keySize, md );
-
-		if ( item.des2 )
+		if ( "RC4".equals( cipher ) )
 		{
-			// des2
-			System.arraycopy( dk.key, 0, dk.key, 16, 8 );
+			// RC4 does not take mode or padding.
+			transformation = cipher;
 		}
 
 		SecretKey secret = new SecretKeySpec( dk.key, cipher );
-		IvParameterSpec ivParams = new IvParameterSpec( dk.iv );
-		InputStream in = new ByteArrayInputStream( item.getDerBytes() );
+		IvParameterSpec ivParams;
+		if ( iv != null )
+		{
+			ivParams = new IvParameterSpec( iv );
+		}
+		else
+		{
+			ivParams = dk.iv != null ? new IvParameterSpec( dk.iv ) : null;
+		}
+		InputStream in = new ByteArrayInputStream( encryptedBytes );
 		try
 		{
 			Cipher c = Cipher.getInstance( transformation );
+
+			// RC2 requires special params to inform engine of keysize.
 			if ( "RC2".equalsIgnoreCase( cipher ) )
 			{
-				RC2ParameterSpec rcParams = new RC2ParameterSpec( keySize, dk.iv );
+				RC2ParameterSpec rcParams;
+				if ( "ECB".equals( mode ) || ivParams == null )
+				{
+					// ECB doesn't take an IV.
+					rcParams = new RC2ParameterSpec( keySize );
+				}
+				else
+				{
+					rcParams = new RC2ParameterSpec( keySize, ivParams.getIV() );
+				}
 				c.init( Cipher.DECRYPT_MODE, secret, rcParams );
 			}
-			else if ( "RC4".equalsIgnoreCase( cipher ) || mode.equals( "ECB" ) )
+			else if ( "ECB".equals( mode ) || "RC4".equals( cipher ) )
 			{
+				// RC4 doesn't require any params.
+				// Any cipher using ECB does not require an IV. 
 				c.init( Cipher.DECRYPT_MODE, secret );
 			}
 			else
 			{
+				// DES, DESede, AES, BlowFish require IVParams (when in CBC, CFB,
+				// or OFB mode).  (In ECB mode they don't require IVParams).
 				c.init( Cipher.DECRYPT_MODE, secret, ivParams );
 			}
 			in = new CipherInputStream( in, c );
-			return Util.streamToBytes( in );
+
+			byte[] decryptedBytes = Util.streamToBytes( in );
+			return new DecryptResult( transformation, keySize, decryptedBytes );
 		}
 		catch ( IOException e )
 		{
 			// unlikely to happen, since we're backed by a ByteArrayInputStream
-			throw new RuntimeException( e );
+			e.printStackTrace();
+			throw new RuntimeException( "couldn't read CipherInputStream: " + e.toString() );
 		}
 	}
 
-	private byte[] decrypt( PKCS8Asn1Structure pkcs8, char[] password )
-			throws NoSuchAlgorithmException, NoSuchPaddingException
+	private static DecryptResult decryptPKCS8( PKCS8Asn1Structure pkcs8,
+	                                           char[] password )
+			throws NoSuchAlgorithmException, NoSuchPaddingException,
+			       InvalidKeyException, InvalidAlgorithmParameterException
 	{
 
 		if ( DEBUG )
@@ -367,15 +461,6 @@ public class PKCS8Key
 		// those ones.
 		int ivSize = 0;
 
-		// In PKCS8 Version 1.5 we need to derive an 8 byte IV.  In those cases
-		// the ASN.1 structure doesn't have the IV, anyway, so I can use that
-		// to decide whether to derive one or not.
-		//
-		// Note:  if AES, then IV has to be 16 bytes.
-		if ( pkcs8.iv == null )
-		{
-			ivSize = 64;
-		}
 		String oid = pkcs8.oid1;
 		if ( oid.startsWith( "1.2.840.113549.1.12." ) )  // PKCS12 key derivation!
 		{
@@ -384,7 +469,7 @@ public class PKCS8Key
 			// Let's trim this OID to make life a little easier.
 			oid = oid.substring( "1.2.840.113549.1.12.".length() );
 
-			if ( oid.equals( "1.1" ) || oid.startsWith( "1.1." ) )      
+			if ( oid.equals( "1.1" ) || oid.startsWith( "1.1." ) )
 			{
 				// 1.2.840.113549.1.12.1.1
 				hash = "SHA1";
@@ -555,6 +640,15 @@ public class PKCS8Key
 					cipher = "DESede";
 					mode = "CBC";
 					keySize = 192;
+
+					// If the supplied IV is all zeroes, then this is DES2
+					// (Well, that's what happened when I played with OpenSSL!)
+					if ( allZeroes( pkcs8.iv ) )
+					{
+						mode = "ECB";
+						use2DES = true;
+						pkcs8.iv = null;
+					}
 				}
 			}
 
@@ -660,25 +754,15 @@ public class PKCS8Key
 			}
 		}
 
-		// Is the cipher even available?
-		Cipher.getInstance( cipher );
-
-		String padding = "PKCS5Padding";
-		if ( "CFB".equals( mode ) || "OFB".equals( mode ) )
+		// In PKCS8 Version 1.5 we need to derive an 8 byte IV.  In those cases
+		// the ASN.1 structure doesn't have the IV, anyway, so I can use that
+		// to decide whether to derive one or not.
+		//
+		// Note:  if AES, then IV has to be 16 bytes.
+		if ( pkcs8.iv == null )
 		{
-			padding = "NoPadding";
-		}		
-
-		String transformation = cipher + "/" + mode + "/" + padding;
-		String CIPHER = cipher.trim().toUpperCase();
-		if ( CIPHER.startsWith( "RC4" ) )
-		{
-			// RC4 doesn't have mode or padding.			
-			transformation = cipher;
+			ivSize = 64;
 		}
-		
-
-		System.out.print( transformation + " keySize: " + keySize );
 
 		byte[] salt = pkcs8.salt;
 		int ic = pkcs8.iterationCount;
@@ -712,52 +796,8 @@ public class PKCS8Key
 			}
 		}
 
-		if ( use2DES && dk.key.length >= 24 )
-		{
-			// copy first 8 bytes into last 8 bytes to create 2DES key.
-			System.arraycopy( dk.key, 0, dk.key, 16, 8 );
-		}
 
-		SecretKey secret = new SecretKeySpec( dk.key, cipher );
-		Cipher c = Cipher.getInstance( transformation );
-		IvParameterSpec ivParams;
-		if ( pkcs8.iv != null )
-		{
-			ivParams = new IvParameterSpec( pkcs8.iv );
-		}
-		else
-		{
-			ivParams = new IvParameterSpec( dk.iv );
-		}
-
-		try
-		{
-			if ( CIPHER.startsWith( "RC2" ) )
-			{
-				// RC2 requires special params to inform engine of keysize.
-				byte[] iv = ivParams.getIV();
-				RC2ParameterSpec rcParams = new RC2ParameterSpec( keySize, iv );
-				c.init( Cipher.DECRYPT_MODE, secret, rcParams );
-			}
-			else if ( CIPHER.startsWith( "RC4" ) || mode.equals( "ECB" ) )
-			{
-				// RC4 doesn't take any params.
-				c.init( Cipher.DECRYPT_MODE, secret );
-			}
-			else
-			{
-				// DES, DESede, and AES only require IVParams.
-				c.init( Cipher.DECRYPT_MODE, secret, ivParams );
-			}
-			byte[] encrypted = pkcs8.bigPayload;
-			ByteArrayInputStream bIn = new ByteArrayInputStream( encrypted );
-			InputStream in = new CipherInputStream( bIn, c );
-			return Util.streamToBytes( in );
-		}
-		catch ( Exception e )
-		{
-			throw JavaImpl.newRuntimeException( e );
-		}
+		return decrypt( cipher, mode, dk, use2DES, pkcs8.iv, pkcs8.bigPayload );
 	}
 
 	public static DerivedKey deriveKeyOpenSSL( byte[] password, byte[] salt,
@@ -766,6 +806,11 @@ public class PKCS8Key
 	{
 		md.reset();
 		byte[] key = new byte[keySizeInBits / 8];
+		if ( salt == null || salt.length == 0 )
+		{
+			// RC4 problem - OpenSSL isn't giving us the salt!
+			salt = null;
+		}
 		byte[] result;
 		int currentPos = 0;
 		while ( currentPos < key.length )
@@ -774,8 +819,8 @@ public class PKCS8Key
 			// salt is only null for RC4
 			if ( salt != null )
 			{
-				// First 8 bytes of salt ONLY!  (That wasn't obvious to me with those
-				// longer AES salts.   MUCH gnashing of teeth.)
+				// First 8 bytes of salt ONLY!  (That wasn't obvious to me with
+				// those longer AES salts.   MUCH gnashing of teeth.)
 				md.update( salt, 0, 8 );
 			}
 			result = md.digest();
@@ -822,7 +867,8 @@ public class PKCS8Key
 
 	public static DerivedKey deriveKeyPKCS12( char[] password, byte[] salt,
 	                                          int iterations, int keySizeInBits,
-	                                          int ivSizeInBits, MessageDigest md )
+	                                          int ivSizeInBits,
+	                                          MessageDigest md )
 	{
 		byte[] pwd;
 		if ( password.length > 0 )
@@ -850,6 +896,7 @@ public class PKCS8Key
 	                              MessageDigest md )
 	{
 		int u = md.getDigestLength();
+		// sha1, md2, md5 all use 512 bits.  But future hashes might not.
 		int v = 512 / 8;
 		md.reset();
 		byte[] D = new byte[v];
@@ -901,9 +948,24 @@ public class PKCS8Key
 			{
 				B[ j ] = result[ j % result.length ];
 			}
-			for ( int j = 0; j != I.length / v; j++ )
+			for ( int j = 0; j < ( I.length / v ); j++ )
 			{
-				adjust( I, j * v, B );
+				/*
+				 * add a + b + 1, returning the result in a. The a value is treated
+				 * as a BigInteger of length (b.length * 8) bits. The result is
+				 * modulo 2^b.length in case of overflow.
+				 */
+				int aOff = j * v;
+				int bLast = B.length - 1;
+				int x = ( B[ bLast ] & 0xff ) + ( I[ aOff + bLast ] & 0xff ) + 1;
+				I[ aOff + bLast ] = (byte) x;
+				x >>>= 8;
+				for ( int k = B.length - 2; k >= 0; k-- )
+				{
+					x += ( B[ k ] & 0xff ) + ( I[ aOff + k ] & 0xff );
+					I[ aOff + k ] = (byte) x;
+					x >>>= 8;
+				}
 			}
 			if ( i == c )
 			{
@@ -917,44 +979,18 @@ public class PKCS8Key
 		return dKey;
 	}
 
-	/**
-	 * add a + b + 1, returning the result in a. The a value is treated
-	 * as a BigInteger of length (b.length * 8) bits. The result is
-	 * modulo 2^b.length in case of overflow.
-	 *
-	 * @param a
-	 * @param aOff
-	 * @param b
-	 */
-	private static void adjust( byte[] a, int aOff, byte[] b )
-	{
-		int bLast = b.length - 1;
-		int x = ( b[ bLast ] & 0xff ) + ( a[ aOff + bLast ] & 0xff ) + 1;
-		a[ aOff + bLast ] = (byte) x;
-		x >>>= 8;
-		for ( int i = b.length - 2; i >= 0; i-- )
-		{
-			x += ( b[ i ] & 0xff ) + ( a[ aOff + i ] & 0xff );
-			a[ aOff + i ] = (byte) x;
-			x >>>= 8;
-		}
-	}
-
 	public static DerivedKey deriveKeyV2( byte[] password, byte[] salt,
 	                                      int iterations, int keySizeInBits,
 	                                      int ivSizeInBits, Mac mac )
+			throws InvalidKeyException
 	{
 		int keySize = keySizeInBits / 8;
 		int ivSize = ivSizeInBits / 8;
-		try
-		{
-			SecretKeySpec key = new SecretKeySpec( password, "N/A" );
-			mac.init( key );
-		}
-		catch ( InvalidKeyException ike )
-		{
-			throw new RuntimeException( ike );
-		}
+
+		// Because we're using an Hmac, we need to initialize with a SecretKey.
+		// HmacSHA1 doesn't need SecretKeySpec's 2nd parameter, hence the "N/A".  
+		SecretKeySpec sk = new SecretKeySpec( password, "N/A" );
+		mac.init( sk );
 		int macLength = mac.getMacLength();
 		int derivedKeyLength = keySize + ivSize;
 		int blocks = ( derivedKeyLength + macLength - 1 ) / macLength;
@@ -1124,6 +1160,7 @@ public class PKCS8Key
 						str = dps.getString();
 					}
 				}
+
 				if ( DEBUG )
 				{
 					System.out.println( name + ": [" + str + "]" );
@@ -1222,7 +1259,8 @@ public class PKCS8Key
 					}
 					catch ( IOException ioe )
 					{
-						throw new RuntimeException( "asn1 parse failure", ioe );
+						ioe.printStackTrace();
+						throw new RuntimeException( "asn1 parse failure " + ioe );
 					}
 					pkcs8 = new PKCS8Asn1Structure();
 					analyzeASN1( seq, pkcs8, 0 );
@@ -1263,6 +1301,18 @@ public class PKCS8Key
 		}
 	}
 
+	private static boolean allZeroes( byte[] b )
+	{
+		for ( int i = 0; i < b.length; i++ )
+		{
+			if ( b[ i ] != 0 )
+			{
+				return false;
+			}
+		}
+		return true;
+	}
+
 	public static byte[] encode( DEREncodable der ) throws IOException
 	{
 		ByteArrayOutputStream baos = new ByteArrayOutputStream( 1024 );
@@ -1273,4 +1323,65 @@ public class PKCS8Key
 	}
 
 
+
+	public static void main( String[] args ) throws Exception
+	{
+		byte[] original = null;
+		for ( int i = 0; i < args.length; i++ )
+		{
+			FileInputStream in = new FileInputStream( args[ i ] );
+			byte[] bytes = Util.streamToBytes( in );
+			PKCS8Key key = null;
+			try
+			{
+				key = new PKCS8Key( bytes, "changeit".toCharArray() );
+			}
+			catch ( Exception e )
+			{
+				System.out.println( " FAILED! " + args[ i ] );
+				e.printStackTrace( System.out );
+			}
+			if ( key != null )
+			{
+				byte[] decrypted = key.getDecryptedBytes();
+				int keySize = key.getKeySize();
+				String keySizeStr = "" + keySize;
+				if ( keySize < 10 )
+				{
+					keySizeStr = "  " + keySizeStr;
+				}
+				else if ( keySize < 100 )
+				{
+					keySizeStr = " " + keySizeStr;
+				}
+				StringBuffer buf = new StringBuffer( key.getTransformation() );
+				int maxLen = "Blowfish/CBC/PKCS5Padding".length();
+				for ( int j = buf.length(); j < maxLen; j++ )
+				{
+					buf.append( ' ' );
+				}
+				String transform = buf.toString();
+				String type = key.isDSA() ? "DSA" : "RSA";
+
+				if ( original == null )
+				{
+					original = decrypted;
+					System.out.println( "   SUCCESS    \t" + type + "\t" + transform + "\t" + keySizeStr + "\t" + args[ i ] );
+				}
+				else
+				{
+					boolean identical = Arrays.equals( original, decrypted );
+					if ( !identical )
+					{
+						System.out.println( "***FAILURE*** \t" + type + "\t" + transform + "\t" + keySizeStr + "\t" + args[ i ] );
+					}
+					else
+					{
+						System.out.println( "   SUCCESS    \t" + type + "\t" + transform + "\t" + keySizeStr + "\t" + args[ i ] );
+					}
+				}
+			}
+		}
+	}
+	
 }

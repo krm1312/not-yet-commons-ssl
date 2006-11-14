@@ -1,319 +1,350 @@
 package org.apache.commons.ssl;
 
-import org.bouncycastle.asn1.ASN1InputStream;
-import org.bouncycastle.asn1.ASN1Sequence;
-import org.bouncycastle.asn1.DERObject;
-import org.bouncycastle.asn1.pkcs.RSAPrivateKeyStructure;
-
-import javax.crypto.Cipher;
-import javax.crypto.CipherInputStream;
-import javax.crypto.EncryptedPrivateKeyInfo;
-import javax.crypto.SecretKey;
-import javax.crypto.SecretKeyFactory;
-import javax.crypto.spec.IvParameterSpec;
-import javax.crypto.spec.PBEKeySpec;
-import javax.crypto.spec.SecretKeySpec;
 import java.io.ByteArrayInputStream;
+import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.security.AlgorithmParameters;
+import java.math.BigInteger;
 import java.security.GeneralSecurityException;
-import java.security.KeyFactory;
+import java.security.Key;
 import java.security.KeyStore;
-import java.security.MessageDigest;
+import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
+import java.security.PublicKey;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.security.interfaces.RSAPrivateCrtKey;
-import java.security.spec.InvalidKeySpecException;
-import java.security.spec.KeySpec;
-import java.security.spec.PKCS8EncodedKeySpec;
-import java.util.Collections;
+import java.security.interfaces.RSAPublicKey;
+import java.util.Collection;
+import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
 
 /**
- * @author julius
+ * Builds Java Key Store files out of pkcs12 files, or out of pkcs8 files +
+ * certificate chains.  Also supports OpenSSL style private keys (encrypted or
+ * unencrypted).
+ *
+ * @author Julius Davies
  * @since 4-Nov-2006
  */
 public class KeyStoreBuilder
 {
-	private final static CertificateFactory CF;
-	private final static KeyFactory KF;
-	public final static Map PRIVATE_KEY_TYPES;
-
-	static
-	{
-		CertificateFactory cf;
-		try
-		{
-			cf = CertificateFactory.getInstance( "X.509" );
-		}
-		catch ( CertificateException ce )
-		{
-			// we're screwed
-			throw new RuntimeException( ce );
-		}
-		CF = cf;
-
-		KeyFactory kf;
-		try
-		{
-			kf = KeyFactory.getInstance( "RSA" );
-		}
-		catch ( NoSuchAlgorithmException nsae )
-		{
-			// are we screwed?
-			throw new RuntimeException( nsae );
-		}
-		KF = kf;
-
-		Map m = new TreeMap();
-		m.put( "RSA PRIVATE KEY", "ssleay-traditional" );
-		m.put( "PRIVATE KEY", "pkcs8-unencrypted" );
-		m.put( "ENCRYPTED PRIVATE KEY", "pkcs8-encrypted" );
-		// m.put( "CERTIFICATE", "x509-unencrypted" );
-		PRIVATE_KEY_TYPES = Collections.unmodifiableMap( m );
-	}
-
 	public static KeyStore build( byte[] jksOrCerts, char[] password )
-			throws IOException
+			throws IOException, CertificateException, KeyStoreException,
+			       NoSuchAlgorithmException
 	{
 		return build( jksOrCerts, null, password );
 	}
 
-	private static class BuildResult
-	{
-		protected List certs = new LinkedList();
-		protected PEMItem privatePEMItem;
-	}
-
 	public static KeyStore build( byte[] jksOrCerts, byte[] privateKey,
-	                              char[] password ) throws IOException
+	                              char[] password )
+			throws IOException, CertificateException, KeyStoreException,
+			       NoSuchAlgorithmException
 	{
-		tryCertsAsPEM( jksOrCerts, password );
-		// tryKeyIsPEM( privateKey, password );
+		BuildResult br1 = parse( jksOrCerts, password );
+		Key key = br1.key;
+		Certificate[] chain = br1.chain;
 
-		return null;
-	}
-
-	private static BuildResult tryCertsAsPEM( byte[] jksOrCerts,
-	                                          char[] password )
-			throws IOException
-	{
-		List pemItems = PEMUtil.decode( jksOrCerts );
-		BuildResult br = new BuildResult();
-		PEMItem privateKey = null;
-		if ( !pemItems.isEmpty() )
+		boolean atLeastOneNotSet = key == null || chain == null;
+		if ( atLeastOneNotSet && privateKey != null )
 		{
-			Iterator it = pemItems.iterator();
-			while ( it.hasNext() )
+			BuildResult br2 = parse( privateKey, password );
+			if ( key == null )
 			{
-				PEMItem item = (PEMItem) it.next();
-				String pemType = item.pemType;
-				if ( pemType.startsWith( "CERT" ) )
-				{
-					it.remove();
-					byte[] derBytes = item.getDerBytes();
-					ByteArrayInputStream in = new ByteArrayInputStream( derBytes );
-					try
-					{
-						Certificate cert = CF.generateCertificate( in );
-						X509Certificate x509 = (X509Certificate) cert;
-						br.certs.add( x509 );
-						System.out.println( Certificates.toString( x509 ) );
-					}
-					catch ( CertificateException ce )
-					{
-						System.out.println( "Failed to parse " + item.pemType + ": " + ce );
-					}
-				}
-				else if ( PRIVATE_KEY_TYPES.containsKey( pemType ) )
-				{
-					if ( privateKey == null )
-					{
-						it.remove();
-						privateKey = item;
-					}
-					else
-					{
-						throw new RuntimeException( "too many private keys!" );
-					}
-				}
+				key = br2.key;
+			}
+			if ( br2.chain != null )
+			{
+				chain = br2.chain;
 			}
 		}
-		if ( privateKey != null )
+
+		atLeastOneNotSet = key == null || chain == null;
+		if ( atLeastOneNotSet )
 		{
-			KeySpec spec = null;
-			String pemType = privateKey.pemType;
-			byte[] bytes = privateKey.getDerBytes();
-			String type = (String) PRIVATE_KEY_TYPES.get( pemType );
-			System.out.println( pemType + ":" + type );
-			if ( "pkcs8-unencrypted".equals( type ) )
+			String missing = "";
+			if ( key == null )
 			{
-				spec = new PKCS8EncodedKeySpec( bytes );
+				missing = " [Private key missing]";
 			}
-			else if ( "pkcs8-encrypted".equals( type ) )
+			if ( chain == null )
 			{
-				EncryptedPrivateKeyInfo epki = new EncryptedPrivateKeyInfo( bytes );
-				AlgorithmParameters params = epki.getAlgParameters();
-				String alg = epki.getAlgName();
-				if ( !alg.startsWith( "1." ) && params != null )
-				{
-					try
-					{
-						PBEKeySpec pbe = new PBEKeySpec( password );
-						SecretKeyFactory skf = SecretKeyFactory.getInstance( alg );
-						SecretKey sk = skf.generateSecret( pbe );
-						Cipher c = Cipher.getInstance( alg );
-						c.init( Cipher.DECRYPT_MODE, sk, params );
-						spec = epki.getKeySpec( c );
-					}
-					catch ( Exception e )
-					{
-						System.out.println( e );
-					}
-				}
-				else
-				{
-					System.out.println( "Don't know how to deal with this pkcs8 encrypted key." );
-					System.out.println( "Try a different provider / JVM  (Sun-Java5 default provider can only handle pkcs8 v1.5)" );
-				}
+				missing += " [Certificate chain missing]";
 			}
-			else
-			{
-				byte[] rsaKey = null;
-				// ssleay format used by openssl!
-				if ( "UNKNOWN".equals( privateKey.cipher ) )
-				{
-					System.out.println( "old style ssleay not encrypted" );
-					rsaKey = bytes;
-				}
-				else
-				{
-					String cipher = privateKey.cipher;
-					String mode = privateKey.mode;
-					byte[] iv = privateKey.iv;
-					int keySize = privateKey.keySizeInBits;
-					String transformation = cipher + "/" + mode + "/PKCS5Padding";
-
-					byte[] key = ssleayCreateKey( password, iv, keySize );
-					SecretKey sk = new SecretKeySpec( key, cipher );
-					IvParameterSpec ivParams = new IvParameterSpec( iv );
-
-					try
-					{
-						Cipher c = Cipher.getInstance( transformation );
-						c.init( Cipher.DECRYPT_MODE, sk, ivParams );
-						InputStream in = new ByteArrayInputStream( bytes );
-						in = new CipherInputStream( in, c );
-						rsaKey = Util.streamToBytes( in );
-					}
-					catch ( GeneralSecurityException gse )
-					{
-						System.out.println( "couldn't decrypt SSLEAY format rsa key: " + gse );
-					}
-				}
-
-				ASN1InputStream in = new ASN1InputStream( rsaKey );
-				DERObject obj = in.readObject();
-				ASN1Sequence seq = (ASN1Sequence) obj;
-				RSAPrivateKeyStructure rsa = new RSAPrivateKeyStructure( seq );
-				spec = new KeyHelper.RSAPrivateCrtKeyImpl( rsa.getModulus(),
-				                                           rsa.getPublicExponent(),
-				                                           rsa.getPrivateExponent(),
-				                                           rsa.getPrime1(),
-				                                           rsa.getPrime2(),
-				                                           rsa.getExponent1(),
-				                                           rsa.getExponent2(),
-				                                           rsa.getCoefficient() );
-
-			}
-
-			PrivateKey pk = null;
-			try
-			{
-				pk = KF.generatePrivate( spec );
-			}
-			catch ( InvalidKeySpecException ikse )
-			{
-				ikse.printStackTrace( System.out );
-			}
-
-			if ( pk != null )
-			{
-				System.out.println( PEMUtil.formatRSAPrivateKey( (RSAPrivateCrtKey) pk ) );
-				System.out.println( Certificates.toString( pk.getEncoded() ) );
-			}
-
+			throw new KeyStoreException( "Can't build keystore:" + missing );
 		}
+		else
+		{
+			String alias = null;
+			if ( key instanceof RSAPrivateCrtKey )
+			{
+				final RSAPrivateCrtKey rsa = (RSAPrivateCrtKey) key;
+				BigInteger publicExponent = rsa.getPublicExponent();
+				BigInteger modulus = rsa.getModulus();
+				for ( int i = 0; i < chain.length; i++ )
+				{
+					X509Certificate c = (X509Certificate) chain[ i ];
+					PublicKey pub = c.getPublicKey();
+					if ( pub instanceof RSAPublicKey )
+					{
+						RSAPublicKey certKey = (RSAPublicKey) pub;
+						BigInteger pe = certKey.getPublicExponent();
+						BigInteger mod = certKey.getModulus();
+						if ( publicExponent.equals( pe ) && modulus.equals( mod ) )
+						{
+							alias = Certificates.getCN( c );
+						}
+					}
+				}
+				if ( alias == null )
+				{
+					throw new KeyStoreException( "Can't build keystore: [No certificates belong to the private-key]" );
+				}
+			}
 
-
-		return null;
-
-
+			KeyStore ks = KeyStore.getInstance( "jks" );
+			ks.load( null, password );
+			ks.setKeyEntry( alias, key, password, chain );
+			return ks;
+		}
 	}
 
-	public static byte[] ssleayCreateKey( char[] password, byte[] salt,
-	                                      int keySizeInBits )
+	protected static class BuildResult
 	{
-		byte[] key = new byte[keySizeInBits / 8];
+		protected final Key key;
+		protected final Certificate[] chain;
+		protected final KeyStore jks;
 
-		MessageDigest md5;
+		protected BuildResult( Key key, Certificate[] chain, KeyStore jks )
+		{
+			this.key = key;
+			this.chain = chain;
+			this.jks = jks;
+		}
+	}
+
+
+	public static BuildResult parse( byte[] stuff, char[] password )
+			throws IOException, CertificateException, KeyStoreException
+	{
+		CertificateFactory cf = CertificateFactory.getInstance( "X.509" );
+		Key key = null;
+		Certificate[] chain = null;
+		KeyStore jks = null;
 		try
 		{
-			md5 = MessageDigest.getInstance( "MD5" );
-			md5.reset();
+			PKCS8Key pkcs8Key = new PKCS8Key( stuff, password );
+			key = pkcs8Key.getPrivateKey();
 		}
-		catch ( NoSuchAlgorithmException nsae )
+		catch ( Exception e )
 		{
-			throw new RuntimeException( nsae );
+			// no luck
 		}
 
-		byte[] pwd = new byte[password.length];
-		for ( int i = 0; i < pwd.length; i++ )
+		ByteArrayInputStream stuffStream = new ByteArrayInputStream( stuff );
+		List certificates = new LinkedList();
+		List pemItems = PEMUtil.decode( stuff );
+		Iterator it = pemItems.iterator();
+		while ( it.hasNext() )
 		{
-			pwd[ i ] = (byte) password[ i ];
-		}
-		int currentPos = 0;
-		while ( currentPos < key.length )
-		{
-			md5.update( pwd );
-			md5.update( salt, 0, 8 );  // First 8 bytes of salt ONLY!
-			byte[] result = md5.digest();
-			int stillNeed = key.length - currentPos;
-			// Digest gave us more than we need.  Let's truncate it.
-			if ( result.length > stillNeed )
+			PEMItem item = (PEMItem) it.next();
+			byte[] derBytes = item.getDerBytes();
+			String type = item.pemType.trim().toUpperCase();
+			if ( type.startsWith( "CERT" ) )
 			{
-				byte[] b = new byte[stillNeed];
-				System.arraycopy( result, 0, b, 0, b.length );
-				result = b;
-			}
-			System.arraycopy( result, 0, key, currentPos, result.length );
-			currentPos += result.length;
-			if ( currentPos < key.length )
-			{
-				// Next round starts with a hash of the hash.
-				md5.reset();
-				md5.update( result );
+				ByteArrayInputStream in = new ByteArrayInputStream( derBytes );
+				X509Certificate c = (X509Certificate) cf.generateCertificate( in );
+				certificates.add( c );
 			}
 		}
-		return key;
+
+		if ( key == null && certificates.isEmpty() )
+		{
+			stuffStream.reset();
+
+			// Okay, so far no luck.  Maybe it's an ASN.1 DER stream of
+			// certificates?
+			try
+			{
+				Collection certs = cf.generateCertificates( stuffStream );
+				it = certs.iterator();
+				while ( it.hasNext() )
+				{
+					X509Certificate x509 = (X509Certificate) it.next();
+					certificates.add( x509 );
+				}
+			}
+			catch ( CertificateException ce )
+			{
+				// oh well
+			}
+		}
+
+		if ( key == null && certificates.isEmpty() )
+		{
+			stuffStream.reset();
+
+			// Okay, still no luck.  Maybe it's an ASN.1 DER stream containing only
+			// a single certificate?
+			try
+			{
+				Certificate c = cf.generateCertificate( stuffStream );
+				X509Certificate x509 = (X509Certificate) c;
+				certificates.add( x509 );
+			}
+			catch ( CertificateException ce )
+			{
+				// oh well
+			}
+		}
+
+		if ( certificates.isEmpty() )
+		{
+			if ( key == null )
+			{
+				stuffStream.reset();
+				// So far no parsing luck.  Let's try for PKCS12
+				KeyStore pkcs12KeyStore = KeyStore.getInstance( "pkcs12" );
+				try
+				{
+					pkcs12KeyStore.load( stuffStream, password );
+					Enumeration en = pkcs12KeyStore.aliases();
+					while ( en.hasMoreElements() )
+					{
+						String alias = (String) en.nextElement();
+						if ( pkcs12KeyStore.isKeyEntry( alias ) )
+						{
+							key = pkcs12KeyStore.getKey( alias, password );
+							if ( key != null )
+							{
+								chain = pkcs12KeyStore.getCertificateChain( alias );
+								break;
+							}
+						}
+						if ( en.hasMoreElements() )
+						{
+							System.out.println( "what kind of weird pkcs12 file has more than one alias?" );
+						}
+					}
+				}
+				catch ( GeneralSecurityException e )
+				{
+					// pkcs12 didn't work.
+				}
+				catch ( IOException ioe )
+				{
+					// pkcs12 didn't work.
+				}
+			}
+
+			if ( key == null )
+			{
+				stuffStream.reset();
+
+				// So far no parsing luck.  Let's try for JKS.
+				KeyStore jksKeyStore = KeyStore.getInstance( "jks" );
+				try
+				{
+					jksKeyStore.load( stuffStream, password );
+					Enumeration en = jksKeyStore.aliases();
+					while ( en.hasMoreElements() )
+					{
+						String alias = (String) en.nextElement();
+						if ( jksKeyStore.isKeyEntry( alias ) )
+						{
+							key = jksKeyStore.getKey( alias, password );
+							// With JKS we're only interested in PrivateKeys.
+							// All others will be ignored.
+							if ( key != null && key instanceof PrivateKey )
+							{
+								chain = jksKeyStore.getCertificateChain( alias );
+								break;
+							}
+						}
+					}
+					jks = jksKeyStore;
+				}
+				catch ( GeneralSecurityException gse )
+				{
+					// jks didn't work.
+				}
+				catch ( IOException ioe )
+				{
+					// pkcs12 didn't work.
+				}
+			}
+		}
+		else
+		{
+			int certsFound = certificates.size();
+			X509Certificate[] x509Chain = new X509Certificate[certsFound];
+			certificates.toArray( x509Chain );
+			chain = x509Chain;
+		}
+
+		return new BuildResult( key, chain, jks );
 	}
 
 
 	public static void main( String[] args ) throws Exception
 	{
-		FileInputStream fin = new FileInputStream( args[ 0 ] );
-		byte[] bytes = Util.streamToBytes( fin );
-		build( bytes, "changeit".toCharArray() );
+		if ( args.length < 2 )
+		{
+			System.out.println( "KeyStoreBuilder:  outputs JKS file (java keystore) as ./[alias].jks" );
+			System.out.println( "[alias] will be set to the first CN value of the X509 certificate." );
+			System.out.println( "-------------------------------------------------------------------" );
+			System.out.println( "Usage1:  [password] [file:pkcs12]" );
+			System.out.println( "Usage2:  [password] [file:private-key] [file:certificate-chain]" );
+			System.out.println( "-------------------------------------------------------------------" );
+			System.out.println( "[private-key] can be openssl format, or pkcs8." );
+			System.out.println( "[password] decrypts [private-key], and also encrypts outputted JKS file." );
+			System.out.println( "All files can be PEM or DER." );
+			System.exit( 1 );
+		}
+		char[] password = args[ 0 ].toCharArray();
+		FileInputStream fin1 = new FileInputStream( args[ 1 ] );
+		byte[] bytes1 = Util.streamToBytes( fin1 );
+		byte[] bytes2 = null;
+		if ( args[ 2 ] != null )
+		{
+			FileInputStream fin2 = new FileInputStream( args[ 2 ] );
+			bytes2 = Util.streamToBytes( fin2 );
+		}
+
+		KeyStore ks = build( bytes1, bytes2, password );
+		Enumeration en = ks.aliases();
+		String alias = null;
+		while ( en.hasMoreElements() )
+		{
+			if ( alias == null )
+			{
+				alias = (String) en.nextElement();
+			}
+			else
+			{
+				System.out.println( "Generated keystore contains more than 1 alias!?!?" );
+			}
+		}
+
+		File f = new File( alias + ".jks" );
+		int count = 1;
+		while ( f.exists() )
+		{
+			f = new File( alias + "_" + count + ".jks" );
+			count++;
+		}
+
+		FileOutputStream jks = new FileOutputStream( f );
+		ks.store( jks, password );
+		jks.flush();
+		jks.close();
+		System.out.println( "Successfuly wrote: " + f.getPath() );
 	}
 
 

@@ -7,11 +7,11 @@ import javax.net.ssl.SSLProtocolException;
 import javax.net.ssl.SSLSocket;
 import java.io.EOFException;
 import java.io.IOException;
+import java.io.InterruptedIOException;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import java.rmi.server.RMISocketFactory;
 import java.security.GeneralSecurityException;
@@ -348,7 +348,7 @@ public class RMISocketFactoryImpl extends RMISocketFactory
 			while ( !tryPlain && t != null )
 			{
 				tryPlain = tryPlain || t instanceof EOFException;
-				tryPlain = tryPlain || t instanceof SocketTimeoutException;
+				tryPlain = tryPlain || t instanceof InterruptedIOException;
 				tryPlain = tryPlain || t instanceof SSLProtocolException;
 				t = t.getCause();
 			}
@@ -367,7 +367,7 @@ public class RMISocketFactoryImpl extends RMISocketFactory
 					while ( !tryPlain && t != null )
 					{
 						tryPlain = tryPlain || t instanceof EOFException;
-						tryPlain = tryPlain || t instanceof SocketTimeoutException;
+						tryPlain = tryPlain || t instanceof InterruptedIOException;
 						tryPlain = tryPlain || t instanceof SSLProtocolException;
 						t = t.getCause();
 					}

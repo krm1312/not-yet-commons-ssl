@@ -32,10 +32,10 @@ package org.apache.commons.ssl;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.net.InetSocketAddress;
+import java.io.InterruptedIOException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.net.SocketTimeoutException;
+import java.net.InetSocketAddress;
 
 /**
  * @author Credit Union Central of British Columbia
@@ -174,7 +174,7 @@ public class SSLProxyServer {
                 }
 
 
-                if (ioe instanceof SocketTimeoutException) {
+                if (ioe instanceof InterruptedIOException ) {
                     System.out.println("Socket closed after 10 second timeout.");
                 } else {
                     ioe.printStackTrace();

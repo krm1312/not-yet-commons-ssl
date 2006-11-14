@@ -109,6 +109,12 @@ public class PEMItem
 					}
 				}
 			}
+			if ( "BF".equals( CIPHER ) )
+			{
+				CIPHER = "Blowfish";
+			}
+			
+
 			this.mode = MODE;
 			this.cipher = CIPHER;
 			if ( keySize == -1 )
@@ -123,7 +129,7 @@ public class PEMItem
 				}
 				else
 				{
-					// RC2 and RC4?
+					// RC2, RC4, and Blowfish ?
 					keySizeInBits = 128;
 				}
 			}
