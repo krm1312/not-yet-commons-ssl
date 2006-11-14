@@ -1,39 +1,36 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
 <html>
-	<head>
-		<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
-		<meta name="Author" content="Made by 'tree'">
-		<meta name="GENERATOR" content="$Version: $ tree v1.5.0 (c) 1996 - 2004 by Steve Baker, Thomas Moore, Francesc Rocher, Kyosuke Tokoro $">
-		<title>commons-ssl proposal - may 3rd, 2006</title>
-		<style type="text/css">
-			<!-- 
-			h3 { margin: 0; border: 0; padding: 0; }
-			BODY { font-family : courier, monospace, sans-serif; }
-			P { font-weight: normal; font-family : courier, monospace, sans-serif; color: black; background-color: transparent;}
-			B { font-weight: normal; color: black; background-color: transparent;}
-			A:visited { font-weight : normal; text-decoration : none; background-color : transparent; margin : 0px 0px 0px 0px; padding : 0px 0px 0px 0px; display: inline; }
-			A:link    { font-weight : normal; text-decoration : none; margin : 0px 0px 0px 0px; padding : 0px 0px 0px 0px; display: inline; }
-			A:hover   { color : #000000; font-weight : normal; text-decoration : underline; background-color : yellow; margin : 0px 0px 0px 0px; padding : 0px 0px 0px 0px; display: inline; }
-			A:active  { color : #000000; font-weight: normal; background-color : transparent; margin : 0px 0px 0px 0px; padding : 0px 0px 0px 0px; display: inline; }
-			.VERSION { font-size: small; font-family : arial, sans-serif; }
-			.NORM { color: black; background-color: transparent;}
-			.FIFO { color: purple; background-color: transparent;}
-			.CHAR { color: yellow; background-color: transparent;}
-			.DIR  { color: blue; background-color: transparent;}
-			.BLOCK { color: yellow; background-color: transparent;}
-			.LINK { color: aqua; background-color: transparent;}
-			.SOCK { color: fuchsia; background-color: transparent;}
-			.EXEC { color: green; background-color: transparent;}
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<meta name="Author" content="Made by 'tree'">
+<meta name="GENERATOR" content="$Version: $ tree v1.5.0 (c) 1996 - 2004 by Steve Baker, Thomas Moore, Francesc Rocher, Kyosuke Tokoro $">
+<title>commons-ssl proposal - may 3rd, 2006</title>
+<style type="text/css">
+h1, h2, h3 { margin: 0; border: 0; padding: 0; font-size: 100%; }
+h1 { float: left; color: red; }
 b.n { font-family: arial; font-weight: bold; }
-			-->
-		</style>
-	</head>
-	<body>
-		<h1>commons-ssl</h1>
+span.hl { color: white; background-color: green; }
+div.nav { float: left; margin-left: 20px; font-weight: bold; }
+.nav a, .nav span { padding: 0 5px; }
+.nav a { color: blue; }
+</style>
+</head>
+<body>
+<h1>commons-ssl</h1>
+<div class="nav">
+<span class="hl">main</span> |
+<a href="pkcs8.html">pkcs8</a> |
+<a href="rmi.html">rmi</a> |
+<a href="ping.html">ping</a> |
+<a href="source.html">source</a> |
+<a href="download.html">download</a>
+</div>
+<br clear="all"/>
+<hr/>
 <h3>Requires Java 1.3.x or higher.</h3>
 <h3 style="margin-bottom: 10px;">Some features require Java 1.4.x or higher.</h3>
-<a href="commons-ssl-0.3.0.zip">./commons-ssl-0.3.0.zip</a> <em style="color: red;"> &nbsp; &nbsp; &lt;-- Download this guy!</em></pre>
-<br/><a href="commons-ssl-0.3.0.jar">./commons-ssl-0.3.0.jar</a> <em style="color: red;"> &nbsp; &nbsp; &lt;-- Or, for those in a rush!</em></pre>
+<a href="commons-ssl-0.3.1.zip">./commons-ssl-0.3.1.zip</a> <em style="color: red;"> &nbsp; &nbsp; &lt;-- Download this guy!</em></pre>
+<br/><a href="commons-ssl-0.3.1.jar">./commons-ssl-0.3.1.jar</a> <em style="color: red;"> &nbsp; &nbsp; &lt;-- Or, for those in a rush!</em></pre>
 <br/>&nbsp;<br/>
 
 <div style="font-family: arial;">
@@ -68,69 +65,7 @@ server.addTrustMaterial( TrustMaterial.TRUST_ALL );
 SSLServerSocket ss = (SSLServerSocket) server.createServerSocket( 7443 );
 SSLSocket socket = (SSLSocket) ss.accept();</pre>
 
-<br clear="all"><pre style="border: 1px solid red; padding: 10px; float: left;"><u><b>RMI over SSL Example</b></u>
-
-import org.apache.commons.ssl.RMISocketFactoryImpl;
-
-<em style="color: green;">// RMISocketFactoryImpl tries to detect plain sockets, so you should be able to use</em>
-<em style="color: green;">// this even in situations where not all of the RMI servers you are talking to are</em>
-<em style="color: green;">// using SSL.</em>
-RMISocketFactoryImpl impl = new RMISocketFactoryImpl();
-
-<em style="color: green;">// Let's change some settings on our default SSL client.</em>
-SSLClient defaultClient = (SSLClient) impl.getDefaultClient();
-client.setDoVerify( false );
-
-<em style="color: green;">// By default we trust Java's "cacerts", as well as whatever cert is on localhost:1099,</em>
-<em style="color: green;">// so this is redundant:   (Trusting localhost:1099 is some commons-ssl magic).</em>
-client.addTrustMaterial( TrustMaterial.CACERTS );
-
-<em style="color: green;">// But if we had used setTrustMaterial() instead of addTrustMaterial(), we would (probably)</em>
-<em style="color: green;">// no longer trust localhost:1099!  Using set instead of add causes all previous "adds" to</em>
-<em style="color: green;">// to be thrown out.</em>
-
-<em style="color: green;">// Meanwhile, RMI calls to rmi://special.com:1099/ need to trust a self-signed certificate,</em>
-<em style="color: green;">// but we don't want to pollute our default trust with this shoddy cert.  So only calls</em>
-<em style="color: green;">// specifically to "special.com" (any port) will use this.</em>
-SSLClient specialClient = new SSLClient();
-TrustMaterial tm = new TrustMaterial( "special.pem" );
-specialClient.addTrustMaterial( tm );
-<em style="color: green;">// Here's where the special cert gets associated with "special.com":</em>
-impl.setClient( "special.com", specialClient );
-
-
-<em style="color: green;">// We're might also want to be an RMI server ourselves!</em>
-<em style="color: green;">// By default commons-ssl looks for "~/.keystore" and tries password "changeit",</em>
-<em style="color: green;">// but we can change things if we want:</em>
-SSLServer server = (SSLServer) impl.getDefaultServer();
-tm = new TrustMaterial( "trust_only_these_client_certs.pem" );
-KeyMaterial km = new KeyMaterial( "/path/to/myKey.p12", "password".toCharArray() );
-server.setTrustMaterial( tm );
-server.setKeyMaterial( km );
-<em style="color: green;">// This particular RMI server will only accept connections with client certs!</em>
-server.setNeedClientAuth( true );
-
-<em style="color: green;">// Finally, we tell Java to use our new RMI socket factory!</em>
-RMISocketFactory.setSocketFactory( impl );</pre>
 <br clear="all">
-
-<pre style="border: 1px solid red; padding: 10px; float: left;"><u><b>"Ping" Utility Attempts "HEAD / HTTP/1.1" Request:</b></u>
-This utility is very handy because it can get you the server's public
-certificate even if your client certificate is bad (so even though the SSL
-handshake fails).  And unlike "openssl s_client", this utility can bind
-against any IP address available.
-
-Usage:  java -jar commons-ssl.jar [options]
-Options:   (*=required)
-*  -t  --target           [hostname[:port]]             default port=443
-   -b  --bind             [hostname[:port]]             default port=0 "ANY"
-   -r  --proxy            [hostname[:port]]             default port=80
-   -c  --client-cert      [path to client certificate]  *.jks or *.pfx
-   -p  --password         [client cert password]
-
-Example:
-
-java -jar commons-ssl.jar -t cucbc.com:443 -c ./client.pfx -p `cat ./pass.txt`</pre><br clear="all"/>
 
 
 <!--#include virtual="tree.html" -->
