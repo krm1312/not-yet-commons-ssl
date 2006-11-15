@@ -155,16 +155,19 @@ public class PKCS8Key
 			Iterator it = pemItems.iterator();
 			boolean opensslRSA = false;
 			boolean opensslDSA = false;
+
 			while ( it.hasNext() )
 			{
 				PEMItem item = (PEMItem) it.next();
 				String type = item.pemType.trim().toUpperCase();
 				boolean plainPKCS8 = type.startsWith( PKCS8_UNENCRYPTED );
 				boolean encryptedPKCS8 = type.startsWith( PKCS8_ENCRYPTED );
-				opensslRSA = type.startsWith( OPENSSL_RSA );
-				opensslDSA = type.startsWith( OPENSSL_DSA );
-				if ( plainPKCS8 || encryptedPKCS8 || opensslDSA || opensslRSA )
+				boolean rsa = type.startsWith( OPENSSL_RSA );
+				boolean dsa = type.startsWith( OPENSSL_DSA );
+				if ( plainPKCS8 || encryptedPKCS8 || rsa || dsa )
 				{
+					opensslRSA = opensslRSA || rsa;
+					opensslDSA = opensslDSA || dsa;
 					if ( derBytes != null )
 					{
 						throw new RuntimeException( "more than one pkcs8 key found in supplied byte array!" );
@@ -1359,7 +1362,7 @@ public class PKCS8Key
 			catch ( Exception e )
 			{
 				System.out.println( " FAILED! " + args[ i ] );
-				// e.printStackTrace( System.out );
+				e.printStackTrace( System.out );
 			}
 			if ( key != null )
 			{
