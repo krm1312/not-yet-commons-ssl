@@ -397,9 +397,10 @@ public class SSL
 		// in a timeout of 0 (infinite).
 		int factoryTimeout = getConnectTimeout();
 		int connectTimeout = timeout == 0 ? factoryTimeout : timeout;
-		Socket s = JavaImpl.createSocket( this, remoteHost, remotePort,
-		                                  localHost, localPort, connectTimeout );
-		return sslWrapperFactory.wrap( (SSLSocket) s );
+		SSLSocket s = JavaImpl.createSocket( this, remoteHost, remotePort,
+		                                     localHost, localPort,
+		                                     connectTimeout );
+		return sslWrapperFactory.wrap( s );
 		// return s;
 	}
 
