@@ -152,7 +152,7 @@ public class RMISocketFactoryImpl extends RMISocketFactory
 		{
 			while ( it.hasNext() )
 			{
-				clientMap.put( (String) it.next(), f );
+				clientMap.put( it.next(), f );
 			}
 		}
 	}
@@ -165,7 +165,7 @@ public class RMISocketFactoryImpl extends RMISocketFactory
 		{
 			while ( it.hasNext() )
 			{
-				clientMap.remove( (String) it.next() );
+				clientMap.remove( it.next() );
 			}
 		}
 	}
@@ -193,7 +193,7 @@ public class RMISocketFactoryImpl extends RMISocketFactory
 		}
 		TreeSet names = new TreeSet();
 		names.add( host );
-		InetAddress[] addresses = null;
+		InetAddress[] addresses;
 		try
 		{
 			// If they gave us "hostname.com", this will give us the various
@@ -282,8 +282,7 @@ public class RMISocketFactoryImpl extends RMISocketFactory
 	public synchronized SocketFactory getClient( String host )
 	{
 		host = host != null ? host.trim().toLowerCase() : "";
-		SocketFactory sf = (SocketFactory) clientMap.get( host );
-		return sf;
+		return (SocketFactory) clientMap.get( host );
 	}
 
 	private void initLocalBindingAddress()
@@ -333,7 +332,7 @@ public class RMISocketFactoryImpl extends RMISocketFactory
 			local = InetAddress.getByName( localBindingAddress );
 		}
 
-		SocketFactory sf = null;
+		SocketFactory sf;
 		synchronized ( this )
 		{
 			sf = (SocketFactory) clientMap.get( host );
@@ -343,7 +342,7 @@ public class RMISocketFactoryImpl extends RMISocketFactory
 			sf = defaultClient;
 		}
 
-		Socket s = null;
+		Socket s;
 		SSLSocket ssl = null;
 		int soTimeout = Integer.MIN_VALUE;
 		IOException reasonForPlainSocket = null;

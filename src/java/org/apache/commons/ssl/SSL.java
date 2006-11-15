@@ -298,24 +298,24 @@ public class SSL {
     }
 
     public Socket createSocket(InetAddress host, int port)
-            throws IOException, UnknownHostException {
+            throws IOException {
         return createSocket(host.getHostName(), port);
     }
 
     public Socket createSocket(String host, int port)
-            throws IOException, UnknownHostException {
+            throws IOException {
         return createSocket(host, port, null, 0);
     }
 
     public Socket createSocket(InetAddress host, int port,
                                InetAddress localHost, int localPort)
-            throws IOException, UnknownHostException {
+            throws IOException {
         return createSocket(host.getHostName(), port, localHost, localPort);
     }
 
     public Socket createSocket(String remoteHost, int remotePort,
                                InetAddress localHost, int localPort)
-            throws IOException, UnknownHostException {
+            throws IOException {
         return createSocket(remoteHost, remotePort, localHost, localPort, 0);
     }
 
@@ -336,7 +336,7 @@ public class SSL {
     public Socket createSocket(String remoteHost, int remotePort,
                                InetAddress localHost, int localPort,
                                int timeout)
-            throws IOException, UnknownHostException {
+            throws IOException {
         // Only use our factory-wide connectTimeout if this method was passed
         // in a timeout of 0 (infinite).
         int factoryTimeout = getConnectTimeout();
@@ -349,13 +349,13 @@ public class SSL {
 
     public Socket createSocket(Socket s, String remoteHost, int remotePort,
                                boolean autoClose)
-            throws IOException, UnknownHostException {
+            throws IOException {
         SSLSocketFactory sf = getSSLSocketFactory();
         SSLSocket ss = (SSLSocket) sf.createSocket(s, remoteHost, remotePort,
                 autoClose);
         doPreConnectSocketStuff(ss);
         doPostConnectSocketStuff(ss, remoteHost);
-	    return sslWrapperFactory.wrap( (SSLSocket) ss );
+	    return sslWrapperFactory.wrap( ss );
 	     // return ss;
     }
 
