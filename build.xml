@@ -14,7 +14,6 @@
 <project name="commons-ssl" default="jar" basedir=".">
 
   <property name="httpclient-jar" value="commons-httpclient-3.0.jar"/>
-  <property name="bouncyCastle-jar" value="bcprov-jdk14-133.jar"/>
   <property name="log4j-jar" value="log4j-1.2.13.jar"/>
   <property name="src" location="./src/java"/>
   <property name="build" location="./build"/>
@@ -27,7 +26,6 @@
   <path id="compile-classpath">
     <pathelement location="${classes}"/>
     <pathelement location="${lib}/${httpclient-jar}"/>
-    <pathelement location="${lib}/${bouncyCastle-jar}"/>
     <pathelement location="${lib}/${log4j-jar}"/>
   </path>
 
