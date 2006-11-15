@@ -39,35 +39,41 @@ import java.security.cert.X509Certificate;
  * @author <a href="mailto:juliusdavies@cucbc.com">juliusdavies@cucbc.com</a>
  * @since 30-Jun-2006
  */
-public class Java13TrustManagerWrapper implements X509TrustManager {
+public class Java13TrustManagerWrapper implements X509TrustManager
+{
 
-    private final X509TrustManager trustManager;
-    private final TrustChain trustChain;
-    private final SSL ssl;
+	private final X509TrustManager trustManager;
+	private final TrustChain trustChain;
+	private final SSL ssl;
 
-    public Java13TrustManagerWrapper(X509TrustManager m, TrustChain tc, SSL h) {
-        this.trustManager = m;
-        this.trustChain = tc;
-        this.ssl = h;
-    }
+	public Java13TrustManagerWrapper( X509TrustManager m, TrustChain tc, SSL h )
+	{
+		this.trustManager = m;
+		this.trustChain = tc;
+		this.ssl = h;
+	}
 
-    public boolean isClientTrusted(X509Certificate[] chain) {
-        ssl.setCurrentClientChain(chain);
-        return trustChain.contains(TrustMaterial.TRUST_ALL) ||
-               trustManager.isClientTrusted(chain);
-    }
+	public boolean isClientTrusted( X509Certificate[] chain )
+	{
+		ssl.setCurrentClientChain( chain );
+		return trustChain.contains( TrustMaterial.TRUST_ALL ) ||
+		       trustManager.isClientTrusted( chain );
+	}
 
-    public boolean isServerTrusted(X509Certificate[] chain) {
-        ssl.setCurrentServerChain(chain);
-        if (trustChain.contains(TrustMaterial.TRUST_ALL)) {
-            return true;
-        }
-        return trustManager.isServerTrusted(chain);
-    }
+	public boolean isServerTrusted( X509Certificate[] chain )
+	{
+		ssl.setCurrentServerChain( chain );
+		if ( trustChain.contains( TrustMaterial.TRUST_ALL ) )
+		{
+			return true;
+		}
+		return trustManager.isServerTrusted( chain );
+	}
 
-    public X509Certificate[] getAcceptedIssuers() {
-        return trustManager.getAcceptedIssuers();
-    }
+	public X509Certificate[] getAcceptedIssuers()
+	{
+		return trustManager.getAcceptedIssuers();
+	}
 
 
 }

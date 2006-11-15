@@ -50,138 +50,162 @@ import java.util.Iterator;
  * @author <a href="mailto:juliusdavies@cucbc.com">juliusdavies@cucbc.com</a>
  * @since 27-Feb-2006
  */
-public class TrustMaterial extends TrustChain {
-    public final static TrustMaterial CACERTS;
-    public final static TrustMaterial JSSE_CACERTS;
-    public final static TrustMaterial TRUST_ALL = new TrustMaterial( 1 );
-    public final static TrustMaterial TRUST_THIS_JVM = new TrustMaterial( 2 );
+public class TrustMaterial extends TrustChain
+{
+	public final static TrustMaterial CACERTS;
+	public final static TrustMaterial JSSE_CACERTS;
+	public final static TrustMaterial TRUST_ALL = new TrustMaterial( 1 );
+	public final static TrustMaterial TRUST_THIS_JVM = new TrustMaterial( 2 );
 
-	 public final int simpleTrustType;
-    private final KeyStore jks;
+	public final int simpleTrustType;
+	private final KeyStore jks;
 
-    static {
-        JavaImpl.load();
-        String javaHome = System.getProperty("java.home");
-        String pathToCacerts = javaHome + "/lib/security/cacerts";
-        String pathToJSSECacerts = javaHome + "/lib/security/jssecacerts";
-        TrustMaterial ca = null;
-        TrustMaterial jsse = null;
-        try {
-            File f = new File(pathToCacerts);
-            if (f.exists()) {
-                ca = new TrustMaterial(pathToCacerts);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        try {
-            File f = new File(pathToJSSECacerts);
-            if (f.exists()) {
-                jsse = new TrustMaterial(pathToJSSECacerts);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+	static
+	{
+		JavaImpl.load();
+		String javaHome = System.getProperty( "java.home" );
+		String pathToCacerts = javaHome + "/lib/security/cacerts";
+		String pathToJSSECacerts = javaHome + "/lib/security/jssecacerts";
+		TrustMaterial ca = null;
+		TrustMaterial jsse = null;
+		try
+		{
+			File f = new File( pathToCacerts );
+			if ( f.exists() )
+			{
+				ca = new TrustMaterial( pathToCacerts );
+			}
+		}
+		catch ( Exception e )
+		{
+			e.printStackTrace();
+		}
+		try
+		{
+			File f = new File( pathToJSSECacerts );
+			if ( f.exists() )
+			{
+				jsse = new TrustMaterial( pathToJSSECacerts );
+			}
+		}
+		catch ( Exception e )
+		{
+			e.printStackTrace();
+		}
 
-        CACERTS = ca;
-        JSSE_CACERTS = jsse;
-    }
+		CACERTS = ca;
+		JSSE_CACERTS = jsse;
+	}
 
-    private TrustMaterial( int simpleTrustType ) {
-	    this( null, simpleTrustType );
-    }
+	private TrustMaterial( int simpleTrustType )
+	{
+		this( null, simpleTrustType );
+	}
 
-	 TrustMaterial( KeyStore jks, int simpleTrustType )
-	 {
-		 this.jks = jks;
-		 addTrustMaterial( this );
-	    this.simpleTrustType = simpleTrustType;		 
-	 }
+	TrustMaterial( KeyStore jks, int simpleTrustType )
+	{
+		this.jks = jks;
+		addTrustMaterial( this );
+		this.simpleTrustType = simpleTrustType;
+	}
 
-    public TrustMaterial(Collection x509Certs)
-            throws KeyStoreException, CertificateException,
-            NoSuchAlgorithmException, IOException {
-        KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
-        ks.load(null, null);
-        loadCerts(ks, x509Certs);
-        this.jks = ks;
-        addTrustMaterial(this);
-
-	     // We're not a simple trust type, so set value to 0.
-	     // Only TRUST_ALL and TRUST_THIS_JVM are simple trust types.
-	     this.simpleTrustType = 0;
-    }
-
-    public TrustMaterial(X509Certificate x509Cert)
-            throws KeyStoreException, CertificateException,
-            NoSuchAlgorithmException, IOException {
-        this(Collections.singleton(x509Cert));
-    }
-
-    public TrustMaterial(X509Certificate[] x509Certs)
-            throws KeyStoreException, CertificateException,
-            NoSuchAlgorithmException, IOException {
-        this(Arrays.asList(x509Certs));
-    }
-
-    public TrustMaterial(byte[] pemBase64)
-            throws KeyStoreException, CertificateException,
-            NoSuchAlgorithmException, IOException {
-        this(pemBase64, null);
-    }
-
-    public TrustMaterial(InputStream pemBase64)
-            throws KeyStoreException, CertificateException,
-            NoSuchAlgorithmException, IOException {
-        this(Util.streamToBytes(pemBase64));
-    }
-
-    public TrustMaterial(String pathToPemFile)
-            throws KeyStoreException, CertificateException,
-            NoSuchAlgorithmException, IOException {
-        this(new FileInputStream(pathToPemFile));
-    }
-
-    public TrustMaterial(File pemFile)
-            throws KeyStoreException, CertificateException,
-            NoSuchAlgorithmException, IOException {
-        this(new FileInputStream(pemFile));
-    }
-
-    public TrustMaterial(URL urlToPemFile)
-            throws KeyStoreException, CertificateException,
-            NoSuchAlgorithmException, IOException {
-        this(urlToPemFile.openStream());
-    }
-
-    public TrustMaterial(String pathToJksFile, char[] password)
-            throws KeyStoreException, CertificateException,
-            NoSuchAlgorithmException, IOException {
-        this(new File(pathToJksFile), password);
-    }
-
-    public TrustMaterial(File jksFile, char[] password)
-            throws KeyStoreException, CertificateException,
-            NoSuchAlgorithmException, IOException {
-        this(new FileInputStream(jksFile), password);
-    }
-
-    public TrustMaterial(URL urlToJKS, char[] password)
-            throws KeyStoreException, CertificateException,
-            NoSuchAlgorithmException, IOException {
-        this(urlToJKS.openStream(), password);
-    }
-
-    public TrustMaterial(InputStream jks, char[] password)
-            throws KeyStoreException, CertificateException,
-            NoSuchAlgorithmException, IOException {
-        this(Util.streamToBytes(jks), password);
-    }
-
-
-	public TrustMaterial(byte[] jks, char[] password)
+	public TrustMaterial( Collection x509Certs )
 			throws KeyStoreException, CertificateException,
-			       NoSuchAlgorithmException, IOException {
+			       NoSuchAlgorithmException, IOException
+	{
+		KeyStore ks = KeyStore.getInstance( KeyStore.getDefaultType() );
+		ks.load( null, null );
+		loadCerts( ks, x509Certs );
+		this.jks = ks;
+		addTrustMaterial( this );
+
+		// We're not a simple trust type, so set value to 0.
+		// Only TRUST_ALL and TRUST_THIS_JVM are simple trust types.
+		this.simpleTrustType = 0;
+	}
+
+	public TrustMaterial( X509Certificate x509Cert )
+			throws KeyStoreException, CertificateException,
+			       NoSuchAlgorithmException, IOException
+	{
+		this( Collections.singleton( x509Cert ) );
+	}
+
+	public TrustMaterial( X509Certificate[] x509Certs )
+			throws KeyStoreException, CertificateException,
+			       NoSuchAlgorithmException, IOException
+	{
+		this( Arrays.asList( x509Certs ) );
+	}
+
+	public TrustMaterial( byte[] pemBase64 )
+			throws KeyStoreException, CertificateException,
+			       NoSuchAlgorithmException, IOException
+	{
+		this( pemBase64, null );
+	}
+
+	public TrustMaterial( InputStream pemBase64 )
+			throws KeyStoreException, CertificateException,
+			       NoSuchAlgorithmException, IOException
+	{
+		this( Util.streamToBytes( pemBase64 ) );
+	}
+
+	public TrustMaterial( String pathToPemFile )
+			throws KeyStoreException, CertificateException,
+			       NoSuchAlgorithmException, IOException
+	{
+		this( new FileInputStream( pathToPemFile ) );
+	}
+
+	public TrustMaterial( File pemFile )
+			throws KeyStoreException, CertificateException,
+			       NoSuchAlgorithmException, IOException
+	{
+		this( new FileInputStream( pemFile ) );
+	}
+
+	public TrustMaterial( URL urlToPemFile )
+			throws KeyStoreException, CertificateException,
+			       NoSuchAlgorithmException, IOException
+	{
+		this( urlToPemFile.openStream() );
+	}
+
+	public TrustMaterial( String pathToJksFile, char[] password )
+			throws KeyStoreException, CertificateException,
+			       NoSuchAlgorithmException, IOException
+	{
+		this( new File( pathToJksFile ), password );
+	}
+
+	public TrustMaterial( File jksFile, char[] password )
+			throws KeyStoreException, CertificateException,
+			       NoSuchAlgorithmException, IOException
+	{
+		this( new FileInputStream( jksFile ), password );
+	}
+
+	public TrustMaterial( URL urlToJKS, char[] password )
+			throws KeyStoreException, CertificateException,
+			       NoSuchAlgorithmException, IOException
+	{
+		this( urlToJKS.openStream(), password );
+	}
+
+	public TrustMaterial( InputStream jks, char[] password )
+			throws KeyStoreException, CertificateException,
+			       NoSuchAlgorithmException, IOException
+	{
+		this( Util.streamToBytes( jks ), password );
+	}
+
+
+	public TrustMaterial( byte[] jks, char[] password )
+			throws KeyStoreException, CertificateException,
+			       NoSuchAlgorithmException, IOException
+	{
 
 		KeyStoreBuilder.BuildResult br = KeyStoreBuilder.parse( jks, password );
 		if ( br.jks != null )
@@ -189,49 +213,54 @@ public class TrustMaterial extends TrustChain {
 			this.jks = br.jks;
 		}
 		else
-	   {
-		   KeyStore ks = KeyStore.getInstance("jks");
-		   if ( br.chain != null && br.chain.length > 0 )
-		   {
-			   ks.load( null, password );
-			   loadCerts( ks, Arrays.asList( br.chain ) );
-		   }
+		{
+			KeyStore ks = KeyStore.getInstance( "jks" );
+			if ( br.chain != null && br.chain.length > 0 )
+			{
+				ks.load( null, password );
+				loadCerts( ks, Arrays.asList( br.chain ) );
+			}
 			this.jks = ks;
-	   }
-	    
-        // overwrite password
-        if (password != null && !(this instanceof KeyMaterial)) {
-            for (int i = 0; i < password.length; i++) {
-                password[i] = '*';
-            }
-        }
-        addTrustMaterial(this);
+		}
 
-		  // We're not a simple trust type, so set value to 0.
-		  // Only TRUST_ALL and TRUST_THIS_JVM are simple trust types.
-	     this.simpleTrustType = 0;		
-    }
+		// overwrite password
+		if ( password != null && !( this instanceof KeyMaterial ) )
+		{
+			for ( int i = 0; i < password.length; i++ )
+			{
+				password[ i ] = '*';
+			}
+		}
+		addTrustMaterial( this );
 
-    public KeyStore getKeyStore() {
-        return jks;
-    }
+		// We're not a simple trust type, so set value to 0.
+		// Only TRUST_ALL and TRUST_THIS_JVM are simple trust types.
+		this.simpleTrustType = 0;
+	}
 
-    private static void loadCerts(KeyStore ks, Collection certs)
-            throws KeyStoreException {
-        Iterator it = certs.iterator();
-        int count = 0;
-        while (it.hasNext()) {
-            X509Certificate cert = (X509Certificate) it.next();
+	public KeyStore getKeyStore()
+	{
+		return jks;
+	}
 
-            // I could be fancy and parse out the CN field from the
-            // certificate's subject, but these names don't actually matter
-            // at all - I think they just have to be unique.
-	         String cn = Certificates.getCN( cert );
-            String alias = cn + "_" + count;
-            ks.setCertificateEntry(alias, cert);
-            count++;
-        }
-    }
+	private static void loadCerts( KeyStore ks, Collection certs )
+			throws KeyStoreException
+	{
+		Iterator it = certs.iterator();
+		int count = 0;
+		while ( it.hasNext() )
+		{
+			X509Certificate cert = (X509Certificate) it.next();
+
+			// I could be fancy and parse out the CN field from the
+			// certificate's subject, but these names don't actually matter
+			// at all - I think they just have to be unique.
+			String cn = Certificates.getCN( cert );
+			String alias = cn + "_" + count;
+			ks.setCertificateEntry( alias, cert );
+			count++;
+		}
+	}
 
 
 }

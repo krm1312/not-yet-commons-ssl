@@ -26,20 +26,20 @@ package org.apache.commons.ssl.asn1;
  */
 public class DERTeletexString extends DERString
 {
-    /**
-     * Basic DERObject constructor.
-     */
-    public DERTeletexString(byte[] value)
-    {
-        super( T61_STRING, value );
-    }
+	/**
+	 * Basic DERObject constructor.
+	 */
+	public DERTeletexString( byte[] value )
+	{
+		super( T61_STRING, value );
+	}
 
 
-    /**
-     * Static factory method, type-conversion operator.
-     */
-    public static DERTeletexString valueOf( String string )
-    {
-        return new DERTeletexString( stringToByteArray( string ) );
-    }
+	/**
+	 * Static factory method, type-conversion operator.
+	 */
+	public static DERTeletexString valueOf( String string )
+	{
+		return new DERTeletexString( stringToByteArray( string ) );
+	}
 }

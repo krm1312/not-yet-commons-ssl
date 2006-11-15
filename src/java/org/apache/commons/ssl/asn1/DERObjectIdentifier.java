@@ -30,7 +30,7 @@ public class DERObjectIdentifier extends DERObject
 {
 	private static final DERObjectIdentifier DUMMY = new DERObjectIdentifier( "".getBytes() );
 
-    String identifier;
+	String identifier;
 
 	public static DERObjectIdentifier valueOf( String identifier )
 			throws IOException
@@ -43,120 +43,120 @@ public class DERObjectIdentifier extends DERObject
 
 		while ( tok.hasMoreTokens() )
 		{
-		    DUMMY.writeField( baos, Long.parseLong( tok.nextToken() ) );
+			DUMMY.writeField( baos, Long.parseLong( tok.nextToken() ) );
 		}
 
 		aos.close();
 
 		byte[] bytes = baos.toByteArray();
 
-	   return new DERObjectIdentifier( bytes );
+		return new DERObjectIdentifier( bytes );
 	}
 
 
-    DERObjectIdentifier(byte[] bytes)
-    {
-        super( OBJECT_IDENTIFIER, bytes );
+	DERObjectIdentifier( byte[] bytes )
+	{
+		super( OBJECT_IDENTIFIER, bytes );
 
-        StringBuffer objId = new StringBuffer();
-        long value = 0;
-        boolean first = true;
+		StringBuffer objId = new StringBuffer();
+		long value = 0;
+		boolean first = true;
 
-        for ( int i = 0; i != bytes.length; i++ )
-        {
-            int b = bytes[i] & 0xff;
+		for ( int i = 0; i != bytes.length; i++ )
+		{
+			int b = bytes[ i ] & 0xff;
 
-            value = value * 128 + ( b & 0x7f );
-            if ( ( b & 0x80 ) == 0 ) // end of number reached
-            {
-                if ( first )
-                {
-                    switch ( ( int ) value / 40 )
-                    {
-                        case 0:
-                            objId.append( '0' );
-                            break;
-                        case 1:
-                            objId.append( '1' );
-                            value -= 40;
-                            break;
-                        default:
-                            objId.append( '2' );
-                            value -= 80;
-                    }
-                    first = false;
-                }
+			value = value * 128 + ( b & 0x7f );
+			if ( ( b & 0x80 ) == 0 ) // end of number reached
+			{
+				if ( first )
+				{
+					switch ( (int) value / 40 )
+					{
+						case 0:
+							objId.append( '0' );
+							break;
+						case 1:
+							objId.append( '1' );
+							value -= 40;
+							break;
+						default:
+							objId.append( '2' );
+							value -= 80;
+					}
+					first = false;
+				}
 
-                objId.append( '.' );
-                objId.append( Long.toString( value ) );
-                value = 0;
-            }
-        }
+				objId.append( '.' );
+				objId.append( Long.toString( value ) );
+				value = 0;
+			}
+		}
 
-        this.identifier = objId.toString();
-    }
-
-
-    private void writeField( OutputStream out, long fieldValue ) throws IOException
-    {
-        if ( fieldValue >= ( 1 << 7 ) )
-        {
-            if ( fieldValue >= ( 1 << 14 ) )
-            {
-                if ( fieldValue >= ( 1 << 21 ) )
-                {
-                    if ( fieldValue >= ( 1 << 28 ) )
-                    {
-                        if ( fieldValue >= ( 1 << 35 ) )
-                        {
-                            if ( fieldValue >= ( 1 << 42 ) )
-                            {
-                                if ( fieldValue >= ( 1 << 49 ) )
-                                {
-                                    if ( fieldValue >= ( 1 << 56 ) )
-                                    {
-                                        out.write( ( int ) ( fieldValue >> 56 ) | 0x80 );
-                                    }
-                                    out.write( ( int ) ( fieldValue >> 49 ) | 0x80 );
-                                }
-                                out.write( ( int ) ( fieldValue >> 42 ) | 0x80 );
-                            }
-                            out.write( ( int ) ( fieldValue >> 35 ) | 0x80 );
-                        }
-                        out.write( ( int ) ( fieldValue >> 28 ) | 0x80 );
-                    }
-                    out.write( ( int ) ( fieldValue >> 21 ) | 0x80 );
-                }
-                out.write( ( int ) ( fieldValue >> 14 ) | 0x80 );
-            }
-            out.write( ( int ) ( fieldValue >> 7 ) | 0x80 );
-        }
-        out.write( ( int ) fieldValue & 0x7f );
-    }
+		this.identifier = objId.toString();
+	}
 
 
-    public void encode( ASN1OutputStream out ) throws IOException
-    {
-        OIDTokenizer tok = new OIDTokenizer( identifier );
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        ASN1OutputStream aos = new ASN1OutputStream( baos );
+	private void writeField( OutputStream out, long fieldValue ) throws IOException
+	{
+		if ( fieldValue >= ( 1 << 7 ) )
+		{
+			if ( fieldValue >= ( 1 << 14 ) )
+			{
+				if ( fieldValue >= ( 1 << 21 ) )
+				{
+					if ( fieldValue >= ( 1 << 28 ) )
+					{
+						if ( fieldValue >= ( 1 << 35 ) )
+						{
+							if ( fieldValue >= ( 1 << 42 ) )
+							{
+								if ( fieldValue >= ( 1 << 49 ) )
+								{
+									if ( fieldValue >= ( 1 << 56 ) )
+									{
+										out.write( (int) ( fieldValue >> 56 ) | 0x80 );
+									}
+									out.write( (int) ( fieldValue >> 49 ) | 0x80 );
+								}
+								out.write( (int) ( fieldValue >> 42 ) | 0x80 );
+							}
+							out.write( (int) ( fieldValue >> 35 ) | 0x80 );
+						}
+						out.write( (int) ( fieldValue >> 28 ) | 0x80 );
+					}
+					out.write( (int) ( fieldValue >> 21 ) | 0x80 );
+				}
+				out.write( (int) ( fieldValue >> 14 ) | 0x80 );
+			}
+			out.write( (int) ( fieldValue >> 7 ) | 0x80 );
+		}
+		out.write( (int) fieldValue & 0x7f );
+	}
 
-        writeField( baos, Integer.parseInt( tok.nextToken() ) * 40 + Integer.parseInt( tok.nextToken() ) );
 
-        while ( tok.hasMoreTokens() )
-        {
-            writeField( baos, Long.parseLong( tok.nextToken() ) );
-        }
+	public void encode( ASN1OutputStream out ) throws IOException
+	{
+		OIDTokenizer tok = new OIDTokenizer( identifier );
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		ASN1OutputStream aos = new ASN1OutputStream( baos );
 
-        aos.close();
+		writeField( baos, Integer.parseInt( tok.nextToken() ) * 40 + Integer.parseInt( tok.nextToken() ) );
 
-        byte[] bytes = baos.toByteArray();
+		while ( tok.hasMoreTokens() )
+		{
+			writeField( baos, Long.parseLong( tok.nextToken() ) );
+		}
 
-        out.writeEncoded( OBJECT_IDENTIFIER, bytes );
-    }
+		aos.close();
 
-	 public String getIdentifier()
-	 {
-		 return identifier;
-	 }
+		byte[] bytes = baos.toByteArray();
+
+		out.writeEncoded( OBJECT_IDENTIFIER, bytes );
+	}
+
+	public String getIdentifier()
+	{
+		return identifier;
+	}
 }

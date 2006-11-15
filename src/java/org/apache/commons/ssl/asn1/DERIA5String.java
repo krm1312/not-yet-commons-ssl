@@ -26,20 +26,20 @@ package org.apache.commons.ssl.asn1;
  */
 public class DERIA5String extends DERString
 {
-    /**
-     * Basic DERObject constructor.
-     */
-    DERIA5String(byte[] value)
-    {
-        super( IA5_STRING, value );
-    }
+	/**
+	 * Basic DERObject constructor.
+	 */
+	DERIA5String( byte[] value )
+	{
+		super( IA5_STRING, value );
+	}
 
 
-    /**
-     * Static factory method, type-conversion operator.
-     */
-    public static DERIA5String valueOf( String string )
-    {
-        return new DERIA5String( stringToByteArray( string ) );
-    }
+	/**
+	 * Static factory method, type-conversion operator.
+	 */
+	public static DERIA5String valueOf( String string )
+	{
+		return new DERIA5String( stringToByteArray( string ) );
+	}
 }

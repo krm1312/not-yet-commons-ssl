@@ -30,49 +30,49 @@ import java.io.IOException;
  */
 public class DERApplicationSpecific extends DERObject
 {
-    private int tag;
+	private int tag;
 
 
-    /**
-     * Basic DERObject constructor.
-     */
-    public DERApplicationSpecific(int tag, byte[] value)
-    {
-        super( tag, value );
-        this.tag = tag;
-    }
+	/**
+	 * Basic DERObject constructor.
+	 */
+	public DERApplicationSpecific( int tag, byte[] value )
+	{
+		super( tag, value );
+		this.tag = tag;
+	}
 
 
-    /**
-     * Static factory method, type-conversion operator.
-     */
-    public static DERApplicationSpecific valueOf( int tag, DEREncodable object ) throws IOException
-    {
-        tag = tag | CONSTRUCTED;
+	/**
+	 * Static factory method, type-conversion operator.
+	 */
+	public static DERApplicationSpecific valueOf( int tag, DEREncodable object ) throws IOException
+	{
+		tag = tag | CONSTRUCTED;
 
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        ASN1OutputStream aos = new ASN1OutputStream( baos );
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		ASN1OutputStream aos = new ASN1OutputStream( baos );
 
-        aos.writeObject( object );
+		aos.writeObject( object );
 
-        return new DERApplicationSpecific( tag, baos.toByteArray() );
-    }
-
-
-    public int getApplicationTag()
-    {
-        return tag & 0x1F;
-    }
+		return new DERApplicationSpecific( tag, baos.toByteArray() );
+	}
 
 
-    public DEREncodable getObject() throws IOException
-    {
-        return new ASN1InputStream( getOctets() ).readObject();
-    }
+	public int getApplicationTag()
+	{
+		return tag & 0x1F;
+	}
 
 
-    public void encode( ASN1OutputStream out ) throws IOException
-    {
-        out.writeEncoded( APPLICATION | tag, value );
-    }
+	public DEREncodable getObject() throws IOException
+	{
+		return new ASN1InputStream( getOctets() ).readObject();
+	}
+
+
+	public void encode( ASN1OutputStream out ) throws IOException
+	{
+		out.writeEncoded( APPLICATION | tag, value );
+	}
 }

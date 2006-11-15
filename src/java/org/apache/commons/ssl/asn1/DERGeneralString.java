@@ -23,20 +23,20 @@ package org.apache.commons.ssl.asn1;
 
 public class DERGeneralString extends DERString
 {
-    /**
-     * Basic DERObject constructor.
-     */
-    DERGeneralString(byte[] value)
-    {
-        super( GENERAL_STRING, value );
-    }
+	/**
+	 * Basic DERObject constructor.
+	 */
+	DERGeneralString( byte[] value )
+	{
+		super( GENERAL_STRING, value );
+	}
 
 
-    /**
-     * Static factory method, type-conversion operator.
-     */
-    public static DERGeneralString valueOf( String string )
-    {
-        return new DERGeneralString( stringToByteArray( string ) );
-    }
+	/**
+	 * Static factory method, type-conversion operator.
+	 */
+	public static DERGeneralString valueOf( String string )
+	{
+		return new DERGeneralString( stringToByteArray( string ) );
+	}
 }

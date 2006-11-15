@@ -65,10 +65,10 @@ import java.util.List;
  * javax.crypto.EncryptedPrivateKeyInfo since all you need is the byte[] array
  * and the password.  You don't need to know anything else about the PKCS8
  * key you pass in.
- *
+ * <p/>
  * Can handle base64 PEM, or raw DER.
  * Can handle PKCS8 Version 1.5 and 2.0.
- * Can also handle OpenSSL encrypted or unencrypted private keys (DSA or RSA). 
+ * Can also handle OpenSSL encrypted or unencrypted private keys (DSA or RSA).
  *
  * @author Credit Union Central of British Columbia
  * @author <a href="http://www.cucbc.com/">www.cucbc.com</a>
@@ -90,7 +90,7 @@ public class PKCS8Key
 	public final static String OPENSSL_RSA = "RSA PRIVATE KEY";
 	public final static String OPENSSL_DSA = "DSA PRIVATE KEY";
 
-	private final PrivateKey privateKey;	
+	private final PrivateKey privateKey;
 	private final byte[] decryptedBytes;
 	private final String transformation;
 	private final int keySize;
@@ -103,49 +103,39 @@ public class PKCS8Key
 	}
 
 	/**
-	 *
-	 * @param in  pkcs8 file to parse (pem or der, encrypted or unencrypted)
-	 *
-	 * @param password  password to decrypt the pkcs8 file.  Ignored if the
-	 *                  supplied pkcs8 is already unencrypted.
-	 *
-	 * @throws GeneralSecurityException  If a parsing or decryption problem
-	 *                                   occured.
-	 *
-	 * @throws IOException  If the supplied InputStream could not be read.
+	 * @param in       pkcs8 file to parse (pem or der, encrypted or unencrypted)
+	 * @param password password to decrypt the pkcs8 file.  Ignored if the
+	 *                 supplied pkcs8 is already unencrypted.
+	 * @throws GeneralSecurityException If a parsing or decryption problem
+	 *                                  occured.
+	 * @throws IOException              If the supplied InputStream could not be read.
 	 */
 	PKCS8Key( final InputStream in, char[] password )
 			throws GeneralSecurityException, IOException
 	{
-	   this( Util.streamToBytes( in ), password );
+		this( Util.streamToBytes( in ), password );
 	}
 
 	/**
-	 *
-	 * @param in  pkcs8 file to parse (pem or der, encrypted or unencrypted)
-	 *
-	 * @param password  password to decrypt the pkcs8 file.  Ignored if the
-	 *                  supplied pkcs8 is already unencrypted.
-	 *
-	 * @throws GeneralSecurityException  If a parsing or decryption problem
-	 *                                   occured.
+	 * @param in       pkcs8 file to parse (pem or der, encrypted or unencrypted)
+	 * @param password password to decrypt the pkcs8 file.  Ignored if the
+	 *                 supplied pkcs8 is already unencrypted.
+	 * @throws GeneralSecurityException If a parsing or decryption problem
+	 *                                  occured.
 	 */
 	PKCS8Key( final ByteArrayInputStream in, char[] password )
 			throws GeneralSecurityException
 	{
-	   this( Util.streamToBytes( in ), password );	
+		this( Util.streamToBytes( in ), password );
 	}
 
 	/**
-	 *
 	 * @param encoded  pkcs8 file to parse (pem or der, encrypted or unencrypted)
-	 *
-	 * @param password  password to decrypt the pkcs8 file.  Ignored if the
-	 *                  supplied pkcs8 is already unencrypted.
-	 *
-	 * @throws GeneralSecurityException  If a parsing or decryption problem
-	 *                                   occured.
-	 */		
+	 * @param password password to decrypt the pkcs8 file.  Ignored if the
+	 *                 supplied pkcs8 is already unencrypted.
+	 * @throws GeneralSecurityException If a parsing or decryption problem
+	 *                                  occured.
+	 */
 	PKCS8Key( final byte[] encoded, char[] password )
 			throws GeneralSecurityException
 	{
@@ -358,7 +348,7 @@ public class PKCS8Key
 			this.keySize = keySize;
 			this.bytes = decryptedBytes;
 		}
-	}	
+	}
 
 	private static DecryptResult opensslDecrypt( PEMItem item, char[] password )
 			throws GeneralSecurityException
@@ -1354,7 +1344,6 @@ public class PKCS8Key
 	}
 
 
-
 	public static void main( String[] args ) throws Exception
 	{
 		byte[] original = null;
@@ -1414,5 +1403,5 @@ public class PKCS8Key
 			}
 		}
 	}
-	
+
 }

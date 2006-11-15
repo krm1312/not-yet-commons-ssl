@@ -26,26 +26,26 @@ package org.apache.commons.ssl.asn1;
  */
 public class DERBMPString extends DERString
 {
-    /**
-     * Basic DERObject constructor.
-     */
-    public DERBMPString(byte[] value)
-    {
-        super( BMP_STRING, value );
-    }
+	/**
+	 * Basic DERObject constructor.
+	 */
+	public DERBMPString( byte[] value )
+	{
+		super( BMP_STRING, value );
+	}
 
 
-    /**
-     * Static factory method, type-conversion operator.
-     */
-    public static DERBMPString valueOf( String string )
-    {
-        return new DERBMPString( stringToByteArray( string ) );
-    }
+	/**
+	 * Static factory method, type-conversion operator.
+	 */
+	public static DERBMPString valueOf( String string )
+	{
+		return new DERBMPString( stringToByteArray( string ) );
+	}
 
 
-    public String getString()
-    {
-        return byteArrayToString( value );
-    }
+	public String getString()
+	{
+		return byteArrayToString( value );
+	}
 }

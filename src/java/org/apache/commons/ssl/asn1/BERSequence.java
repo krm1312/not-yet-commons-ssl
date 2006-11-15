@@ -27,18 +27,18 @@ import java.util.Enumeration;
 
 public class BERSequence extends DERSequence
 {
-    public void encode( ASN1OutputStream out ) throws IOException
-    {
-        out.write( DERObject.SEQUENCE | DERObject.CONSTRUCTED );
-        out.write( DERObject.TAGGED );
+	public void encode( ASN1OutputStream out ) throws IOException
+	{
+		out.write( DERObject.SEQUENCE | DERObject.CONSTRUCTED );
+		out.write( DERObject.TAGGED );
 
-        Enumeration e = getObjects();
-        while ( e.hasMoreElements() )
-        {
-            out.writeObject( e.nextElement() );
-        }
+		Enumeration e = getObjects();
+		while ( e.hasMoreElements() )
+		{
+			out.writeObject( e.nextElement() );
+		}
 
-        out.write( DERObject.TERMINATOR );
-        out.write( DERObject.TERMINATOR );
-    }
+		out.write( DERObject.TERMINATOR );
+		out.write( DERObject.TERMINATOR );
+	}
 }

@@ -29,48 +29,48 @@ import java.math.BigInteger;
  */
 public class DERInteger extends DERObject
 {
-    /**
-     * Basic DERObject constructor.
-     */
-    DERInteger(byte[] value)
-    {
-        super( INTEGER, value );
-    }
+	/**
+	 * Basic DERObject constructor.
+	 */
+	DERInteger( byte[] value )
+	{
+		super( INTEGER, value );
+	}
 
 
-    /**
-     * Static factory method, type-conversion operator.
-     */
-    public static DERInteger valueOf( int integer )
-    {
-        return new DERInteger( intToOctet( integer ) );
-    }
+	/**
+	 * Static factory method, type-conversion operator.
+	 */
+	public static DERInteger valueOf( int integer )
+	{
+		return new DERInteger( intToOctet( integer ) );
+	}
 
 
-    /**
-     * Lazy accessor
-     * 
-     * @return integer value
-     */
-    public int intValue()
-    {
-        return octetToInt( value );
-    }
+	/**
+	 * Lazy accessor
+	 *
+	 * @return integer value
+	 */
+	public int intValue()
+	{
+		return octetToInt( value );
+	}
 
-	 public BigInteger toBigInteger()
-	 {
-		 return new BigInteger( value );
-	 }
-
-
-    private static int octetToInt( byte[] bytes )
-    {
-        return new BigInteger( bytes ).intValue();
-    }
+	public BigInteger toBigInteger()
+	{
+		return new BigInteger( value );
+	}
 
 
-    private static byte[] intToOctet( int integer )
-    {
-        return BigInteger.valueOf( integer ).toByteArray();
-    }
+	private static int octetToInt( byte[] bytes )
+	{
+		return new BigInteger( bytes ).intValue();
+	}
+
+
+	private static byte[] intToOctet( int integer )
+	{
+		return BigInteger.valueOf( integer ).toByteArray();
+	}
 }

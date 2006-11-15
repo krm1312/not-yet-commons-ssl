@@ -23,44 +23,44 @@ package org.apache.commons.ssl.asn1;
 
 public class OIDTokenizer
 {
-    private String oid;
+	private String oid;
 
-    private int index;
-
-
-    public OIDTokenizer(String oid)
-    {
-        this.oid = oid;
-        this.index = 0;
-    }
+	private int index;
 
 
-    public boolean hasMoreTokens()
-    {
-        return ( index != -1 );
-    }
+	public OIDTokenizer( String oid )
+	{
+		this.oid = oid;
+		this.index = 0;
+	}
 
 
-    public String nextToken()
-    {
-        if ( index == -1 )
-        {
-            return null;
-        }
+	public boolean hasMoreTokens()
+	{
+		return ( index != -1 );
+	}
 
-        String token;
-        int end = oid.indexOf( '.', index );
 
-        if ( end == -1 )
-        {
-            token = oid.substring( index );
-            index = -1;
-            return token;
-        }
+	public String nextToken()
+	{
+		if ( index == -1 )
+		{
+			return null;
+		}
 
-        token = oid.substring( index, end );
+		String token;
+		int end = oid.indexOf( '.', index );
 
-        index = end + 1;
-        return token;
-    }
+		if ( end == -1 )
+		{
+			token = oid.substring( index );
+			index = -1;
+			return token;
+		}
+
+		token = oid.substring( index, end );
+
+		index = end + 1;
+		return token;
+	}
 }

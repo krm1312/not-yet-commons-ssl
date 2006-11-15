@@ -29,8 +29,8 @@ import java.io.IOException;
  */
 public class BERNull extends DERNull
 {
-    public void encode( ASN1OutputStream out ) throws IOException
-    {
-        out.write( NULL );
-    }
+	public void encode( ASN1OutputStream out ) throws IOException
+	{
+		out.write( NULL );
+	}
 }

@@ -26,20 +26,20 @@ package org.apache.commons.ssl.asn1;
  */
 public class DERUTF8String extends DERString
 {
-    /**
-     * Basic DERObject constructor.
-     */
-    public DERUTF8String(byte[] value)
-    {
-        super( UTF8_STRING, value );
-    }
+	/**
+	 * Basic DERObject constructor.
+	 */
+	public DERUTF8String( byte[] value )
+	{
+		super( UTF8_STRING, value );
+	}
 
 
-    /**
-     * Static factory method, type-conversion operator.
-     */
-    public static DERUTF8String valueOf( String string )
-    {
-        return new DERUTF8String( stringToByteArray( string ) );
-    }
+	/**
+	 * Static factory method, type-conversion operator.
+	 */
+	public static DERUTF8String valueOf( String string )
+	{
+		return new DERUTF8String( stringToByteArray( string ) );
+	}
 }

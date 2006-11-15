@@ -67,70 +67,75 @@ import java.security.cert.CertificateException;
  *         for use without additional customization.
  *         </p>
  */
-public class StrictSSLProtocolSocketFactory extends HttpSecureProtocol {
+public class StrictSSLProtocolSocketFactory extends HttpSecureProtocol
+{
 
-    /**
-     * Constructor for StrictSSLProtocolSocketFactory.
-     *
-     * @param verifyHostname The host name verification flag. If set to
-     *                       <code>true</code> the SSL sessions server host name will be compared
-     *                       to the host name returned in the server certificates "Common Name"
-     *                       field of the "SubjectDN" entry.  If these names do not match a
-     *                       Exception is thrown to indicate this.  Enabling host name verification
-     *                       will help to prevent from man-in-the-middle attacks.  If set to
-     *                       <code>false</code> host name verification is turned off.
-     *                       <p/>
-     *                       Code sample:
-     *                       <p/>
-     *                       <blockquote>
-     *                       Protocol stricthttps = new Protocol(
-     *                       "https", new StrictSSLProtocolSocketFactory(true), 443);
-     *                       <p/>
-     *                       HttpClient client = new HttpClient();
-     *                       client.getHostConfiguration().setHost("localhost", 443, stricthttps);
-     *                       </blockquote>
-     */
-    public StrictSSLProtocolSocketFactory(boolean verifyHostname)
-            throws NoSuchAlgorithmException, KeyStoreException,
-            KeyManagementException, IOException, CertificateException {
-        super();
-        super.setDoVerify(verifyHostname);
-    }
+	/**
+	 * Constructor for StrictSSLProtocolSocketFactory.
+	 *
+	 * @param verifyHostname The host name verification flag. If set to
+	 *                       <code>true</code> the SSL sessions server host name will be compared
+	 *                       to the host name returned in the server certificates "Common Name"
+	 *                       field of the "SubjectDN" entry.  If these names do not match a
+	 *                       Exception is thrown to indicate this.  Enabling host name verification
+	 *                       will help to prevent from man-in-the-middle attacks.  If set to
+	 *                       <code>false</code> host name verification is turned off.
+	 *                       <p/>
+	 *                       Code sample:
+	 *                       <p/>
+	 *                       <blockquote>
+	 *                       Protocol stricthttps = new Protocol(
+	 *                       "https", new StrictSSLProtocolSocketFactory(true), 443);
+	 *                       <p/>
+	 *                       HttpClient client = new HttpClient();
+	 *                       client.getHostConfiguration().setHost("localhost", 443, stricthttps);
+	 *                       </blockquote>
+	 */
+	public StrictSSLProtocolSocketFactory( boolean verifyHostname )
+			throws NoSuchAlgorithmException, KeyStoreException,
+			       KeyManagementException, IOException, CertificateException
+	{
+		super();
+		super.setDoVerify( verifyHostname );
+	}
 
-    /**
-     * Constructor for StrictSSLProtocolSocketFactory.
-     * Host name verification will be enabled by default.
-     */
-    public StrictSSLProtocolSocketFactory()
-            throws NoSuchAlgorithmException, KeyStoreException,
-            KeyManagementException, IOException, CertificateException {
-        this(true);
-    }
+	/**
+	 * Constructor for StrictSSLProtocolSocketFactory.
+	 * Host name verification will be enabled by default.
+	 */
+	public StrictSSLProtocolSocketFactory()
+			throws NoSuchAlgorithmException, KeyStoreException,
+			       KeyManagementException, IOException, CertificateException
+	{
+		this( true );
+	}
 
-    /**
-     * Set the host name verification flag.
-     *
-     * @param verifyHostname The host name verification flag. If set to
-     *                       <code>true</code> the SSL sessions server host name will be compared
-     *                       to the host name returned in the server certificates "Common Name"
-     *                       field of the "SubjectDN" entry.  If these names do not match a
-     *                       Exception is thrown to indicate this.  Enabling host name verification
-     *                       will help to prevent from man-in-the-middle attacks.  If set to
-     *                       <code>false</code> host name verification is turned off.
-     */
-    public void setHostnameVerification(boolean verifyHostname) {
-        super.setDoVerify(verifyHostname);
-    }
+	/**
+	 * Set the host name verification flag.
+	 *
+	 * @param verifyHostname The host name verification flag. If set to
+	 *                       <code>true</code> the SSL sessions server host name will be compared
+	 *                       to the host name returned in the server certificates "Common Name"
+	 *                       field of the "SubjectDN" entry.  If these names do not match a
+	 *                       Exception is thrown to indicate this.  Enabling host name verification
+	 *                       will help to prevent from man-in-the-middle attacks.  If set to
+	 *                       <code>false</code> host name verification is turned off.
+	 */
+	public void setHostnameVerification( boolean verifyHostname )
+	{
+		super.setDoVerify( verifyHostname );
+	}
 
-    /**
-     * Gets the status of the host name verification flag.
-     *
-     * @return Host name verification flag.  Either <code>true</code> if host
-     *         name verification is turned on, or <code>false</code> if host name
-     *         verification is turned off.
-     */
-    public boolean getHostnameVerification() {
-        return super.getDoVerify();
-    }
+	/**
+	 * Gets the status of the host name verification flag.
+	 *
+	 * @return Host name verification flag.  Either <code>true</code> if host
+	 *         name verification is turned on, or <code>false</code> if host name
+	 *         verification is turned off.
+	 */
+	public boolean getHostnameVerification()
+	{
+		return super.getDoVerify();
+	}
 
 }

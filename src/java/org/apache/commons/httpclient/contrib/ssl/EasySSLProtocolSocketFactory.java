@@ -29,8 +29,8 @@
 
 package org.apache.commons.httpclient.contrib.ssl;
 
-import org.apache.commons.ssl.TrustMaterial;
 import org.apache.commons.ssl.HttpSecureProtocol;
+import org.apache.commons.ssl.TrustMaterial;
 
 import java.io.IOException;
 import java.net.Socket;
@@ -40,22 +40,22 @@ import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
 
 /**
- * <p>
- * EasySSLProtocolSocketFactory can be used to creats SSL {@link Socket}s 
- * that accept self-signed certificates. 
+ * <p/>
+ * EasySSLProtocolSocketFactory can be used to creats SSL {@link Socket}s
+ * that accept self-signed certificates.
  * </p>
- * <p>
- * This socket factory SHOULD NOT be used for productive systems 
- * due to security reasons, unless it is a concious decision and 
- * you are perfectly aware of security implications of accepting 
+ * <p/>
+ * This socket factory SHOULD NOT be used for productive systems
+ * due to security reasons, unless it is a concious decision and
+ * you are perfectly aware of security implications of accepting
  * self-signed certificates
  * </p>
- *
- * <p>
+ * <p/>
+ * <p/>
  * Example of using custom protocol socket factory for a specific host:
- *     <pre>
+ * <pre>
  *     Protocol easyhttps = new Protocol("https", new EasySSLProtocolSocketFactory(), 443);
- *
+ * <p/>
  *     HttpClient client = new HttpClient();
  *     client.getHostConfiguration().setHost("localhost", 443, easyhttps);
  *     // use relative url only
@@ -63,38 +63,40 @@ import java.security.cert.CertificateException;
  *     client.executeMethod(httpget);
  *     </pre>
  * </p>
- * <p>
+ * <p/>
  * Example of using custom protocol socket factory per default instead of the standard one:
- *     <pre>
+ * <pre>
  *     Protocol easyhttps = new Protocol("https", new EasySSLProtocolSocketFactory(), 443);
  *     Protocol.registerProtocol("https", easyhttps);
- *
+ * <p/>
  *     HttpClient client = new HttpClient();
  *     GetMethod httpget = new GetMethod("https://localhost/");
  *     client.executeMethod(httpget);
  *     </pre>
  * </p>
- * 
+ *
  * @author <a href="mailto:oleg -at- ural.ru">Oleg Kalnichevski</a>
- * 
- * <p>
- * DISCLAIMER: HttpClient developers DO NOT actively support this component.
- * The component is provided as a reference material, which may be inappropriate
- * for use without additional customization.
- * </p>
+ *         <p/>
+ *         <p/>
+ *         DISCLAIMER: HttpClient developers DO NOT actively support this component.
+ *         The component is provided as a reference material, which may be inappropriate
+ *         for use without additional customization.
+ *         </p>
  */
 
-public class EasySSLProtocolSocketFactory extends HttpSecureProtocol {
+public class EasySSLProtocolSocketFactory extends HttpSecureProtocol
+{
 
-    /**
-     * Constructor for EasySSLProtocolSocketFactory.
-     */
-    public EasySSLProtocolSocketFactory()
-        throws NoSuchAlgorithmException, KeyStoreException,
-                KeyManagementException, IOException, CertificateException {
-        super();
-        super.setTrustMaterial(TrustMaterial.TRUST_ALL);
-        super.setDoVerify(false);
-    }
+	/**
+	 * Constructor for EasySSLProtocolSocketFactory.
+	 */
+	public EasySSLProtocolSocketFactory()
+			throws NoSuchAlgorithmException, KeyStoreException,
+			       KeyManagementException, IOException, CertificateException
+	{
+		super();
+		super.setTrustMaterial( TrustMaterial.TRUST_ALL );
+		super.setDoVerify( false );
+	}
 
 }

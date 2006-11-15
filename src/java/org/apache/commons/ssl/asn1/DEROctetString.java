@@ -26,17 +26,17 @@ package org.apache.commons.ssl.asn1;
  */
 public class DEROctetString extends DERObject
 {
-    /**
-     * Basic DERObject constructor.
-     */
-    public DEROctetString(byte[] value)
-    {
-        super( OCTET_STRING, value );
-    }
+	/**
+	 * Basic DERObject constructor.
+	 */
+	public DEROctetString( byte[] value )
+	{
+		super( OCTET_STRING, value );
+	}
 
 
-    public byte[] getOctets()
-    {
-        return value;
-    }
+	public byte[] getOctets()
+	{
+		return value;
+	}
 }

@@ -29,8 +29,8 @@
 
 package org.apache.commons.ssl;
 
-import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLServerSocket;
+import javax.net.ssl.SSLSocket;
 import java.io.IOException;
 
 /**
@@ -42,7 +42,7 @@ import java.io.IOException;
 public class DefaultSSLWrapperFactory implements SSLWrapperFactory
 {
 	private final static DefaultSSLWrapperFactory instance =
-	      new DefaultSSLWrapperFactory();
+			new DefaultSSLWrapperFactory();
 
 	private DefaultSSLWrapperFactory() {}
 

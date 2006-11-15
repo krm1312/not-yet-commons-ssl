@@ -26,55 +26,55 @@ package org.apache.commons.ssl.asn1;
  */
 public class DEREnumerated extends DERObject
 {
-    /**
-     * Basic DERObject constructor.
-     */
-    public DEREnumerated(byte[] value)
-    {
-        super( ENUMERATED, value );
-    }
+	/**
+	 * Basic DERObject constructor.
+	 */
+	public DEREnumerated( byte[] value )
+	{
+		super( ENUMERATED, value );
+	}
 
 
-    /**
-     * Static factory method, type-conversion operator.
-     */
-    public static DEREnumerated valueOf( int integer )
-    {
-        return new DEREnumerated( intToOctet( integer ) );
-    }
+	/**
+	 * Static factory method, type-conversion operator.
+	 */
+	public static DEREnumerated valueOf( int integer )
+	{
+		return new DEREnumerated( intToOctet( integer ) );
+	}
 
 
-    /**
-     * Lazy accessor
-     * 
-     * @return integer value
-     */
-    public int intValue()
-    {
-        return octetToInt( value );
-    }
+	/**
+	 * Lazy accessor
+	 *
+	 * @return integer value
+	 */
+	public int intValue()
+	{
+		return octetToInt( value );
+	}
 
 
-    private static int octetToInt( byte[] bytes )
-    {
-        int result = 0;
+	private static int octetToInt( byte[] bytes )
+	{
+		int result = 0;
 
-        for ( int ii = 0; ii < Math.min( 4, bytes.length ); ii++ )
-        {
-            result += bytes[ii] * ( 16 ^ ii );
-        }
-        return result;
-    }
+		for ( int ii = 0; ii < Math.min( 4, bytes.length ); ii++ )
+		{
+			result += bytes[ ii ] * ( 16 ^ ii );
+		}
+		return result;
+	}
 
 
-    private static byte[] intToOctet( int integer )
-    {
-        byte[] result = new byte[4];
+	private static byte[] intToOctet( int integer )
+	{
+		byte[] result = new byte[4];
 
-        for ( int ii = 0, shift = 24; ii < 4; ii++, shift -= 8 )
-        {
-            result[ii] = ( byte ) ( 0xFF & ( integer >> shift ) );
-        }
-        return result;
-    }
+		for ( int ii = 0, shift = 24; ii < 4; ii++, shift -= 8 )
+		{
+			result[ ii ] = (byte) ( 0xFF & ( integer >> shift ) );
+		}
+		return result;
+	}
 }

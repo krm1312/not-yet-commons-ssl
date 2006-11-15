@@ -27,20 +27,20 @@ package org.apache.commons.ssl.asn1;
  */
 public class DERNumericString extends DERString
 {
-    /**
-     * Basic DERObject constructor.
-     */
-    DERNumericString(byte[] value)
-    {
-        super( NUMERIC_STRING, value );
-    }
+	/**
+	 * Basic DERObject constructor.
+	 */
+	DERNumericString( byte[] value )
+	{
+		super( NUMERIC_STRING, value );
+	}
 
 
-    /**
-     * Static factory method, type-conversion operator.
-     */
-    public static DERNumericString valueOf( String string )
-    {
-        return new DERNumericString( stringToByteArray( string ) );
-    }
+	/**
+	 * Static factory method, type-conversion operator.
+	 */
+	public static DERNumericString valueOf( String string )
+	{
+		return new DERNumericString( stringToByteArray( string ) );
+	}
 }

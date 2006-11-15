@@ -46,105 +46,124 @@ import java.security.cert.X509Certificate;
  * @author <a href="mailto:juliusdavies@cucbc.com">juliusdavies@cucbc.com</a>
  * @since 27-Feb-2006
  */
-public class SSLClient extends SSLSocketFactory {
+public class SSLClient extends SSLSocketFactory
+{
 
-    private final SSL ssl;
+	private final SSL ssl;
 
-    public SSLClient()
-            throws NoSuchAlgorithmException, KeyStoreException,
-            KeyManagementException, IOException, CertificateException {
-	    this.ssl = new SSL();
-    }
+	public SSLClient()
+			throws NoSuchAlgorithmException, KeyStoreException,
+			       KeyManagementException, IOException, CertificateException
+	{
+		this.ssl = new SSL();
+	}
 
-    public void addTrustMaterial(TrustChain trustChain)
-            throws NoSuchAlgorithmException, KeyStoreException,
-            KeyManagementException, IOException, CertificateException {
-        ssl.addTrustMaterial(trustChain);
-    }
+	public void addTrustMaterial( TrustChain trustChain )
+			throws NoSuchAlgorithmException, KeyStoreException,
+			       KeyManagementException, IOException, CertificateException
+	{
+		ssl.addTrustMaterial( trustChain );
+	}
 
-    public void setTrustMaterial(TrustChain trustChain)
-            throws NoSuchAlgorithmException, KeyStoreException,
-            KeyManagementException, IOException, CertificateException {
-        ssl.setTrustMaterial(trustChain);
-    }
+	public void setTrustMaterial( TrustChain trustChain )
+			throws NoSuchAlgorithmException, KeyStoreException,
+			       KeyManagementException, IOException, CertificateException
+	{
+		ssl.setTrustMaterial( trustChain );
+	}
 
-    public void setKeyMaterial(KeyMaterial keyMaterial)
-            throws NoSuchAlgorithmException, KeyStoreException,
-            KeyManagementException, IOException, CertificateException {
-        ssl.setKeyMaterial(keyMaterial);
-    }
+	public void setKeyMaterial( KeyMaterial keyMaterial )
+			throws NoSuchAlgorithmException, KeyStoreException,
+			       KeyManagementException, IOException, CertificateException
+	{
+		ssl.setKeyMaterial( keyMaterial );
+	}
 
-    public String[] getEnabledCiphers() {
-        return ssl.getEnabledCiphers();
-    }
+	public String[] getEnabledCiphers()
+	{
+		return ssl.getEnabledCiphers();
+	}
 
-    public void setEnabledCiphers(String[] ciphers)
-            throws IllegalArgumentException {
-        ssl.setEnabledCiphers(ciphers);
-    }
+	public void setEnabledCiphers( String[] ciphers )
+			throws IllegalArgumentException
+	{
+		ssl.setEnabledCiphers( ciphers );
+	}
 
-    public String[] getEnabledProtocols() {
-        return ssl.getEnabledProtocols();
-    }
+	public String[] getEnabledProtocols()
+	{
+		return ssl.getEnabledProtocols();
+	}
 
-    public void setEnabledProtocols(String[] protocols) {
-        ssl.setEnabledProtocols(protocols);
-    }
+	public void setEnabledProtocols( String[] protocols )
+	{
+		ssl.setEnabledProtocols( protocols );
+	}
 
-    public void setDoVerify(boolean doVerify) {
-        ssl.setDoVerify(doVerify);
-    }
+	public void setDoVerify( boolean doVerify )
+	{
+		ssl.setDoVerify( doVerify );
+	}
 
-    public boolean getDoVerify() {
-        return ssl.getDoVerify();
-    }
+	public boolean getDoVerify()
+	{
+		return ssl.getDoVerify();
+	}
 
-	 public X509Certificate[] getAssociatedCertificateChain()
-	 {
-		 return ssl.getAssociatedCertificateChain();
-	 }
+	public X509Certificate[] getAssociatedCertificateChain()
+	{
+		return ssl.getAssociatedCertificateChain();
+	}
 
-    public void setCheckCRL(boolean checkCRL) {
-        ssl.setCheckCRL(checkCRL);
-    }
+	public void setCheckCRL( boolean checkCRL )
+	{
+		ssl.setCheckCRL( checkCRL );
+	}
 
-    public boolean getCheckCRL() {
-        return ssl.getCheckCRL();
-    }
+	public boolean getCheckCRL()
+	{
+		return ssl.getCheckCRL();
+	}
 
-    public void setSoTimeout(int soTimeout) {
-        ssl.setSoTimeout(soTimeout);
-    }
+	public void setSoTimeout( int soTimeout )
+	{
+		ssl.setSoTimeout( soTimeout );
+	}
 
-    public void setUseClientMode(boolean useClientMode) {
-        ssl.setUseClientMode(useClientMode);
-    }
+	public void setUseClientMode( boolean useClientMode )
+	{
+		ssl.setUseClientMode( useClientMode );
+	}
 
-    public void setConnectTimeout(int connectTimeout) {
-        ssl.setConnectTimeout(connectTimeout);
-    }
+	public void setConnectTimeout( int connectTimeout )
+	{
+		ssl.setConnectTimeout( connectTimeout );
+	}
 
-    public void setDefaultProtocol(String protocol) {
-        ssl.setDefaultProtocol(protocol);
-    }
+	public void setDefaultProtocol( String protocol )
+	{
+		ssl.setDefaultProtocol( protocol );
+	}
 
-    public String[] getDefaultCipherSuites() {
-        return ssl.getDefaultCipherSuites();
-    }
+	public String[] getDefaultCipherSuites()
+	{
+		return ssl.getDefaultCipherSuites();
+	}
 
-    public String[] getSupportedCipherSuites() {
-        return ssl.getSupportedCipherSuites();
-    }
+	public String[] getSupportedCipherSuites()
+	{
+		return ssl.getSupportedCipherSuites();
+	}
 
-	 public TrustChain getTrustChain()
-	 {
-		 return ssl.getTrustChain();
-	 }
+	public TrustChain getTrustChain()
+	{
+		return ssl.getTrustChain();
+	}
 
-	 public SSLWrapperFactory getSSLWrapperFactory()
-	 {
-		 return ssl.getSSLWrapperFactory();
-	 }
+	public SSLWrapperFactory getSSLWrapperFactory()
+	{
+		return ssl.getSSLWrapperFactory();
+	}
 
 	public void setSSLWrapperFactory( SSLWrapperFactory wf )
 	{
@@ -152,62 +171,70 @@ public class SSLClient extends SSLSocketFactory {
 	}
 
 
-    public Socket createSocket() throws IOException {
-        return ssl.createSocket();
-    }
+	public Socket createSocket() throws IOException
+	{
+		return ssl.createSocket();
+	}
 
-    public Socket createSocket(String host, int port)
-            throws IOException {
-        return ssl.createSocket(host, port);
-    }
+	public Socket createSocket( String host, int port )
+			throws IOException
+	{
+		return ssl.createSocket( host, port );
+	}
 
-    public Socket createSocket(InetAddress host, int port)
-            throws IOException {
-        return createSocket(host.getHostName(), port);
-    }
+	public Socket createSocket( InetAddress host, int port )
+			throws IOException
+	{
+		return createSocket( host.getHostName(), port );
+	}
 
-    public Socket createSocket(InetAddress host, int port,
-                               InetAddress localHost, int localPort)
-            throws IOException {
-        return createSocket(host.getHostName(), port, localHost, localPort);
-    }
+	public Socket createSocket( InetAddress host, int port,
+	                            InetAddress localHost, int localPort )
+			throws IOException
+	{
+		return createSocket( host.getHostName(), port, localHost, localPort );
+	}
 
-    public Socket createSocket(String host,
-                               int port,
-                               InetAddress localHost,
-                               int localPort)
-            throws IOException {
-        return createSocket(host, port, localHost, localPort, 0);
-    }
+	public Socket createSocket( String host,
+	                            int port,
+	                            InetAddress localHost,
+	                            int localPort )
+			throws IOException
+	{
+		return createSocket( host, port, localHost, localPort, 0 );
+	}
 
-    /**
-     * Attempts to get a new socket connection to the given host within the
-     * given time limit.
-     *
-     * @param host      the host name/IP
-     * @param port      the port on the host
-     * @param localHost the local host name/IP to bind the socket to
-     * @param localPort the port on the local machine
-     * @param timeout   the connection timeout (0==infinite)
-     * @return Socket a new socket
-     * @throws IOException          if an I/O error occurs while creating thesocket
-     * @throws UnknownHostException if the IP address of the host cannot be
-     *                              determined
-     */
-    public Socket createSocket(String host, int port, InetAddress localHost,
-                               int localPort, int timeout)
-            throws IOException {
-        return ssl.createSocket(host, port, localHost, localPort, timeout);
-    }
+	/**
+	 * Attempts to get a new socket connection to the given host within the
+	 * given time limit.
+	 *
+	 * @param host      the host name/IP
+	 * @param port      the port on the host
+	 * @param localHost the local host name/IP to bind the socket to
+	 * @param localPort the port on the local machine
+	 * @param timeout   the connection timeout (0==infinite)
+	 * @return Socket a new socket
+	 * @throws IOException          if an I/O error occurs while creating thesocket
+	 * @throws UnknownHostException if the IP address of the host cannot be
+	 *                              determined
+	 */
+	public Socket createSocket( String host, int port, InetAddress localHost,
+	                            int localPort, int timeout )
+			throws IOException
+	{
+		return ssl.createSocket( host, port, localHost, localPort, timeout );
+	}
 
-    public Socket createSocket(Socket s, String remoteHost, int remotePort,
-                               boolean autoClose)
-            throws IOException {
-        return ssl.createSocket(s, remoteHost, remotePort, autoClose);
-    }
+	public Socket createSocket( Socket s, String remoteHost, int remotePort,
+	                            boolean autoClose )
+			throws IOException
+	{
+		return ssl.createSocket( s, remoteHost, remotePort, autoClose );
+	}
 
-    public X509Certificate[] getCurrentServerChain() {
-        return ssl.getCurrentServerChain();
-    }
+	public X509Certificate[] getCurrentServerChain()
+	{
+		return ssl.getCurrentServerChain();
+	}
 
 }

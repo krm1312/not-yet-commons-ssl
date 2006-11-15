@@ -131,7 +131,8 @@ public class ASN1InputStream extends FilterInputStream
 
 	/**
 	 * Build an object given its tag and a byte stream.
-	 * @param tag tag
+	 *
+	 * @param tag   tag
 	 * @param bytes bytes
 	 * @return DEREncodable
 	 * @throws IOException if read fails
@@ -281,6 +282,7 @@ public class ASN1InputStream extends FilterInputStream
 
 	/**
 	 * Read a string of bytes representing an indefinite length object.
+	 *
 	 * @return bytes
 	 * @throws IOException if read fails
 	 */

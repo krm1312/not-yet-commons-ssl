@@ -52,8 +52,8 @@ public class SSLServer extends SSLServerSocketFactory
 	private final SSL ssl;
 
 	public SSLServer()
-	      throws NoSuchAlgorithmException, KeyStoreException,
-	             KeyManagementException, IOException, CertificateException
+			throws NoSuchAlgorithmException, KeyStoreException,
+			       KeyManagementException, IOException, CertificateException
 	{
 		this.ssl = new SSL();
 
@@ -78,8 +78,8 @@ public class SSLServer extends SSLServerSocketFactory
 		{
 			if ( !password.equals( "changeit" ) )
 			{
-System.out.println( "commons-ssl attempt to automatically load " + keystore + " failed " );
-System.out.println( e );
+				System.out.println( "commons-ssl attempt to automatically load " + keystore + " failed " );
+				System.out.println( e );
 			}
 		}
 
@@ -90,22 +90,22 @@ System.out.println( e );
 	}
 
 	public void addTrustMaterial( TrustChain trustChain )
-	      throws NoSuchAlgorithmException, KeyStoreException,
-	             KeyManagementException, IOException, CertificateException
+			throws NoSuchAlgorithmException, KeyStoreException,
+			       KeyManagementException, IOException, CertificateException
 	{
 		ssl.addTrustMaterial( trustChain );
 	}
 
 	public void setTrustMaterial( TrustChain trustChain )
-	      throws NoSuchAlgorithmException, KeyStoreException,
-	             KeyManagementException, IOException, CertificateException
+			throws NoSuchAlgorithmException, KeyStoreException,
+			       KeyManagementException, IOException, CertificateException
 	{
 		ssl.setTrustMaterial( trustChain );
 	}
 
 	public void setKeyMaterial( KeyMaterial keyMaterial )
-	      throws NoSuchAlgorithmException, KeyStoreException,
-	             KeyManagementException, IOException, CertificateException
+			throws NoSuchAlgorithmException, KeyStoreException,
+			       KeyManagementException, IOException, CertificateException
 	{
 		ssl.setKeyMaterial( keyMaterial );
 	}
@@ -121,7 +121,7 @@ System.out.println( e );
 	}
 
 	public void setEnabledCiphers( String[] ciphers )
-	      throws IllegalArgumentException
+			throws IllegalArgumentException
 	{
 		ssl.setEnabledCiphers( ciphers );
 	}
@@ -183,13 +183,13 @@ System.out.println( e );
 	}
 
 	public ServerSocket createServerSocket( int port )
-	      throws IOException
+			throws IOException
 	{
 		return createServerSocket( port, 50 );
 	}
 
 	public ServerSocket createServerSocket( int port, int backlog )
-	      throws IOException
+			throws IOException
 	{
 		return createServerSocket( port, backlog, null );
 	}
@@ -206,7 +206,7 @@ System.out.println( e );
 	 */
 	public ServerSocket createServerSocket( int port, int backlog,
 	                                        InetAddress localHost )
-	      throws IOException
+			throws IOException
 	{
 		SSLServerSocketFactory f = ssl.getSSLServerSocketFactory();
 		ServerSocket ss = f.createServerSocket( port, backlog, localHost );

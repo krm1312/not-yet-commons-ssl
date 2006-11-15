@@ -32,56 +32,56 @@ import java.util.TimeZone;
  */
 public class DERUTCTime extends DERString
 {
-    private static final TimeZone UTC_TIME_ZONE = TimeZone.getTimeZone( "UTC" );
+	private static final TimeZone UTC_TIME_ZONE = TimeZone.getTimeZone( "UTC" );
 
-    private static final SimpleDateFormat dateFormat = new SimpleDateFormat( "yyMMddHHmmss'Z'" );
+	private static final SimpleDateFormat dateFormat = new SimpleDateFormat( "yyMMddHHmmss'Z'" );
 
-    static
-    {
-        dateFormat.setTimeZone( UTC_TIME_ZONE );
-    }
-
-
-    /**
-     * Basic DERObject constructor.
-     */
-    public DERUTCTime(byte[] value)
-    {
-        super( UTC_TIME, value );
-    }
+	static
+	{
+		dateFormat.setTimeZone( UTC_TIME_ZONE );
+	}
 
 
-    /**
-     * Static factory method, type-conversion operator.
-     */
-    public static DERUTCTime valueOf( Date date )
-    {
-        String dateString = null;
-
-        synchronized ( dateFormat )
-        {
-            dateString = dateFormat.format( date );
-        }
-
-        byte[] bytes = stringToByteArray( dateString );
-
-        return new DERUTCTime( bytes );
-    }
+	/**
+	 * Basic DERObject constructor.
+	 */
+	public DERUTCTime( byte[] value )
+	{
+		super( UTC_TIME, value );
+	}
 
 
-    /**
-     * Lazy accessor
-     * 
-     * @return Date representation of this DER UTC Time
-     * @throws ParseException
-     */
-    public Date getDate() throws ParseException
-    {
-        String string = byteArrayToString( value );
+	/**
+	 * Static factory method, type-conversion operator.
+	 */
+	public static DERUTCTime valueOf( Date date )
+	{
+		String dateString = null;
 
-        synchronized ( dateFormat )
-        {
-            return dateFormat.parse( string );
-        }
-    }
+		synchronized( dateFormat )
+		{
+			dateString = dateFormat.format( date );
+		}
+
+		byte[] bytes = stringToByteArray( dateString );
+
+		return new DERUTCTime( bytes );
+	}
+
+
+	/**
+	 * Lazy accessor
+	 *
+	 * @return Date representation of this DER UTC Time
+	 * @throws ParseException
+	 */
+	public Date getDate() throws ParseException
+	{
+		String string = byteArrayToString( value );
+
+		synchronized( dateFormat )
+		{
+			return dateFormat.parse( string );
+		}
+	}
 }

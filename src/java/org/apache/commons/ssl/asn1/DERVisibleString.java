@@ -26,20 +26,20 @@ package org.apache.commons.ssl.asn1;
  */
 public class DERVisibleString extends DERString
 {
-    /**
-     * Basic DERObject constructor.
-     */
-    public DERVisibleString(byte[] value)
-    {
-        super( VISIBLE_STRING, value );
-    }
+	/**
+	 * Basic DERObject constructor.
+	 */
+	public DERVisibleString( byte[] value )
+	{
+		super( VISIBLE_STRING, value );
+	}
 
 
-    /**
-     * Static factory method, type-conversion operator.
-     */
-    public static DERVisibleString valueOf( String string )
-    {
-        return new DERVisibleString( stringToByteArray( string ) );
-    }
+	/**
+	 * Static factory method, type-conversion operator.
+	 */
+	public static DERVisibleString valueOf( String string )
+	{
+		return new DERVisibleString( stringToByteArray( string ) );
+	}
 }

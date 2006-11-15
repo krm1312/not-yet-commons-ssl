@@ -49,47 +49,51 @@ import java.security.cert.CertificateException;
  * @since 5-May-2006
  */
 public class HttpSecureProtocol extends SSLClient
-        implements SecureProtocolSocketFactory {
+		implements SecureProtocolSocketFactory
+{
 
-    public HttpSecureProtocol()
-            throws NoSuchAlgorithmException, KeyStoreException,
-            KeyManagementException, IOException, CertificateException {
-        super();
-    }
+	public HttpSecureProtocol()
+			throws NoSuchAlgorithmException, KeyStoreException,
+			       KeyManagementException, IOException, CertificateException
+	{
+		super();
+	}
 
-    /**
-     * Attempts to get a new socket connection to the given host within the
-     * given time limit.
-     * <p/>
-     * To circumvent the limitations of older JREs that do not support connect
-     * timeout a controller thread is executed. The controller thread attempts
-     * to create a new socket within the given limit of time. If socket
-     * constructor does not return until the timeout expires, the controller
-     * terminates and throws an
-     * {@link org.apache.commons.httpclient.ConnectTimeoutException}
-     * </p>
-     *
-     * @param host         the host name/IP
-     * @param port         the port on the host
-     * @param localAddress the local host name/IP to bind the socket to
-     * @param localPort    the port on the local machine
-     * @param params       {@link org.apache.commons.httpclient.params.HttpConnectionParams Http connection parameters}
-     * @return Socket a new socket
-     * @throws java.io.IOException           if an I/O error occurs while creating the socket
-     * @throws java.net.UnknownHostException if the IP address of the host cannot be
-     *                                       determined
-     */
-    public Socket createSocket(final String host,
-                               final int port,
-                               final InetAddress localAddress,
-                               final int localPort,
-                               final HttpConnectionParams params)
-            throws IOException {
-        if (params == null) {
-            throw new IllegalArgumentException("Parameters may not be null");
-        }
-        int timeout = params.getConnectionTimeout();
-        return super.createSocket(host, port, localAddress, localPort, timeout);
-    }
+	/**
+	 * Attempts to get a new socket connection to the given host within the
+	 * given time limit.
+	 * <p/>
+	 * To circumvent the limitations of older JREs that do not support connect
+	 * timeout a controller thread is executed. The controller thread attempts
+	 * to create a new socket within the given limit of time. If socket
+	 * constructor does not return until the timeout expires, the controller
+	 * terminates and throws an
+	 * {@link org.apache.commons.httpclient.ConnectTimeoutException}
+	 * </p>
+	 *
+	 * @param host         the host name/IP
+	 * @param port         the port on the host
+	 * @param localAddress the local host name/IP to bind the socket to
+	 * @param localPort    the port on the local machine
+	 * @param params       {@link org.apache.commons.httpclient.params.HttpConnectionParams Http connection parameters}
+	 * @return Socket a new socket
+	 * @throws java.io.IOException           if an I/O error occurs while creating the socket
+	 * @throws java.net.UnknownHostException if the IP address of the host cannot be
+	 *                                       determined
+	 */
+	public Socket createSocket( final String host,
+	                            final int port,
+	                            final InetAddress localAddress,
+	                            final int localPort,
+	                            final HttpConnectionParams params )
+			throws IOException
+	{
+		if ( params == null )
+		{
+			throw new IllegalArgumentException( "Parameters may not be null" );
+		}
+		int timeout = params.getConnectionTimeout();
+		return super.createSocket( host, port, localAddress, localPort, timeout );
+	}
 
 }

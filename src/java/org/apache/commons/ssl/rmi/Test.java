@@ -80,12 +80,12 @@ public class Test
 	 *
 	 * @param ref String reference.
 	 * @return Object  Object previously bound with String reference.
-	 * @throws java.rmi.RemoteException         rmi problem
-	 * @throws java.rmi.NotBoundException       rmi problem
-	 * @throws java.net.MalformedURLException   rmi problem
+	 * @throws java.rmi.RemoteException       rmi problem
+	 * @throws java.rmi.NotBoundException     rmi problem
+	 * @throws java.net.MalformedURLException rmi problem
 	 */
 	public static Object lookup( String ref )
-	      throws RemoteException, NotBoundException, MalformedURLException
+			throws RemoteException, NotBoundException, MalformedURLException
 	{
 		return Naming.lookup( URL + ref );
 	}
@@ -101,11 +101,11 @@ public class Test
 	 *
 	 * @param ref String reference to bind with.
 	 * @param obj Object to bind.
-	 * @throws java.rmi.RemoteException        rmi problem
-	 * @throws java.net.MalformedURLException  rmi problem
+	 * @throws java.rmi.RemoteException       rmi problem
+	 * @throws java.net.MalformedURLException rmi problem
 	 */
 	public static void rebind( String ref, Remote obj )
-	      throws RemoteException, MalformedURLException
+			throws RemoteException, MalformedURLException
 	{
 		requireNameServer();
 		String realRef = URL + ref;

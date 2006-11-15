@@ -29,141 +29,140 @@ import java.util.Vector;
 
 public class BERConstructedOctetString extends DEROctetString
 {
-    private Vector octets;
+	private Vector octets;
 
 
-    /**
-     * @param string
-     *            the octets making up the octet string.
-     */
-    public BERConstructedOctetString(byte[] string)
-    {
-        super( string );
-    }
+	/**
+	 * @param string the octets making up the octet string.
+	 */
+	public BERConstructedOctetString( byte[] string )
+	{
+		super( string );
+	}
 
 
-    public BERConstructedOctetString(Vector octets)
-    {
-        super( toBytes( octets ) );
+	public BERConstructedOctetString( Vector octets )
+	{
+		super( toBytes( octets ) );
 
-        this.octets = octets;
-    }
-
-
-    /**
-     * Convert a vector of octet strings into a single byte string.
-     */
-    static private byte[] toBytes( Vector octs )
-    {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-
-        for ( int i = 0; i != octs.size(); i++ )
-        {
-            try
-            {
-                DEROctetString o = ( DEROctetString ) octs.elementAt( i );
-
-                baos.write( o.getOctets() );
-            }
-            catch ( ClassCastException e )
-            {
-                throw new IllegalArgumentException( octs.elementAt( i ).getClass().getName()
-                    + " found in input should only contain DEROctetString." );
-            }
-            catch ( IOException e )
-            {
-                throw new IllegalArgumentException( "Exception converting octets " + e.toString() );
-            }
-        }
-
-        return baos.toByteArray();
-    }
+		this.octets = octets;
+	}
 
 
-    /**
-     * @return Enumeration the DER octets that make up this string.
-     */
-    public Enumeration getObjects()
-    {
-        if ( octets == null )
-        {
-            return generateOcts().elements();
-        }
+	/**
+	 * Convert a vector of octet strings into a single byte string.
+	 */
+	static private byte[] toBytes( Vector octs )
+	{
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
-        return octets.elements();
-    }
+		for ( int i = 0; i != octs.size(); i++ )
+		{
+			try
+			{
+				DEROctetString o = (DEROctetString) octs.elementAt( i );
 
+				baos.write( o.getOctets() );
+			}
+			catch ( ClassCastException e )
+			{
+				throw new IllegalArgumentException( octs.elementAt( i ).getClass().getName()
+				                                    + " found in input should only contain DEROctetString." );
+			}
+			catch ( IOException e )
+			{
+				throw new IllegalArgumentException( "Exception converting octets " + e.toString() );
+			}
+		}
 
-    private Vector generateOcts()
-    {
-        int start = 0;
-        int end = 0;
-        Vector vector = new Vector();
-
-        while ( ( end + 1 ) < value.length )
-        {
-            if ( value[end] == 0 && value[end + 1] == 0 )
-            {
-                byte[] nStr = new byte[end - start + 1];
-
-                System.arraycopy( value, start, nStr, 0, nStr.length );
-
-                vector.addElement( new DEROctetString( nStr ) );
-                start = end + 1;
-            }
-            end++;
-        }
-
-        byte[] nStr = new byte[value.length - start];
-
-        System.arraycopy( value, start, nStr, 0, nStr.length );
-
-        vector.addElement( new DEROctetString( nStr ) );
-
-        return vector;
-    }
+		return baos.toByteArray();
+	}
 
 
-    public void encode( ASN1OutputStream out ) throws IOException
-    {
-        out.write( CONSTRUCTED | OCTET_STRING );
+	/**
+	 * @return Enumeration the DER octets that make up this string.
+	 */
+	public Enumeration getObjects()
+	{
+		if ( octets == null )
+		{
+			return generateOcts().elements();
+		}
 
-        out.write( DERObject.TAGGED );
+		return octets.elements();
+	}
 
-        if ( octets != null )
-        {
-            for ( int i = 0; i != octets.size(); i++ )
-            {
-                out.writeObject( octets.elementAt( i ) );
-            }
-        }
-        else
-        {
-            int start = 0;
-            int end = 0;
 
-            while ( ( end + 1 ) < value.length )
-            {
-                if ( value[end] == 0 && value[end + 1] == 0 )
-                {
-                    byte[] newString = new byte[end - start + 1];
+	private Vector generateOcts()
+	{
+		int start = 0;
+		int end = 0;
+		Vector vector = new Vector();
 
-                    System.arraycopy( value, start, newString, 0, newString.length );
+		while ( ( end + 1 ) < value.length )
+		{
+			if ( value[ end ] == 0 && value[ end + 1 ] == 0 )
+			{
+				byte[] nStr = new byte[end - start + 1];
 
-                    out.writeObject( new DEROctetString( newString ) );
-                    start = end + 1;
-                }
-                end++;
-            }
+				System.arraycopy( value, start, nStr, 0, nStr.length );
 
-            byte[] newString = new byte[value.length - start];
+				vector.addElement( new DEROctetString( nStr ) );
+				start = end + 1;
+			}
+			end++;
+		}
 
-            System.arraycopy( value, start, newString, 0, newString.length );
+		byte[] nStr = new byte[value.length - start];
 
-            out.writeObject( new DEROctetString( newString ) );
-        }
+		System.arraycopy( value, start, nStr, 0, nStr.length );
 
-        out.write( TERMINATOR );
-        out.write( TERMINATOR );
-    }
+		vector.addElement( new DEROctetString( nStr ) );
+
+		return vector;
+	}
+
+
+	public void encode( ASN1OutputStream out ) throws IOException
+	{
+		out.write( CONSTRUCTED | OCTET_STRING );
+
+		out.write( DERObject.TAGGED );
+
+		if ( octets != null )
+		{
+			for ( int i = 0; i != octets.size(); i++ )
+			{
+				out.writeObject( octets.elementAt( i ) );
+			}
+		}
+		else
+		{
+			int start = 0;
+			int end = 0;
+
+			while ( ( end + 1 ) < value.length )
+			{
+				if ( value[ end ] == 0 && value[ end + 1 ] == 0 )
+				{
+					byte[] newString = new byte[end - start + 1];
+
+					System.arraycopy( value, start, newString, 0, newString.length );
+
+					out.writeObject( new DEROctetString( newString ) );
+					start = end + 1;
+				}
+				end++;
+			}
+
+			byte[] newString = new byte[value.length - start];
+
+			System.arraycopy( value, start, newString, 0, newString.length );
+
+			out.writeObject( new DEROctetString( newString ) );
+		}
+
+		out.write( TERMINATOR );
+		out.write( TERMINATOR );
+	}
 }

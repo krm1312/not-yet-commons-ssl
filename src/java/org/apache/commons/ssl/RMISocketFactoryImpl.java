@@ -119,21 +119,21 @@ public class RMISocketFactoryImpl extends RMISocketFactory
 	public String getLocalBindingAddress() { return localBindingAddress; }
 
 	public void setServer( ServerSocketFactory f )
-	      throws GeneralSecurityException, IOException
+			throws GeneralSecurityException, IOException
 	{
 		this.sslServer = f;
 		trustOurself();
 	}
 
 	public void setDefaultClient( SocketFactory f )
-	      throws GeneralSecurityException, IOException
+			throws GeneralSecurityException, IOException
 	{
 		this.defaultClient = f;
 		trustOurself();
 	}
 
 	public void setClient( String host, SocketFactory f )
-	      throws GeneralSecurityException, IOException
+			throws GeneralSecurityException, IOException
 	{
 		if ( f != null && sslServer != null )
 		{
@@ -148,7 +148,7 @@ public class RMISocketFactoryImpl extends RMISocketFactory
 		}
 		Set names = hostnamePossibilities( host );
 		Iterator it = names.iterator();
-		synchronized ( this )
+		synchronized( this )
 		{
 			while ( it.hasNext() )
 			{
@@ -161,7 +161,7 @@ public class RMISocketFactoryImpl extends RMISocketFactory
 	{
 		Set names = hostnamePossibilities( host );
 		Iterator it = names.iterator();
-		synchronized ( this )
+		synchronized( this )
 		{
 			while ( it.hasNext() )
 			{
@@ -236,7 +236,7 @@ public class RMISocketFactoryImpl extends RMISocketFactory
 	}
 
 	private void trustOurself()
-	      throws GeneralSecurityException, IOException
+			throws GeneralSecurityException, IOException
 	{
 		if ( defaultClient == null || sslServer == null )
 		{
@@ -253,7 +253,7 @@ public class RMISocketFactoryImpl extends RMISocketFactory
 	}
 
 	private void trustEachOther( SSLClient client, SSLServer server )
-	      throws GeneralSecurityException, IOException
+			throws GeneralSecurityException, IOException
 	{
 		if ( client != null && server != null )
 		{
@@ -305,7 +305,7 @@ public class RMISocketFactoryImpl extends RMISocketFactory
 	}
 
 	public synchronized ServerSocket createServerSocket( int port )
-	      throws IOException
+			throws IOException
 	{
 		initLocalBindingAddress();
 
@@ -322,7 +322,7 @@ public class RMISocketFactoryImpl extends RMISocketFactory
 	}
 
 	public Socket createSocket( String host, int port )
-	      throws IOException
+			throws IOException
 	{
 		host = host != null ? host.trim().toLowerCase() : "";
 		initLocalBindingAddress();
@@ -333,7 +333,7 @@ public class RMISocketFactoryImpl extends RMISocketFactory
 		}
 
 		SocketFactory sf;
-		synchronized ( this )
+		synchronized( this )
 		{
 			sf = (SocketFactory) clientMap.get( host );
 		}

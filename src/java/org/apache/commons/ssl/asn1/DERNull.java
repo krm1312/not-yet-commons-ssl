@@ -26,8 +26,8 @@ package org.apache.commons.ssl.asn1;
  */
 public class DERNull extends DERObject
 {
-   private static final byte[] zeroBytes = new byte[0];
-	public final static DERNull DER_NULL = new DERNull();	
+	private static final byte[] zeroBytes = new byte[0];
+	public final static DERNull DER_NULL = new DERNull();
 
 	public DERNull()
 	{

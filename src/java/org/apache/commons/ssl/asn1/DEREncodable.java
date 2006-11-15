@@ -29,5 +29,5 @@ import java.io.IOException;
  */
 public interface DEREncodable
 {
-    void encode( ASN1OutputStream out ) throws IOException;
+	void encode( ASN1OutputStream out ) throws IOException;
 }

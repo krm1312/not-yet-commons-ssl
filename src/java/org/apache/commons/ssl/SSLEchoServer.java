@@ -35,8 +35,8 @@ import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocket;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.io.InterruptedIOException;
+import java.io.OutputStream;
 import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
 
@@ -46,93 +46,117 @@ import java.security.cert.X509Certificate;
  * @author <a href="mailto:juliusdavies@cucbc.com">juliusdavies@cucbc.com</a>
  * @since 2-May-2006
  */
-public class SSLEchoServer {
+public class SSLEchoServer
+{
 
-    public static void main(String[] args) throws Exception {
-        int port = 7443;
-        if (args.length >= 1) {
-            port = Integer.parseInt(args[0]);
-        }
+	public static void main( String[] args ) throws Exception
+	{
+		int port = 7443;
+		if ( args.length >= 1 )
+		{
+			port = Integer.parseInt( args[ 0 ] );
+		}
 
-        SSLServer ssl = new SSLServer();
-        KeyMaterial km = new KeyMaterial(".keystore", "changeit".toCharArray());
-        ssl.setKeyMaterial(km);
-        ssl.addTrustMaterial(TrustMaterial.TRUST_ALL);
-        SSLServerSocket ss = (SSLServerSocket) ssl.createServerSocket(port, 3);
-        System.out.println("SSL Echo server listening on port: " + port);
-        while (true) {
-            SSLSocket s = (SSLSocket) ss.accept();
-            s.setSoTimeout(30000);
-            EchoRunnable r = new EchoRunnable(s);
-            new Thread(r).start();
-        }
+		SSLServer ssl = new SSLServer();
+		KeyMaterial km = new KeyMaterial( ".keystore", "changeit".toCharArray() );
+		ssl.setKeyMaterial( km );
+		ssl.addTrustMaterial( TrustMaterial.TRUST_ALL );
+		SSLServerSocket ss = (SSLServerSocket) ssl.createServerSocket( port, 3 );
+		System.out.println( "SSL Echo server listening on port: " + port );
+		while ( true )
+		{
+			SSLSocket s = (SSLSocket) ss.accept();
+			s.setSoTimeout( 30000 );
+			EchoRunnable r = new EchoRunnable( s );
+			new Thread( r ).start();
+		}
 
-    }
+	}
 
-    public static class EchoRunnable implements Runnable {
-        private SSLSocket s;
+	public static class EchoRunnable implements Runnable
+	{
+		private SSLSocket s;
 
-        public EchoRunnable(SSLSocket s) {
-            this.s = s;
-        }
+		public EchoRunnable( SSLSocket s )
+		{
+			this.s = s;
+		}
 
-        public void run() {
-            InputStream in = null;
-            OutputStream out = null;
-            System.out.println("Socket accepted!");
-            try {
-                SSLSession session = s.getSession();
+		public void run()
+		{
+			InputStream in = null;
+			OutputStream out = null;
+			System.out.println( "Socket accepted!" );
+			try
+			{
+				SSLSession session = s.getSession();
 
-                try {
-                    Certificate[] certs = session.getPeerCertificates();
-                    if (certs != null) {
-                        for (int i = 0; i < certs.length; i++) {
-                            // log client cert info
-                            X509Certificate cert = (X509Certificate) certs[i];
-                            String s = "client cert " + i + ":";
-                            s += cert.getSubjectX500Principal();
-                            System.out.println(s);
-                            System.out.println(Certificates.toString(cert));
-                        }
-                    }
-                } catch (SSLPeerUnverifiedException sslpue) {
-                    // oh well, no client cert for us
-                }
+				try
+				{
+					Certificate[] certs = session.getPeerCertificates();
+					if ( certs != null )
+					{
+						for ( int i = 0; i < certs.length; i++ )
+						{
+							// log client cert info
+							X509Certificate cert = (X509Certificate) certs[ i ];
+							String s = "client cert " + i + ":";
+							s += cert.getSubjectX500Principal();
+							System.out.println( s );
+							System.out.println( Certificates.toString( cert ) );
+						}
+					}
+				}
+				catch ( SSLPeerUnverifiedException sslpue )
+				{
+					// oh well, no client cert for us
+				}
 
-                in = s.getInputStream();
-                out = s.getOutputStream();
-                String line = Util.readLine(in);
-	             if ( line.indexOf( "HTTP" ) > 0 )
-	             {
-		             out.write( "HTTP/1.1 200 OK\r\n\r\n".getBytes() );
-		             out.flush();
-	             }
-                while (line != null) {
-                    String echo = "ECHO:>" + line + "\n";
-                    out.write(echo.getBytes());
-                    out.flush();
-                    line = Util.readLine(in);
-                }
-            } catch (IOException ioe) {
-                try {
-                    if (out != null) {
-                        out.close();
-                    }
-                    if (in != null) {
-                        in.close();
-                    }
-                    s.close();
-                } catch (Exception e) {
-                }
+				in = s.getInputStream();
+				out = s.getOutputStream();
+				String line = Util.readLine( in );
+				if ( line.indexOf( "HTTP" ) > 0 )
+				{
+					out.write( "HTTP/1.1 200 OK\r\n\r\n".getBytes() );
+					out.flush();
+				}
+				while ( line != null )
+				{
+					String echo = "ECHO:>" + line + "\n";
+					out.write( echo.getBytes() );
+					out.flush();
+					line = Util.readLine( in );
+				}
+			}
+			catch ( IOException ioe )
+			{
+				try
+				{
+					if ( out != null )
+					{
+						out.close();
+					}
+					if ( in != null )
+					{
+						in.close();
+					}
+					s.close();
+				}
+				catch ( Exception e )
+				{
+				}
 
-                if (ioe instanceof InterruptedIOException ) {
-                    System.out.println("Socket closed after 30 second timeout.");
-                } else {
-                    ioe.printStackTrace();
-                }
+				if ( ioe instanceof InterruptedIOException )
+				{
+					System.out.println( "Socket closed after 30 second timeout." );
+				}
+				else
+				{
+					ioe.printStackTrace();
+				}
 
-            }
-        }
-    }
+			}
+		}
+	}
 
 }

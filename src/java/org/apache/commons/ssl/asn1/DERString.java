@@ -29,61 +29,61 @@ import java.io.UnsupportedEncodingException;
  */
 public abstract class DERString extends DERObject
 {
-    /**
-     * Basic DERObject constructor.
-     */
-    DERString(int tag, byte[] value)
-    {
-        super( tag, value );
-    }
+	/**
+	 * Basic DERObject constructor.
+	 */
+	DERString( int tag, byte[] value )
+	{
+		super( tag, value );
+	}
 
 
-    /**
-     * Lazy accessor.
-     * 
-     * @return underlying byte array converted to a String
-     */
-    public String getString()
-    {
-        return byteArrayToString( value );
-    }
+	/**
+	 * Lazy accessor.
+	 *
+	 * @return underlying byte array converted to a String
+	 */
+	public String getString()
+	{
+		return byteArrayToString( value );
+	}
 
 
-    /**
-     * Utility method for converting byte arrays to Strings.
-     * 
-     * @param bytes
-     * @return String
-     */
-    protected static String byteArrayToString( byte[] bytes )
-    {
-        try
-        {
-            return new String( bytes, "UTF-8" );
-        }
-        catch ( UnsupportedEncodingException uee )
-        {
-            return "";
-        }
-    }
+	/**
+	 * Utility method for converting byte arrays to Strings.
+	 *
+	 * @param bytes
+	 * @return String
+	 */
+	protected static String byteArrayToString( byte[] bytes )
+	{
+		try
+		{
+			return new String( bytes, "UTF-8" );
+		}
+		catch ( UnsupportedEncodingException uee )
+		{
+			return "";
+		}
+	}
 
 
-    /**
-     * Utility method for converting Strings to bytes.
-     * 
-     * @param string
-     * @return bytes
-     */
-    protected static byte[] stringToByteArray( String string )
-    {
-        try
-        {
-            return string.getBytes( "UTF-8" );
-        }
-        catch ( UnsupportedEncodingException uee )
-        {
-            return new byte[]
-                {};
-        }
-    }
+	/**
+	 * Utility method for converting Strings to bytes.
+	 *
+	 * @param string
+	 * @return bytes
+	 */
+	protected static byte[] stringToByteArray( String string )
+	{
+		try
+		{
+			return string.getBytes( "UTF-8" );
+		}
+		catch ( UnsupportedEncodingException uee )
+		{
+			return new byte[]
+					{ };
+		}
+	}
 }

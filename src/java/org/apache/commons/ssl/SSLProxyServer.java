@@ -31,11 +31,11 @@ package org.apache.commons.ssl;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.io.InterruptedIOException;
+import java.io.OutputStream;
+import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.net.InetSocketAddress;
 
 /**
  * @author Credit Union Central of British Columbia
@@ -43,145 +43,182 @@ import java.net.InetSocketAddress;
  * @author <a href="mailto:juliusdavies@cucbc.com">juliusdavies@cucbc.com</a>
  * @since 5-May-2006
  */
-public class SSLProxyServer {
+public class SSLProxyServer
+{
 
-    public static void main(String[] args) throws Exception {
-        int port = 7444;
-        if (args.length >= 1) {
-            port = Integer.parseInt(args[0]);
-        }
+	public static void main( String[] args ) throws Exception
+	{
+		int port = 7444;
+		if ( args.length >= 1 )
+		{
+			port = Integer.parseInt( args[ 0 ] );
+		}
 
-        ServerSocket ss = new ServerSocket(port);
+		ServerSocket ss = new ServerSocket( port );
 
-        System.out.println("SSL Proxy server listening on port: " + port);
-        while (true) {
-            Socket s = ss.accept();
-            s.setSoTimeout(10000);
-            ProxyRunnable r = new ProxyRunnable(s);
-            new Thread(r).start();
-        }
+		System.out.println( "SSL Proxy server listening on port: " + port );
+		while ( true )
+		{
+			Socket s = ss.accept();
+			s.setSoTimeout( 10000 );
+			ProxyRunnable r = new ProxyRunnable( s );
+			new Thread( r ).start();
+		}
 
-    }
+	}
 
-    public static class ProxyRunnable implements Runnable {
-        private Socket s;
+	public static class ProxyRunnable implements Runnable
+	{
+		private Socket s;
 
-        public ProxyRunnable(Socket s) {
-            this.s = s;
-        }
+		public ProxyRunnable( Socket s )
+		{
+			this.s = s;
+		}
 
-        public void run() {
-            InputStream in = null;
-            OutputStream out = null;
-            InputStream newIn = null;
-            OutputStream newOut = null;
-            Socket newSocket = new Socket();
-            System.out.println("Socket accepted!");
-            try {
-                in = s.getInputStream();
-                out = s.getOutputStream();
-                String line = Util.readLine(in);
-                line = line.trim();
-                String connect = line.substring(0, "CONNECT".length());
-                InetSocketAddress addr = null;
-                if ("CONNECT".equalsIgnoreCase(connect)) {
-                    line = line.substring("CONNECT".length()).trim();
-                    line = line.substring(0, line.length() - "HTTP/1.1".length()).trim();
-                    HostPort hostPort = Util.toAddress(line, 443);
-                    addr = new InetSocketAddress(hostPort.host, hostPort.port);
-                    System.out.println("Attempting to proxy to: " + line);
-                } else {
-                    throw new IOException("not a proxy request: " + line);
-                }
+		public void run()
+		{
+			InputStream in = null;
+			OutputStream out = null;
+			InputStream newIn = null;
+			OutputStream newOut = null;
+			Socket newSocket = new Socket();
+			System.out.println( "Socket accepted!" );
+			try
+			{
+				in = s.getInputStream();
+				out = s.getOutputStream();
+				String line = Util.readLine( in );
+				line = line.trim();
+				String connect = line.substring( 0, "CONNECT".length() );
+				InetSocketAddress addr = null;
+				if ( "CONNECT".equalsIgnoreCase( connect ) )
+				{
+					line = line.substring( "CONNECT".length() ).trim();
+					line = line.substring( 0, line.length() - "HTTP/1.1".length() ).trim();
+					HostPort hostPort = Util.toAddress( line, 443 );
+					addr = new InetSocketAddress( hostPort.host, hostPort.port );
+					System.out.println( "Attempting to proxy to: " + line );
+				}
+				else
+				{
+					throw new IOException( "not a proxy request: " + line );
+				}
 
-                int avail = in.available();
-                in.skip(avail);
-                Thread.yield();
-                avail = in.available();
-                while (avail != 0) {
-                    in.skip(avail);
-                    Thread.yield();
-                    avail = in.available();
-                }
+				int avail = in.available();
+				in.skip( avail );
+				Thread.yield();
+				avail = in.available();
+				while ( avail != 0 )
+				{
+					in.skip( avail );
+					Thread.yield();
+					avail = in.available();
+				}
 
-                InetSocketAddress local = new InetSocketAddress(0);
-                newSocket.setSoTimeout(10000);
-                newSocket.bind(local);
-                newSocket.connect(addr, 5000);
-                newIn = newSocket.getInputStream();
-                newOut = newSocket.getOutputStream();
+				InetSocketAddress local = new InetSocketAddress( 0 );
+				newSocket.setSoTimeout( 10000 );
+				newSocket.bind( local );
+				newSocket.connect( addr, 5000 );
+				newIn = newSocket.getInputStream();
+				newOut = newSocket.getOutputStream();
 
-                out.write("HTTP/1.1 200 OKAY\r\n\r\n".getBytes());
-                out.flush();
+				out.write( "HTTP/1.1 200 OKAY\r\n\r\n".getBytes() );
+				out.flush();
 
-                final IOException[] e = new IOException[1];
-                final InputStream rIn = in;
-                final OutputStream rNewOut = newOut;
-                Runnable r = new Runnable() {
-                    public void run() {
-                        try {
-                            byte[] buf = new byte[4096];
-                            int read = rIn.read(buf);
-                            while (read >= 0) {
-                                if (read > 0) {
-                                    rNewOut.write(buf, 0, read);
-                                    rNewOut.flush();
-                                }
-                                read = rIn.read(buf);
-                            }
-                        } catch (IOException ioe) {
-                            e[0] = ioe;
-                        }
-                    }
-                };
-                new Thread(r).start();
+				final IOException[] e = new IOException[1];
+				final InputStream rIn = in;
+				final OutputStream rNewOut = newOut;
+				Runnable r = new Runnable()
+				{
+					public void run()
+					{
+						try
+						{
+							byte[] buf = new byte[4096];
+							int read = rIn.read( buf );
+							while ( read >= 0 )
+							{
+								if ( read > 0 )
+								{
+									rNewOut.write( buf, 0, read );
+									rNewOut.flush();
+								}
+								read = rIn.read( buf );
+							}
+						}
+						catch ( IOException ioe )
+						{
+							e[ 0 ] = ioe;
+						}
+					}
+				};
+				new Thread( r ).start();
 
-                byte[] buf = new byte[4096];
-                int read = newIn.read(buf);
-                while (read >= 0) {
-                    if (read > 0) {
-                        out.write(buf, 0, read);
-                        out.flush();
-                    }
-                    if (e[0] != null) {
-                        throw e[0];
-                    }
-                    read = newIn.read(buf);
-                }
-
-
-            } catch (IOException ioe) {
-                try {
-                    if (out != null) {
-                        out.close();
-                    }
-                    if (in != null) {
-                        in.close();
-                    }
-                    s.close();
-                } catch (Exception e) {
-                }
-
-                try {
-                    if (newOut != null) {
-                        newOut.close();
-                    }
-                    if (newIn != null) {
-                        newIn.close();
-                    }
-                    newSocket.close();
-                } catch (Exception e) {
-                }
+				byte[] buf = new byte[4096];
+				int read = newIn.read( buf );
+				while ( read >= 0 )
+				{
+					if ( read > 0 )
+					{
+						out.write( buf, 0, read );
+						out.flush();
+					}
+					if ( e[ 0 ] != null )
+					{
+						throw e[ 0 ];
+					}
+					read = newIn.read( buf );
+				}
 
 
-                if (ioe instanceof InterruptedIOException ) {
-                    System.out.println("Socket closed after 10 second timeout.");
-                } else {
-                    ioe.printStackTrace();
-                }
+			}
+			catch ( IOException ioe )
+			{
+				try
+				{
+					if ( out != null )
+					{
+						out.close();
+					}
+					if ( in != null )
+					{
+						in.close();
+					}
+					s.close();
+				}
+				catch ( Exception e )
+				{
+				}
 
-            }
-        }
-    }
+				try
+				{
+					if ( newOut != null )
+					{
+						newOut.close();
+					}
+					if ( newIn != null )
+					{
+						newIn.close();
+					}
+					newSocket.close();
+				}
+				catch ( Exception e )
+				{
+				}
+
+
+				if ( ioe instanceof InterruptedIOException )
+				{
+					System.out.println( "Socket closed after 10 second timeout." );
+				}
+				else
+				{
+					ioe.printStackTrace();
+				}
+
+			}
+		}
+	}
 
 }

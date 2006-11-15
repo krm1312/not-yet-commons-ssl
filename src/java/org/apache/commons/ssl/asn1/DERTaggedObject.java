@@ -30,129 +30,124 @@ import java.io.IOException;
  */
 public class DERTaggedObject implements DEREncodable
 {
-    protected int tag;
+	protected int tag;
 
-    protected boolean empty = false;
+	protected boolean empty = false;
 
-    protected boolean explicit = true;
+	protected boolean explicit = true;
 
-    protected DEREncodable obj;
+	protected DEREncodable obj;
 
-    private byte[] bytes;
-
-
-    /**
-     * create an implicitly tagged object that contains a zero length sequence.
-     */
-    public DERTaggedObject(int tag)
-    {
-        this( false, tag, new DERSequence() );
-    }
+	private byte[] bytes;
 
 
-    /**
-     * @param tag
-     *            the tag number for this object.
-     * @param obj
-     *            the tagged object.
-     */
-    public DERTaggedObject(int tag, DEREncodable obj)
-    {
-        this.explicit = true;
-        this.tag = tag;
-        this.obj = obj;
-    }
+	/**
+	 * create an implicitly tagged object that contains a zero length sequence.
+	 */
+	public DERTaggedObject( int tag )
+	{
+		this( false, tag, new DERSequence() );
+	}
 
 
-    /**
-     * @param explicit
-     *            true if an explicitly tagged object.
-     * @param tag
-     *            the tag number for this object.
-     * @param obj
-     *            the tagged object.
-     */
-    public DERTaggedObject(boolean explicit, int tag, DEREncodable obj)
-    {
-        this.explicit = explicit;
-        this.tag = tag;
-        this.obj = obj;
-    }
+	/**
+	 * @param tag the tag number for this object.
+	 * @param obj the tagged object.
+	 */
+	public DERTaggedObject( int tag, DEREncodable obj )
+	{
+		this.explicit = true;
+		this.tag = tag;
+		this.obj = obj;
+	}
 
 
-    public DERTaggedObject(boolean explicit, int tag, DEREncodable obj, byte[] bytes)
-    {
-        this.explicit = explicit;
-        this.tag = tag;
-        this.obj = obj;
-        this.bytes = bytes;
-    }
+	/**
+	 * @param explicit true if an explicitly tagged object.
+	 * @param tag      the tag number for this object.
+	 * @param obj      the tagged object.
+	 */
+	public DERTaggedObject( boolean explicit, int tag, DEREncodable obj )
+	{
+		this.explicit = explicit;
+		this.tag = tag;
+		this.obj = obj;
+	}
 
 
-    public byte[] getOctets()
-    {
-        return bytes;
-    }
+	public DERTaggedObject( boolean explicit, int tag, DEREncodable obj, byte[] bytes )
+	{
+		this.explicit = explicit;
+		this.tag = tag;
+		this.obj = obj;
+		this.bytes = bytes;
+	}
 
 
-    public int getTagNo()
-    {
-        return tag;
-    }
+	public byte[] getOctets()
+	{
+		return bytes;
+	}
 
 
-    /**
-     * return whatever was following the tag.
-     * <p>
-     * Note: tagged objects are generally context dependent if you're trying to
-     * extract a tagged object you should be going via the appropriate
-     * getInstance method.
-     */
-    public DEREncodable getObject()
-    {
-        if ( obj != null )
-        {
-            return obj;
-        }
-
-        return null;
-    }
+	public int getTagNo()
+	{
+		return tag;
+	}
 
 
-    public void encode( ASN1OutputStream out ) throws IOException
-    {
-        if ( !empty )
-        {
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            ASN1OutputStream aos = new ASN1OutputStream( baos );
+	/**
+	 * return whatever was following the tag.
+	 * <p/>
+	 * Note: tagged objects are generally context dependent if you're trying to
+	 * extract a tagged object you should be going via the appropriate
+	 * getInstance method.
+	 */
+	public DEREncodable getObject()
+	{
+		if ( obj != null )
+		{
+			return obj;
+		}
 
-            aos.writeObject( obj );
-            aos.close();
+		return null;
+	}
 
-            byte[] bytes = baos.toByteArray();
 
-            if ( explicit )
-            {
-                out.writeEncoded( DERObject.CONSTRUCTED | DERObject.TAGGED | tag, bytes );
-            }
-            else
-            {
-                // need to mark constructed types
-                if ( ( bytes[0] & DERObject.CONSTRUCTED ) != 0 )
-                {
-                    bytes[0] = ( byte ) ( DERObject.CONSTRUCTED | DERObject.TAGGED | tag );
-                }
-                else
-                {
-                    bytes[0] = ( byte ) ( DERObject.TAGGED | tag );
-                }
+	public void encode( ASN1OutputStream out ) throws IOException
+	{
+		if ( !empty )
+		{
+			ByteArrayOutputStream baos = new ByteArrayOutputStream();
+			ASN1OutputStream aos = new ASN1OutputStream( baos );
 
-                out.write( bytes );
-            }
-        }
-        else
-        {
-            out.writeEncoded( DERObject.CONSTRUCTED | DERObject.TAGGED | tag, new byte[0] );
-        }
-    }
+			aos.writeObject( obj );
+			aos.close();
+
+			byte[] bytes = baos.toByteArray();
+
+			if ( explicit )
+			{
+				out.writeEncoded( DERObject.CONSTRUCTED | DERObject.TAGGED | tag, bytes );
+			}
+			else
+			{
+				// need to mark constructed types
+				if ( ( bytes[ 0 ] & DERObject.CONSTRUCTED ) != 0 )
+				{
+					bytes[ 0 ] = (byte) ( DERObject.CONSTRUCTED | DERObject.TAGGED | tag );
+				}
+				else
+				{
+					bytes[ 0 ] = (byte) ( DERObject.TAGGED | tag );
+				}
+
+				out.write( bytes );
+			}
+		}
+		else
+		{
+			out.writeEncoded( DERObject.CONSTRUCTED | DERObject.TAGGED | tag, new byte[0] );
+		}
+	}
 }

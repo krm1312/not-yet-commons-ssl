@@ -26,11 +26,11 @@ package org.apache.commons.ssl.asn1;
  */
 public class DERUnknownTag extends DERObject
 {
-    /**
-     * Basic DERObject constructor.
-     */
-    public DERUnknownTag(int tag, byte[] value)
-    {
-        super( tag, value );
-    }
+	/**
+	 * Basic DERObject constructor.
+	 */
+	public DERUnknownTag( int tag, byte[] value )
+	{
+		super( tag, value );
+	}
 }

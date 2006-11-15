@@ -30,83 +30,78 @@ import java.util.Enumeration;
  */
 public class BERTaggedObject extends DERTaggedObject
 {
-    /**
-     * @param tag
-     *            the tag number for this object.
-     * @param obj
-     *            the tagged object.
-     */
-    public BERTaggedObject(int tag, DEREncodable obj)
-    {
-        super( tag, obj );
-    }
+	/**
+	 * @param tag the tag number for this object.
+	 * @param obj the tagged object.
+	 */
+	public BERTaggedObject( int tag, DEREncodable obj )
+	{
+		super( tag, obj );
+	}
 
 
-    /**
-     * @param explicit
-     *            if an explicitly tagged object.
-     * @param tag
-     *            the tag number for this object.
-     * @param obj
-     *            the tagged object.
-     */
-    public BERTaggedObject(boolean explicit, int tag, DEREncodable obj)
-    {
-        super( explicit, tag, obj );
-    }
+	/**
+	 * @param explicit if an explicitly tagged object.
+	 * @param tag      the tag number for this object.
+	 * @param obj      the tagged object.
+	 */
+	public BERTaggedObject( boolean explicit, int tag, DEREncodable obj )
+	{
+		super( explicit, tag, obj );
+	}
 
 
-    public void encode( ASN1OutputStream out ) throws IOException
-    {
-        out.write( DERObject.CONSTRUCTED | DERObject.TAGGED | tag );
-        out.write( DERObject.TAGGED );
+	public void encode( ASN1OutputStream out ) throws IOException
+	{
+		out.write( DERObject.CONSTRUCTED | DERObject.TAGGED | tag );
+		out.write( DERObject.TAGGED );
 
-        if ( !empty )
-        {
-            if ( !explicit )
-            {
-                if ( obj instanceof DEROctetString )
-                {
-                    Enumeration e;
+		if ( !empty )
+		{
+			if ( !explicit )
+			{
+				if ( obj instanceof DEROctetString )
+				{
+					Enumeration e;
 
-                    if ( obj instanceof BERConstructedOctetString )
-                    {
-                        e = ( ( BERConstructedOctetString ) obj ).getObjects();
-                    }
-                    else
-                    {
-                        DEROctetString octs = ( DEROctetString ) obj;
-                        BERConstructedOctetString berO = new BERConstructedOctetString( octs.getOctets() );
+					if ( obj instanceof BERConstructedOctetString )
+					{
+						e = ( (BERConstructedOctetString) obj ).getObjects();
+					}
+					else
+					{
+						DEROctetString octs = (DEROctetString) obj;
+						BERConstructedOctetString berO = new BERConstructedOctetString( octs.getOctets() );
 
-                        e = berO.getObjects();
-                    }
+						e = berO.getObjects();
+					}
 
-                    while ( e.hasMoreElements() )
-                    {
-                        out.writeObject( e.nextElement() );
-                    }
-                }
-                else if ( obj instanceof DERSequence )
-                {
-                    Enumeration e = ( ( DERSequence ) obj ).getObjects();
+					while ( e.hasMoreElements() )
+					{
+						out.writeObject( e.nextElement() );
+					}
+				}
+				else if ( obj instanceof DERSequence )
+				{
+					Enumeration e = ( (DERSequence) obj ).getObjects();
 
-                    while ( e.hasMoreElements() )
-                    {
-                        out.writeObject( e.nextElement() );
-                    }
-                }
-                else
-                {
-                    throw new RuntimeException( "Not implemented: " + obj.getClass().getName() );
-                }
-            }
-            else
-            {
-                out.writeObject( obj );
-            }
-        }
+					while ( e.hasMoreElements() )
+					{
+						out.writeObject( e.nextElement() );
+					}
+				}
+				else
+				{
+					throw new RuntimeException( "Not implemented: " + obj.getClass().getName() );
+				}
+			}
+			else
+			{
+				out.writeObject( obj );
+			}
+		}
 
-        out.write( DERObject.TERMINATOR );
-        out.write( DERObject.TERMINATOR );
-    }
+		out.write( DERObject.TERMINATOR );
+		out.write( DERObject.TERMINATOR );
+	}
 }

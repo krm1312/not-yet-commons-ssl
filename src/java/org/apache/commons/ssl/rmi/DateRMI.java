@@ -42,7 +42,7 @@ import java.util.Date;
  * @since Jul 5, 2004
  */
 public class DateRMI extends UnicastRemoteObject
-      implements Remote, Serializable, RemoteDate
+		implements Remote, Serializable, RemoteDate
 {
 	// private final static Logger log = Logger.getLogger( DateRMI.class );
 

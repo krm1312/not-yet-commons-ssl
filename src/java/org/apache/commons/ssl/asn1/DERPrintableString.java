@@ -26,20 +26,20 @@ package org.apache.commons.ssl.asn1;
  */
 public class DERPrintableString extends DERString
 {
-    /**
-     * Basic DERObject constructor.
-     */
-    public DERPrintableString(byte[] value)
-    {
-        super( PRINTABLE_STRING, value );
-    }
+	/**
+	 * Basic DERObject constructor.
+	 */
+	public DERPrintableString( byte[] value )
+	{
+		super( PRINTABLE_STRING, value );
+	}
 
 
-    /**
-     * Static factory method, type-conversion operator.
-     */
-    public static DERPrintableString valueOf( String string )
-    {
-        return new DERPrintableString( stringToByteArray( string ) );
-    }
+	/**
+	 * Static factory method, type-conversion operator.
+	 */
+	public static DERPrintableString valueOf( String string )
+	{
+		return new DERPrintableString( stringToByteArray( string ) );
+	}
 }

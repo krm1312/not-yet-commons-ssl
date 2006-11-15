@@ -49,79 +49,89 @@ import java.util.Enumeration;
  * @author <a href="mailto:juliusdavies@cucbc.com">juliusdavies@cucbc.com</a>
  * @since 27-Feb-2006
  */
-public class KeyMaterial extends TrustMaterial {
-    private Object keyManagerFactory;
-    private String alias;
-    private X509Certificate[] associatedChain;
+public class KeyMaterial extends TrustMaterial
+{
+	private Object keyManagerFactory;
+	private String alias;
+	private X509Certificate[] associatedChain;
 
-    public KeyMaterial(InputStream jks, char[] password)
-            throws KeyStoreException, CertificateException,
-            NoSuchAlgorithmException, IOException,
-            UnrecoverableKeyException {
-        this(Util.streamToBytes(jks), password);
-    }
-
-	public KeyMaterial(InputStream jks, InputStream key, char[] password)
-	        throws KeyStoreException, CertificateException,
-	        NoSuchAlgorithmException, IOException,
-	        UnrecoverableKeyException {
-	    this(Util.streamToBytes(jks), Util.streamToBytes(key), password);
+	public KeyMaterial( InputStream jks, char[] password )
+			throws KeyStoreException, CertificateException,
+			       NoSuchAlgorithmException, IOException,
+			       UnrecoverableKeyException
+	{
+		this( Util.streamToBytes( jks ), password );
 	}
 
-    public KeyMaterial(String pathToJksFile, char[] password)
-            throws KeyStoreException, CertificateException,
-            NoSuchAlgorithmException, IOException,
-            UnrecoverableKeyException {
-        this(new File(pathToJksFile), password);
-    }
-
-	public KeyMaterial(String pathToCerts, String pathToKey, char[] password)
-	        throws KeyStoreException, CertificateException,
-	        NoSuchAlgorithmException, IOException,
-	        UnrecoverableKeyException {
-	    this(new File(pathToCerts), new File(pathToKey), password);
+	public KeyMaterial( InputStream jks, InputStream key, char[] password )
+			throws KeyStoreException, CertificateException,
+			       NoSuchAlgorithmException, IOException,
+			       UnrecoverableKeyException
+	{
+		this( Util.streamToBytes( jks ), Util.streamToBytes( key ), password );
 	}
 
-    public KeyMaterial(File jksFile, char[] password)
-            throws KeyStoreException, CertificateException,
-            NoSuchAlgorithmException, IOException,
-            UnrecoverableKeyException {
-        this(new FileInputStream(jksFile), password);
-    }
+	public KeyMaterial( String pathToJksFile, char[] password )
+			throws KeyStoreException, CertificateException,
+			       NoSuchAlgorithmException, IOException,
+			       UnrecoverableKeyException
+	{
+		this( new File( pathToJksFile ), password );
+	}
 
-	public KeyMaterial(File certsFile, File keyFile, char[] password)
-	        throws KeyStoreException, CertificateException,
-	        NoSuchAlgorithmException, IOException,
-	        UnrecoverableKeyException {
-	    this( new FileInputStream(certsFile),new FileInputStream(keyFile), password);
+	public KeyMaterial( String pathToCerts, String pathToKey, char[] password )
+			throws KeyStoreException, CertificateException,
+			       NoSuchAlgorithmException, IOException,
+			       UnrecoverableKeyException
+	{
+		this( new File( pathToCerts ), new File( pathToKey ), password );
+	}
+
+	public KeyMaterial( File jksFile, char[] password )
+			throws KeyStoreException, CertificateException,
+			       NoSuchAlgorithmException, IOException,
+			       UnrecoverableKeyException
+	{
+		this( new FileInputStream( jksFile ), password );
+	}
+
+	public KeyMaterial( File certsFile, File keyFile, char[] password )
+			throws KeyStoreException, CertificateException,
+			       NoSuchAlgorithmException, IOException,
+			       UnrecoverableKeyException
+	{
+		this( new FileInputStream( certsFile ), new FileInputStream( keyFile ), password );
 	}
 
 
-    public KeyMaterial(URL urlToJKS, char[] password)
-            throws KeyStoreException, CertificateException,
-            NoSuchAlgorithmException, IOException,
-            UnrecoverableKeyException {
-        this(urlToJKS.openStream(), password);
-    }
-
-	public KeyMaterial(URL urlToCerts, URL urlToKey, char[] password)
-	        throws KeyStoreException, CertificateException,
-	        NoSuchAlgorithmException, IOException,
-	        UnrecoverableKeyException {
-	    this(urlToCerts.openStream(), urlToKey.openStream(), password);
+	public KeyMaterial( URL urlToJKS, char[] password )
+			throws KeyStoreException, CertificateException,
+			       NoSuchAlgorithmException, IOException,
+			       UnrecoverableKeyException
+	{
+		this( urlToJKS.openStream(), password );
 	}
 
-    public KeyMaterial(byte[] jks, char[] password)
-            throws KeyStoreException, CertificateException,
-            NoSuchAlgorithmException, IOException,
-            UnrecoverableKeyException {
-        this( jks, null, password );
-    }
+	public KeyMaterial( URL urlToCerts, URL urlToKey, char[] password )
+			throws KeyStoreException, CertificateException,
+			       NoSuchAlgorithmException, IOException,
+			       UnrecoverableKeyException
+	{
+		this( urlToCerts.openStream(), urlToKey.openStream(), password );
+	}
 
-	public KeyMaterial(byte[] jksOrCerts, byte[] key, char[] password)
-	        throws KeyStoreException, CertificateException,
-	        NoSuchAlgorithmException, IOException,
-	        UnrecoverableKeyException
+	public KeyMaterial( byte[] jks, char[] password )
+			throws KeyStoreException, CertificateException,
+			       NoSuchAlgorithmException, IOException,
+			       UnrecoverableKeyException
+	{
+		this( jks, null, password );
+	}
+
+	public KeyMaterial( byte[] jksOrCerts, byte[] key, char[] password )
+			throws KeyStoreException, CertificateException,
+			       NoSuchAlgorithmException, IOException,
+			       UnrecoverableKeyException
 	{
 		// We're not a simple trust type, so set "simpleTrustType" value to 0.
 		// Only TRUST_ALL and TRUST_THIS_JVM are simple trust types.
@@ -129,52 +139,64 @@ public class KeyMaterial extends TrustMaterial {
 		KeyStore ks = getKeyStore();
 		Enumeration en = ks.aliases();
 		int privateKeyCount = 0;
-		while (en.hasMoreElements()) {
-		    String alias = (String) en.nextElement();
-		    if (ks.isKeyEntry(alias)) {
-		        privateKeyCount++;
-		        if (privateKeyCount > 1) {
-		            throw new KeyStoreException("commons-ssl KeyMaterial only supports keystores with a single private key.");
-		        }
-		        this.alias = alias;
-		    }
+		while ( en.hasMoreElements() )
+		{
+			String alias = (String) en.nextElement();
+			if ( ks.isKeyEntry( alias ) )
+			{
+				privateKeyCount++;
+				if ( privateKeyCount > 1 )
+				{
+					throw new KeyStoreException( "commons-ssl KeyMaterial only supports keystores with a single private key." );
+				}
+				this.alias = alias;
+			}
 		}
 		if ( alias != null )
 		{
-			Certificate[] chain = ks.getCertificateChain(alias);
-			if (chain != null) {
+			Certificate[] chain = ks.getCertificateChain( alias );
+			if ( chain != null )
+			{
 				X509Certificate[] x509Chain = new X509Certificate[chain.length];
-				for (int i = 0; i < chain.length; i++) {
-					x509Chain[i] = (X509Certificate) chain[i];
+				for ( int i = 0; i < chain.length; i++ )
+				{
+					x509Chain[ i ] = (X509Certificate) chain[ i ];
 				}
 				this.associatedChain = x509Chain;
-			} else {
+			}
+			else
+			{
 				// is password wrong?
 			}
 		}
-	  this.keyManagerFactory = JavaImpl.newKeyManagerFactory(ks, password);
+		this.keyManagerFactory = JavaImpl.newKeyManagerFactory( ks, password );
 	}
 
-    public Object[] getKeyManagers() {
-        return JavaImpl.getKeyManagers(keyManagerFactory);
-    }
+	public Object[] getKeyManagers()
+	{
+		return JavaImpl.getKeyManagers( keyManagerFactory );
+	}
 
-    public X509Certificate[] getAssociatedCertificateChain() {
-        return associatedChain;
-    }
+	public X509Certificate[] getAssociatedCertificateChain()
+	{
+		return associatedChain;
+	}
 
-    public static void main(String[] args) throws Exception {
-        if (args.length < 2) {
-            System.out.println("Usage:  java org.apache.commons.ssl.KeyMaterial [client-cert] [password]");
-            System.exit(1);
-        }
-        String keypath = args[0];
-        char[] password = args[1].toCharArray();
-        KeyMaterial km = new KeyMaterial(keypath, password);
-        X509Certificate[] certs = km.getAssociatedCertificateChain();
-        for (int i = 0; i < certs.length; i++) {
-            System.out.println(Certificates.toString(certs[i]));
-            System.out.println(Certificates.toPEMString(certs[i]));
-        }
-    }
+	public static void main( String[] args ) throws Exception
+	{
+		if ( args.length < 2 )
+		{
+			System.out.println( "Usage:  java org.apache.commons.ssl.KeyMaterial [client-cert] [password]" );
+			System.exit( 1 );
+		}
+		String keypath = args[ 0 ];
+		char[] password = args[ 1 ].toCharArray();
+		KeyMaterial km = new KeyMaterial( keypath, password );
+		X509Certificate[] certs = km.getAssociatedCertificateChain();
+		for ( int i = 0; i < certs.length; i++ )
+		{
+			System.out.println( Certificates.toString( certs[ i ] ) );
+			System.out.println( Certificates.toPEMString( certs[ i ] ) );
+		}
+	}
 }
