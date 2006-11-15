@@ -1,6 +1,35 @@
+/*
+ * $Header$
+ * $Revision$
+ * $Date$
+ *
+ * ====================================================================
+ *
+ *  Copyright 2006 The Apache Software Foundation
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ * ====================================================================
+ *
+ * This software consists of voluntary contributions made by many
+ * individuals on behalf of the Apache Software Foundation.  For more
+ * information on the Apache Software Foundation, please see
+ * <http://www.apache.org/>.
+ *
+ */
+
 package org.apache.commons.ssl;
 
-import org.apache.commons.asn1.*;
+import org.apache.commons.ssl.asn1.*;
 
 import javax.crypto.Cipher;
 import javax.crypto.CipherInputStream;
@@ -41,7 +70,9 @@ import java.util.List;
  * Can handle PKCS8 Version 1.5 and 2.0.
  * Can also handle OpenSSL encrypted or unencrypted private keys (DSA or RSA). 
  *
- * @author Julius Davies
+ * @author Credit Union Central of British Columbia
+ * @author <a href="http://www.cucbc.com/">www.cucbc.com</a>
+ * @author <a href="mailto:juliusdavies@cucbc.com">juliusdavies@cucbc.com</a>
  * @since 7-Nov-2006
  */
 public class PKCS8Key
@@ -189,7 +220,7 @@ public class PKCS8Key
 		}
 		catch ( IOException ioe )
 		{
-			ioe.printStackTrace();
+			// ioe.printStackTrace();
 			throw new RuntimeException( "asn1 parse failure: " + ioe );
 		}
 
@@ -241,7 +272,7 @@ public class PKCS8Key
 			}
 			catch ( IOException ioe )
 			{
-				ioe.printStackTrace();
+				// ioe.printStackTrace();
 				throw new RuntimeException( "asn1 parse failure: " + ioe );
 			}
 			pkcs8 = new PKCS8Asn1Structure();
@@ -267,7 +298,7 @@ public class PKCS8Key
 		}
 		catch ( Exception e )
 		{
-			e.printStackTrace( System.out );
+			// e.printStackTrace( System.out );
 		}
 		if ( pk != null )
 		{
@@ -429,7 +460,7 @@ public class PKCS8Key
 		catch ( IOException e )
 		{
 			// unlikely to happen, since we're backed by a ByteArrayInputStream
-			e.printStackTrace();
+			// e.printStackTrace();
 			throw new RuntimeException( "couldn't read CipherInputStream: " + e.toString() );
 		}
 	}
@@ -1259,7 +1290,7 @@ public class PKCS8Key
 					}
 					catch ( IOException ioe )
 					{
-						ioe.printStackTrace();
+						// ioe.printStackTrace();
 						throw new RuntimeException( "asn1 parse failure " + ioe );
 					}
 					pkcs8 = new PKCS8Asn1Structure();
@@ -1339,7 +1370,7 @@ public class PKCS8Key
 			catch ( Exception e )
 			{
 				System.out.println( " FAILED! " + args[ i ] );
-				e.printStackTrace( System.out );
+				// e.printStackTrace( System.out );
 			}
 			if ( key != null )
 			{

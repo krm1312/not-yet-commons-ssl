@@ -35,16 +35,22 @@ import java.security.Principal;
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
 
+/**
+ * @author Credit Union Central of British Columbia
+ * @author <a href="http://www.cucbc.com/">www.cucbc.com</a>
+ * @author <a href="mailto:juliusdavies@cucbc.com">juliusdavies@cucbc.com</a>
+ * @since 30-Jun-2006 
+ */
 public class Java13KeyManagerWrapper implements X509KeyManager {
 
     private final X509KeyManager keyManager;
-    private final KeyMaterial keyMaterial;
-    private final SSL ssl;
+    // private final KeyMaterial keyMaterial;   <-- maybe use one day in the
+    // private final SSL ssl;                   <-- in the future?
 
     public Java13KeyManagerWrapper(X509KeyManager m, KeyMaterial km, SSL h) {
-        this.keyManager = m;
-        this.keyMaterial = km;
-        this.ssl = h;
+	     this.keyManager = m;
+        // this.keyMaterial = km;   <-- maybe use one day in the
+        // this.ssl = h;            <-- in the future?
     }
 
     public String chooseClientAlias(String keyType, Principal[] issuers) {

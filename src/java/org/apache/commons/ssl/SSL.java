@@ -355,7 +355,7 @@ public class SSL {
                 autoClose);
         doPreConnectSocketStuff(ss);
         doPostConnectSocketStuff(ss, remoteHost);
-	    return sslWrapperFactory.wrap( (SSLSocket) s );
+	    return sslWrapperFactory.wrap( (SSLSocket) ss );
 	     // return ss;
     }
 

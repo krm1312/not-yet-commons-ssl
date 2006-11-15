@@ -52,7 +52,6 @@ public class Java14TrustManagerWrapper implements X509TrustManager {
 
     public void checkClientTrusted(X509Certificate[] chain, String authType)
             throws CertificateException {
-System.out.println( "checkClientTrusted: " + authType );
         ssl.setCurrentClientChain(chain);
         if (trustChain.contains(TrustMaterial.TRUST_ALL)) {
             return;
@@ -62,7 +61,6 @@ System.out.println( "checkClientTrusted: " + authType );
 
     public void checkServerTrusted(X509Certificate[] chain, String authType)
             throws CertificateException {
-
         ssl.setCurrentServerChain(chain);
         if (trustChain.contains(TrustMaterial.TRUST_ALL)) {
             return;

@@ -33,6 +33,12 @@ import com.sun.net.ssl.X509TrustManager;
 
 import java.security.cert.X509Certificate;
 
+/**
+ * @author Credit Union Central of British Columbia
+ * @author <a href="http://www.cucbc.com/">www.cucbc.com</a>
+ * @author <a href="mailto:juliusdavies@cucbc.com">juliusdavies@cucbc.com</a>
+ * @since 30-Jun-2006
+ */
 public class Java13TrustManagerWrapper implements X509TrustManager {
 
     private final X509TrustManager trustManager;
@@ -47,10 +53,8 @@ public class Java13TrustManagerWrapper implements X509TrustManager {
 
     public boolean isClientTrusted(X509Certificate[] chain) {
         ssl.setCurrentClientChain(chain);
-        if (trustChain.contains(TrustMaterial.TRUST_ALL)) {
-            return true;
-        }
-        return trustManager.isClientTrusted(chain);
+        return trustChain.contains(TrustMaterial.TRUST_ALL) ||
+               trustManager.isClientTrusted(chain);
     }
 
     public boolean isServerTrusted(X509Certificate[] chain) {

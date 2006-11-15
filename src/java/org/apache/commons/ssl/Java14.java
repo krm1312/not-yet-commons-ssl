@@ -29,22 +29,27 @@
 
 package org.apache.commons.ssl;
 
-import javax.net.ssl.*;
 import javax.net.SocketFactory;
+import javax.net.ssl.*;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
-import java.net.UnknownHostException;
 import java.net.Socket;
-import java.security.*;
+import java.security.KeyManagementException;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.UnrecoverableKeyException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 
 
 /**
- * @author Julius Davies
+ * @author Credit Union Central of British Columbia
+ * @author <a href="http://www.cucbc.com/">www.cucbc.com</a>
+ * @author <a href="mailto:juliusdavies@cucbc.com">juliusdavies@cucbc.com</a>
  * @since 30-Jun-2006
  */
 public final class Java14 extends JavaImpl {
@@ -54,6 +59,7 @@ public final class Java14 extends JavaImpl {
         try {
             SSLSocketFactory.getDefault().createSocket();
         } catch (IOException ioe) {
+	        ioe.hashCode();
         }
     }
 
@@ -101,14 +107,12 @@ public final class Java14 extends JavaImpl {
 
     protected final Object[] retrieveKeyManagers(Object keyManagerFactory) {
         KeyManagerFactory kmf = (KeyManagerFactory) keyManagerFactory;
-        KeyManager[] keyManagers = kmf.getKeyManagers();
-        return keyManagers;
+        return kmf.getKeyManagers();
     }
 
     protected final Object[] retrieveTrustManagers(Object trustManagerFactory) {
         TrustManagerFactory tmf = (TrustManagerFactory) trustManagerFactory;
-        TrustManager[] trustManagers = tmf.getTrustManagers();
-        return trustManagers;
+        return tmf.getTrustManagers();
     }
 
     protected final SSLSocketFactory buildSSLSocketFactory(Object ssl) {
@@ -133,7 +137,7 @@ public final class Java14 extends JavaImpl {
     protected final SSLSocket buildSocket(SSL ssl, String remoteHost,
                                           int remotePort, InetAddress localHost,
                                           int localPort, int timeout)
-            throws IOException, UnknownHostException {
+            throws IOException {
         SSLSocket s = buildSocket(ssl);
 	     s = (SSLSocket) connectSocket( s, null, remoteHost, remotePort,
 	                                    localHost, localPort, timeout );
@@ -145,7 +149,7 @@ public final class Java14 extends JavaImpl {
 	                                      String remoteHost, int remotePort,
 	                                      InetAddress localHost, int localPort,
 	                                      int timeout)
-	       throws IOException, UnknownHostException {
+	       throws IOException {
 		 if ( s == null )
 		 {
 			 if ( sf == null )
@@ -173,8 +177,8 @@ public final class Java14 extends JavaImpl {
     }
 
     protected final void wantClientAuth(Object o, boolean wantClientAuth) {
-        SSLSocket s = null;
-        SSLServerSocket ss = null;
+        SSLSocket s;
+        SSLServerSocket ss;
         if (o instanceof SSLSocket) {
             s = (SSLSocket) o;
             s.setWantClientAuth(wantClientAuth);
@@ -187,8 +191,8 @@ public final class Java14 extends JavaImpl {
     }
 
     protected final void enabledProtocols(Object o, String[] enabledProtocols) {
-        SSLSocket s = null;
-        SSLServerSocket ss = null;
+        SSLSocket s;
+        SSLServerSocket ss;
         if (o instanceof SSLSocket) {
             s = (SSLSocket) o;
             s.setEnabledProtocols(enabledProtocols);

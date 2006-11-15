@@ -1,3 +1,32 @@
+/*
+ * $Header$
+ * $Revision$
+ * $Date$
+ *
+ * ====================================================================
+ *
+ *  Copyright 2006 The Apache Software Foundation
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ * ====================================================================
+ *
+ * This software consists of voluntary contributions made by many
+ * individuals on behalf of the Apache Software Foundation.  For more
+ * information on the Apache Software Foundation, please see
+ * <http://www.apache.org/>.
+ *
+ */
+
 package org.apache.commons.ssl;
 
 import java.io.ByteArrayInputStream;
@@ -20,17 +49,22 @@ import java.security.cert.X509Certificate;
 import java.security.interfaces.RSAPrivateCrtKey;
 import java.security.interfaces.RSAPublicKey;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Builds Java Key Store files out of pkcs12 files, or out of pkcs8 files +
  * certificate chains.  Also supports OpenSSL style private keys (encrypted or
  * unencrypted).
  *
- * @author Julius Davies
+ * @author Credit Union Central of British Columbia
+ * @author <a href="http://www.cucbc.com/">www.cucbc.com</a>
+ * @author <a href="mailto:juliusdavies@cucbc.com">juliusdavies@cucbc.com</a>
  * @since 4-Nov-2006
  */
 public class KeyStoreBuilder
@@ -48,18 +82,35 @@ public class KeyStoreBuilder
 			       NoSuchAlgorithmException
 	{
 		BuildResult br1 = parse( jksOrCerts, password );
+		BuildResult br2 = null;
+
+		// If we happened to find a JKS file, let's just return that.
+		// JKS files get priority.		
+		if ( br1.jks != null )
+		{
+			return br1.jks;
+		}
+		if ( privateKey != null && privateKey.length > 0 )
+		{
+			br2 = parse( privateKey, password );
+			if ( br2.jks != null )
+			{
+				return br2.jks;
+			}
+		}
+
 		Key key = br1.key;
 		Certificate[] chain = br1.chain;
-
 		boolean atLeastOneNotSet = key == null || chain == null;
-		if ( atLeastOneNotSet && privateKey != null )
+		if ( atLeastOneNotSet && br2 != null )
 		{
-			BuildResult br2 = parse( privateKey, password );
-			if ( key == null )
+			if ( br2.key != null )
 			{
+				// Notice that the key from build-result-2 gets priority over the
+				// key from build-result-1 (if both had valid keys).
 				key = br2.key;
 			}
-			if ( br2.chain != null )
+			if ( chain == null )
 			{
 				chain = br2.chain;
 			}
@@ -82,6 +133,9 @@ public class KeyStoreBuilder
 		else
 		{
 			String alias = null;
+
+			organizeChain( chain );
+
 			if ( key instanceof RSAPrivateCrtKey )
 			{
 				final RSAPrivateCrtKey rsa = (RSAPrivateCrtKey) key;
@@ -112,6 +166,85 @@ public class KeyStoreBuilder
 			ks.load( null, password );
 			ks.setKeyEntry( alias, key, password, chain );
 			return ks;
+		}
+	}
+
+	private static void organizeChain( Certificate[] chain )
+	{
+		Map orderings = new HashMap();
+		for ( int i = 0; i < chain.length; i++ )
+		{
+			for ( int j = i + 1; j < chain.length; j++ )
+			{
+				Certificate c1 = chain[ i ];
+				Certificate c2 = chain[ j ];
+				try
+				{
+					c2.verify( c1.getPublicKey() );
+					orderings.put( c1, c2 );
+				}
+				catch ( Exception e )
+				{
+					try
+					{
+						c1.verify( c2.getPublicKey() );
+						orderings.put( c2, c1 );
+					}
+					catch ( Exception e2 )
+					{
+						// oh well, these two certs aren't directly related
+					}
+				}
+			}
+		}
+
+		Map.Entry entry = getFirst( orderings );
+		LinkedList tail = new LinkedList();
+		while ( entry != null )
+		{
+			LinkedList newChain = new LinkedList();
+			newChain.add( entry.getKey() );
+			newChain.add( entry.getValue() );
+
+			Certificate next = (Certificate) orderings.remove( entry.getValue() );
+			while ( next != null )
+			{
+				newChain.add( next );
+				next = (Certificate) orderings.remove( next );
+			}
+
+			if ( !tail.isEmpty() && newChain.getLast().equals( tail.getFirst() ) )
+			{
+				newChain.removeLast();
+			}
+			newChain.addAll( tail );
+			tail = newChain;
+			entry = getFirst( orderings );
+		}
+
+		Collections.reverse( tail );
+		Iterator it = tail.iterator();
+		int count = 0;
+		while ( it.hasNext() )
+		{
+			X509Certificate c = (X509Certificate) it.next();
+			chain[ count ] = c;
+			count++;
+		}
+	}
+
+	private static Map.Entry getFirst( Map m )
+	{
+		Iterator it = m.entrySet().iterator();
+		if ( it.hasNext() )
+		{
+			Map.Entry entry = (Map.Entry) it.next();
+			it.remove();
+			return entry;
+		}
+		else
+		{
+			return null;
 		}
 	}
 

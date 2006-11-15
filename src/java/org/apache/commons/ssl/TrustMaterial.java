@@ -53,9 +53,10 @@ import java.util.Iterator;
 public class TrustMaterial extends TrustChain {
     public final static TrustMaterial CACERTS;
     public final static TrustMaterial JSSE_CACERTS;
-    public final static TrustMaterial TRUST_ALL = new TrustMaterial();
-    public final static TrustMaterial TRUST_THIS_JVM = new TrustMaterial();	
+    public final static TrustMaterial TRUST_ALL = new TrustMaterial( 1 );
+    public final static TrustMaterial TRUST_THIS_JVM = new TrustMaterial( 2 );
 
+	 public final int simpleTrustType;
     private final KeyStore jks;
 
     static {
@@ -86,14 +87,15 @@ public class TrustMaterial extends TrustChain {
         JSSE_CACERTS = jsse;
     }
 
-    public TrustMaterial() {
-	    this( (KeyStore) null );
+    private TrustMaterial( int simpleTrustType ) {
+	    this( null, simpleTrustType );
     }
 
-	 public TrustMaterial( KeyStore jks )
+	 TrustMaterial( KeyStore jks, int simpleTrustType )
 	 {
 		 this.jks = jks;
 		 addTrustMaterial( this );
+	    this.simpleTrustType = simpleTrustType;		 
 	 }
 
     public TrustMaterial(Collection x509Certs)
@@ -104,6 +106,10 @@ public class TrustMaterial extends TrustChain {
         loadCerts(ks, x509Certs);
         this.jks = ks;
         addTrustMaterial(this);
+
+	     // We're not a simple trust type, so set value to 0.
+	     // Only TRUST_ALL and TRUST_THIS_JVM are simple trust types.
+	     this.simpleTrustType = 0;
     }
 
     public TrustMaterial(X509Certificate x509Cert)
@@ -200,6 +206,10 @@ public class TrustMaterial extends TrustChain {
             }
         }
         addTrustMaterial(this);
+
+		  // We're not a simple trust type, so set value to 0.
+		  // Only TRUST_ALL and TRUST_THIS_JVM are simple trust types.
+	     this.simpleTrustType = 0;		
     }
 
     public KeyStore getKeyStore() {

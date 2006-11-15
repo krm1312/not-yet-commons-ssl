@@ -157,18 +157,18 @@ public class SSLClient extends SSLSocketFactory {
     }
 
     public Socket createSocket(String host, int port)
-            throws IOException, UnknownHostException {
+            throws IOException {
         return ssl.createSocket(host, port);
     }
 
     public Socket createSocket(InetAddress host, int port)
-            throws IOException, UnknownHostException {
+            throws IOException {
         return createSocket(host.getHostName(), port);
     }
 
     public Socket createSocket(InetAddress host, int port,
                                InetAddress localHost, int localPort)
-            throws IOException, UnknownHostException {
+            throws IOException {
         return createSocket(host.getHostName(), port, localHost, localPort);
     }
 
@@ -176,7 +176,7 @@ public class SSLClient extends SSLSocketFactory {
                                int port,
                                InetAddress localHost,
                                int localPort)
-            throws IOException, UnknownHostException {
+            throws IOException {
         return createSocket(host, port, localHost, localPort, 0);
     }
 
@@ -196,13 +196,13 @@ public class SSLClient extends SSLSocketFactory {
      */
     public Socket createSocket(String host, int port, InetAddress localHost,
                                int localPort, int timeout)
-            throws IOException, UnknownHostException {
+            throws IOException {
         return ssl.createSocket(host, port, localHost, localPort, timeout);
     }
 
     public Socket createSocket(Socket s, String remoteHost, int remotePort,
                                boolean autoClose)
-            throws IOException, UnknownHostException {
+            throws IOException {
         return ssl.createSocket(s, remoteHost, remotePort, autoClose);
     }
 

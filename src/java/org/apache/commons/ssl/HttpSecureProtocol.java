@@ -29,20 +29,20 @@
 
 package org.apache.commons.ssl;
 
-import org.apache.commons.httpclient.ConnectTimeoutException;
 import org.apache.commons.httpclient.params.HttpConnectionParams;
 import org.apache.commons.httpclient.protocol.SecureProtocolSocketFactory;
 
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
-import java.net.UnknownHostException;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
 
 /**
+ * Hook into HttpClient.
+ *
  * @author Credit Union Central of British Columbia
  * @author <a href="http://www.cucbc.com/">www.cucbc.com</a>
  * @author <a href="mailto:juliusdavies@cucbc.com">juliusdavies@cucbc.com</a>
@@ -84,7 +84,7 @@ public class HttpSecureProtocol extends SSLClient
                                final InetAddress localAddress,
                                final int localPort,
                                final HttpConnectionParams params)
-            throws IOException, UnknownHostException, ConnectTimeoutException {
+            throws IOException {
         if (params == null) {
             throw new IllegalArgumentException("Parameters may not be null");
         }

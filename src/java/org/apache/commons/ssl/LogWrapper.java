@@ -1,3 +1,32 @@
+/*
+ * $Header$
+ * $Revision$
+ * $Date$
+ *
+ * ====================================================================
+ *
+ *  Copyright 2006 The Apache Software Foundation
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ * ====================================================================
+ *
+ * This software consists of voluntary contributions made by many
+ * individuals on behalf of the Apache Software Foundation.  For more
+ * information on the Apache Software Foundation, please see
+ * <http://www.apache.org/>.
+ *
+ */
+
 package org.apache.commons.ssl;
 
 import java.io.BufferedOutputStream;
@@ -68,7 +97,9 @@ public class LogWrapper {
       lh.hashCode();
       avail = true;
     }
-    catch (Throwable t) {}
+    catch (Throwable t) {
+	    avail = false;
+    }
     finally {
       log4j = avail;
     }
@@ -98,15 +129,21 @@ public class LogWrapper {
   public void fatal(Object o)              { if (t(4,o,null)) h.fatal(o);     }
   public void fatal(Object o, Throwable t) { if (t(4,o,t))    h.fatal(o,t);   }
   public boolean isDebugEnabled() { return log4j ? h.isDebugEnabled() : DEBUG;}
-  public boolean isInfoEnabled()  { return log4j ? h.isInfoEnabled()  : true; }
+  public boolean isInfoEnabled()  { return !log4j || h.isInfoEnabled();       }
   public Object getLog4jLogger()  { return log4j ? h.getLog4jLogger() : null; }
 
 
   /**
    * Tests if log4j is available.  If not, logs to backup OutputStream (if
    * backup != null).
+   *
+   * @param level  log4j logging level for this statement
+   * @param o object to log
+   * @param t throwable to log
+   * @return true if log4j is available, false if log4j is not.  If it returns
+   *         false, as a side-effect, it will also log the statement.
    */
-  private final boolean t(int level, Object o, Throwable t) {
+  private boolean t(int level, Object o, Throwable t) {
     if ( log4j ) {
       return true;
     } else {
@@ -165,8 +202,8 @@ public class LogWrapper {
 
   /**
    * Set file to log to if log4j is not available.
-   * @param f
-   * @throws IOException
+   * @param f  path to use for backup log file (if log4j not available)
+   * @throws IOException  if we can't write to the given path
    */
   public static void setBackupLogFile( String f )
         throws IOException {
@@ -181,7 +218,7 @@ public class LogWrapper {
    * Set PrintStream to log to if log4j is not available.  Set to null to
    * disable.  Default value is System.out.
    *
-   * @param os
+   * @param os  outputstream to use for backup logging (if log4j not available)
    */
   public static void setBackupStream( OutputStream os ) {
     // synchronize on the old backup - don't want to pull the rug out from
@@ -199,6 +236,8 @@ public class LogWrapper {
 
   /**
    * Get the PrintStream we're logging to if log4j is not available.
+   *
+   * @return OutputStream we're using as our log4j replacement.
    */
   public static OutputStream getBackupStream() { return backup; }
 

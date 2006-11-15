@@ -141,10 +141,10 @@ public class TrustChain {
      * @return Array of TrustManager[] - presumably these will be dropped into
      *         a call to SSLContext.init().  Note:  returns null if this
      *         TrustChain doesn't contain anything to trust.
-     * @throws NoSuchAlgorithmException
-     * @throws KeyStoreException
-     * @throws IOException
-     * @throws CertificateException
+     * @throws NoSuchAlgorithmException  serious problems
+     * @throws KeyStoreException         serious problems
+     * @throws IOException               serious problems
+     * @throws CertificateException      serious problems
      */
     public Object[] getTrustManagers()
             throws NoSuchAlgorithmException, KeyStoreException, IOException,
@@ -156,11 +156,13 @@ public class TrustChain {
     /**
      * @return All X509Certificates contained in this TrustChain as a SortedSet.
      *         The X509Certificates are sorted based on expiry date.
-     * @throws KeyStoreException
-     * @throws IOException
-     * @throws NoSuchAlgorithmException
-     * @throws CertificateException
-     * @see Certificates.COMPARE_BY_EXPIRY
+     *
+     * See org.apache.commons.ssl.Certificates.COMPARE_BY_EXPIRY.
+     * 
+     * @throws KeyStoreException         serious problems
+     * @throws IOException               serious problems
+     * @throws NoSuchAlgorithmException  serious problems
+     * @throws CertificateException      serious problems
      */
     public synchronized SortedSet getCertificates()
             throws KeyStoreException, IOException, NoSuchAlgorithmException,

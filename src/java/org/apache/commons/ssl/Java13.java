@@ -52,8 +52,6 @@ import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.net.URL;
-import java.net.URLConnection;
-import java.net.UnknownHostException;
 import java.security.KeyManagementException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
@@ -66,7 +64,9 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 
 /**
- * @author Julius Davies
+ * @author Credit Union Central of British Columbia
+ * @author <a href="http://www.cucbc.com/">www.cucbc.com</a>
+ * @author <a href="mailto:juliusdavies@cucbc.com">juliusdavies@cucbc.com</a>
  * @since 30-Jun-2006
  */
 public final class Java13 extends JavaImpl {
@@ -79,7 +79,7 @@ public final class Java13 extends JavaImpl {
             Class[] sig = {String.class};
             String[] args = {"DES/CBC/PKCS5Padding"};
             Method m = c.getMethod("getInstance", sig);
-            Object o = m.invoke(null, args);
+            m.invoke(null, args);
         } catch (Exception e) {
             try {
                 Class c = Class.forName("com.sun.crypto.provider.SunJCE");
@@ -93,7 +93,7 @@ public final class Java13 extends JavaImpl {
         }
         try {
             URL u = new URL("https://vancity.com/");
-            URLConnection conn = u.openConnection();
+            u.openConnection();
         } catch (Exception e) {
             System.out.println("java.net.URL support of https not loaded: " + e + " - attempting to load com.sun.net.ssl.internal.ssl.Provider!");
             Security.addProvider(new com.sun.net.ssl.internal.ssl.Provider());
@@ -120,7 +120,7 @@ public final class Java13 extends JavaImpl {
 
     protected final Certificate[] retrieveClientAuth(SSLSession sslSession)
             throws SSLPeerUnverifiedException {
-        javax.security.cert.X509Certificate[] chain = null;
+        javax.security.cert.X509Certificate[] chain;
         chain = sslSession.getPeerCertificateChain();
         X509Certificate[] newChain = new X509Certificate[chain.length];
         try {
@@ -161,14 +161,12 @@ public final class Java13 extends JavaImpl {
 
     protected final Object[] retrieveKeyManagers(Object keyManagerFactory) {
         KeyManagerFactory kmf = (KeyManagerFactory) keyManagerFactory;
-        KeyManager[] keyManagers = kmf.getKeyManagers();
-        return keyManagers;
+        return kmf.getKeyManagers();
     }
 
     protected final Object[] retrieveTrustManagers(Object trustManagerFactory) {
         TrustManagerFactory tmf = (TrustManagerFactory) trustManagerFactory;
-        TrustManager[] trustManagers = tmf.getTrustManagers();
-        return trustManagers;
+        return tmf.getTrustManagers();
     }
 
     protected final SSLSocketFactory buildSSLSocketFactory(Object ssl) {
@@ -197,7 +195,7 @@ public final class Java13 extends JavaImpl {
     protected final SSLSocket buildSocket(SSL ssl, String remoteHost,
                                           int remotePort, InetAddress localHost,
                                           int localPort, int connectTimeout)
-            throws IOException, UnknownHostException {
+            throws IOException {
         // Connect Timeout ignored for Java 1.3
         SSLSocketFactory sf = ssl.getSSLSocketFactory();
         SSLSocket s = (SSLSocket) connectSocket( null, sf, remoteHost,
@@ -212,7 +210,7 @@ public final class Java13 extends JavaImpl {
 	                                      String remoteHost, int remotePort,
 	                                      InetAddress localHost, int localPort,
 	                                      int timeout)
-	       throws IOException, UnknownHostException {
+	       throws IOException {
        // Connect Timeout ignored for Java 1.3		 
 		 if ( s == null )
 		 {
@@ -236,12 +234,10 @@ public final class Java13 extends JavaImpl {
 
     protected final void wantClientAuth(Object o, boolean wantClientAuth) {
         // Not supported in Java 1.3.
-        return;
     }
 
     protected final void enabledProtocols(Object o, String[] enabledProtocols) {
         // Not supported in Java 1.3.
-        return;
     }
 
     protected final Object initSSL(SSL ssl, TrustChain tc, KeyMaterial k)

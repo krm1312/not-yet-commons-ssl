@@ -93,7 +93,7 @@ public class KeyMaterial extends TrustMaterial {
 	        throws KeyStoreException, CertificateException,
 	        NoSuchAlgorithmException, IOException,
 	        UnrecoverableKeyException {
-	    this(new FileInputStream(certsFile), new FileInputStream(keyFile), password);
+	    this( new FileInputStream(certsFile),new FileInputStream(keyFile), password);
 	}
 
 
@@ -123,7 +123,9 @@ public class KeyMaterial extends TrustMaterial {
 	        NoSuchAlgorithmException, IOException,
 	        UnrecoverableKeyException
 	{
-		super( KeyStoreBuilder.build( jksOrCerts, key, password ) );
+		// We're not a simple trust type, so set "simpleTrustType" value to 0.
+		// Only TRUST_ALL and TRUST_THIS_JVM are simple trust types.
+		super( KeyStoreBuilder.build( jksOrCerts, key, password ), 0 );
 		KeyStore ks = getKeyStore();
 		Enumeration en = ks.aliases();
 		int privateKeyCount = 0;

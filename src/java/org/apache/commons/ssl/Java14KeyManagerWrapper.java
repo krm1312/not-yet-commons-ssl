@@ -43,13 +43,13 @@ import java.security.cert.X509Certificate;
  */
 public class Java14KeyManagerWrapper implements X509KeyManager {
     private final X509KeyManager keyManager;
-    private final KeyMaterial keyMaterial;
-    private final SSL ssl;
+    // private final KeyMaterial keyMaterial;
+    // private final SSL ssl;
 
     public Java14KeyManagerWrapper(X509KeyManager m, KeyMaterial km, SSL h) {
         this.keyManager = m;
-        this.keyMaterial = km;
-        this.ssl = h;
+        // this.keyMaterial = km;
+        // this.ssl = h;
     }
 
     public String chooseClientAlias(String[] keyType, Principal[] issuers,

@@ -49,7 +49,8 @@ public class Ping {
     protected final static Arg ARG_TARGET = new Arg("-t", "--target", "[hostname[:port]]             default port=443", true);
     protected final static Arg ARG_BIND = new Arg("-b", "--bind", "[hostname[:port]]             default port=0 \"ANY\"");
     protected final static Arg ARG_PROXY = new Arg("-r", "--proxy", "[hostname[:port]]             default port=80");
-    protected final static Arg ARG_CLIENT_CERT = new Arg("-c", "--client-cert", "[path to client certificate]  *.jks or *.pfx");
+    protected final static Arg ARG_CLIENT_CERT = new Arg("-c", "--client-cert", "[path to client's private key]  *.{jks, pkcs12, pkcs8}");
+    protected final static Arg ARG_CERT_CHAIN = new Arg("-cc", "--cert-chain", "[path to client's cert chain if using pkcs8/OpenSSL key]");	
     protected final static Arg ARG_PASSWORD = new Arg("-p", "--password", "[client cert password]");
 
     private static HostPort target;
@@ -60,6 +61,7 @@ public class Ping {
     private static int targetPort = 443;
     private static int localPort = 0;
     private static File clientCert;
+	 private static File certChain;
     private static char[] password;
 
     static {
@@ -117,7 +119,16 @@ public class Ping {
                 ssl.setDoVerify(false);
                 ssl.addTrustMaterial(TrustMaterial.TRUST_ALL);
                 if (clientCert != null) {
-                    KeyMaterial km = new KeyMaterial(clientCert, password);
+
+                    KeyMaterial km;
+	                 if ( certChain != null )
+	                 {
+		                 km = new KeyMaterial(clientCert,certChain,password);
+	                 }
+	                 else
+	                 {
+		                 km = new KeyMaterial(clientCert,password);
+	                 }
                     if (password != null) {
                         for (int i = 0; i < password.length; i++) {
                             password[i] = 0;
@@ -310,6 +321,8 @@ public class Ping {
                 proxy = Util.toAddress(values[0], 80);
             } else if (arg == ARG_CLIENT_CERT) {
                 clientCert = new File(values[0]);
+            } else if (arg == ARG_CERT_CHAIN) {
+	             certChain = new File(values[0]);
             } else if (arg == ARG_PASSWORD) {
                 password = values[0].toCharArray();
             }

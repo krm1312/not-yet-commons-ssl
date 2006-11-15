@@ -29,19 +29,29 @@
 
 package org.apache.commons.ssl;
 
-import javax.net.ssl.*;
 import javax.net.SocketFactory;
+import javax.net.ssl.SSLPeerUnverifiedException;
+import javax.net.ssl.SSLServerSocket;
+import javax.net.ssl.SSLServerSocketFactory;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.SSLSocket;
+import javax.net.ssl.SSLSocketFactory;
 import java.io.IOException;
 import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.net.Socket;
-import java.security.*;
+import java.security.KeyManagementException;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.UnrecoverableKeyException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 
 /**
- * @author Julius Davies
+ * @author Credit Union Central of British Columbia
+ * @author <a href="http://www.cucbc.com/">www.cucbc.com</a>
+ * @author <a href="mailto:juliusdavies@cucbc.com">juliusdavies@cucbc.com</a>
  * @since 30-Jun-2006
  */
 public abstract class JavaImpl {
@@ -108,13 +118,13 @@ public abstract class JavaImpl {
                                              int remotePort,
                                              InetAddress localHost,
                                              int localPort, int connectTimeout)
-            throws IOException, UnknownHostException;
+            throws IOException;
 
 	protected abstract Socket connectSocket(Socket s, SocketFactory sf,
 	                                        String remoteHost, int remotePort,
 	                                        InetAddress localHost, int localPort,
 	                                        int timeout)
-	      throws IOException, UnknownHostException;
+	      throws IOException;
 
     protected abstract SSLServerSocket buildServerSocket(SSL ssl)
             throws IOException;
@@ -182,7 +192,7 @@ public abstract class JavaImpl {
     public static SSLSocket createSocket(SSL ssl, String remoteHost,
                                          int remotePort, InetAddress localHost,
                                          int localPort, int connectTimeout)
-            throws IOException, UnknownHostException {
+            throws IOException {
         return HANDLER.buildSocket(ssl, remoteHost, remotePort, localHost,
                 localPort, connectTimeout);
     }
@@ -191,7 +201,7 @@ public abstract class JavaImpl {
 	                                 String remoteHost, int remotePort,
 	                                 InetAddress localHost, int localPort,
 	                                 int timeout)
-	       throws IOException, UnknownHostException
+	       throws IOException
 	 {
 		 return HANDLER.connectSocket( s, sf, remoteHost, remotePort, localHost,
 		                               localPort, timeout );		 
