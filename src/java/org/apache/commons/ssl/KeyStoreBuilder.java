@@ -122,7 +122,7 @@ public class KeyStoreBuilder
 			String missing = "";
 			if ( key == null )
 			{
-				missing = " [Private key missing]";
+				missing = " [Private key missing (bad password?)]";
 			}
 			if ( chain == null )
 			{
