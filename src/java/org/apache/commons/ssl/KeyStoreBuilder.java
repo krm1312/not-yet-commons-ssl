@@ -132,10 +132,7 @@ public class KeyStoreBuilder
 		}
 		else
 		{
-			String alias = null;
-
-			organizeChain( chain );
-
+			X509Certificate theOne = null;
 			if ( key instanceof RSAPrivateCrtKey )
 			{
 				final RSAPrivateCrtKey rsa = (RSAPrivateCrtKey) key;
@@ -152,14 +149,22 @@ public class KeyStoreBuilder
 						BigInteger mod = certKey.getModulus();
 						if ( publicExponent.equals( pe ) && modulus.equals( mod ) )
 						{
-							alias = Certificates.getCN( c );
+							theOne = c;
 						}
 					}
 				}
-				if ( alias == null )
+				if ( theOne == null )
 				{
 					throw new KeyStoreException( "Can't build keystore: [No certificates belong to the private-key]" );
 				}
+				organizeChain( theOne, chain );								
+			}
+
+			String alias = "alias";
+			if ( theOne != null )
+			{
+				alias = Certificates.getCN( theOne );
+				alias = alias.replace( ' ', '_' );
 			}
 
 			KeyStore ks = KeyStore.getInstance( "jks" );
@@ -169,7 +174,7 @@ public class KeyStoreBuilder
 		}
 	}
 
-	private static void organizeChain( Certificate[] chain )
+	private static void organizeChain( Certificate theOne, Certificate[] chain )
 	{
 		Map orderings = new HashMap();
 		for ( int i = 0; i < chain.length; i++ )
@@ -198,32 +203,59 @@ public class KeyStoreBuilder
 			}
 		}
 
-		Map.Entry entry = getFirst( orderings );
-		LinkedList tail = new LinkedList();
-		while ( entry != null )
+		Map.Entry entry = null;
+		Iterator it = orderings.entrySet().iterator();
+		while ( it.hasNext() )
 		{
-			LinkedList newChain = new LinkedList();
-			newChain.add( entry.getKey() );
-			newChain.add( entry.getValue() );
-
-			Certificate next = (Certificate) orderings.remove( entry.getValue() );
-			while ( next != null )
+			entry = (Map.Entry) it.next();
+			if ( theOne == entry.getKey() )
 			{
-				newChain.add( next );
-				next = (Certificate) orderings.remove( next );
+				// We found the entry associated with "theOne".
+				break;
 			}
-
-			if ( !tail.isEmpty() && newChain.getLast().equals( tail.getFirst() ) )
+		}
+		LinkedList tail = new LinkedList();
+		if ( entry == null )
+		{
+			// No relatives found for "theOne".
+			tail.add( theOne );
+		}
+		else
+		{
+			while ( entry != null )
 			{
-				newChain.removeLast();
+				LinkedList newChain = new LinkedList();
+				newChain.add( entry.getKey() );
+				newChain.add( entry.getValue() );
+
+				Certificate current = (Certificate) entry.getValue();
+				Certificate next = (Certificate) orderings.remove( current );
+				while ( next != null )
+				{
+					newChain.add( next );
+					next = (Certificate) orderings.remove( next );
+				}
+				if ( !tail.isEmpty() )
+				{
+					if ( newChain.getLast().equals( tail.getFirst() ) )
+					{
+						newChain.removeLast();
+						newChain.addAll( tail );
+					}
+					else
+					{
+						// discard "newChain" - it's unrelated
+						newChain = tail;
+					}
+				}
+
+				tail = newChain;
+				entry = getFirst( orderings );
 			}
-			newChain.addAll( tail );
-			tail = newChain;
-			entry = getFirst( orderings );
 		}
 
 		Collections.reverse( tail );
-		Iterator it = tail.iterator();
+		it = tail.iterator();
 		int count = 0;
 		while ( it.hasNext() )
 		{
