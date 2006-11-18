@@ -32,13 +32,16 @@ package org.apache.commons.ssl;
 import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLServerSocketFactory;
 import java.io.IOException;
+import java.io.File;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
+import java.security.GeneralSecurityException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.util.Properties;
 
 /**
  * @author Credit Union Central of British Columbia
@@ -52,40 +55,46 @@ public class SSLServer extends SSLServerSocketFactory
 	private final SSL ssl;
 
 	public SSLServer()
-			throws NoSuchAlgorithmException, KeyStoreException,
-			       KeyManagementException, IOException, CertificateException
+			throws GeneralSecurityException, IOException
 	{
 		this.ssl = new SSL();
 
-		String keystore = System.getProperty( "javax.net.ssl.keyStore" );
-		String password = System.getProperty( "javax.net.ssl.keyStorePassword" );
-		if ( keystore == null )
-		{
-			String homeDir = System.getProperty( "user.home" );
-			keystore = homeDir + "/.keystore";
-		}
-		if ( password == null )
-		{
-			password = "changeit";
-		}
+		// commons-ssl default KeyMaterial will be ~/.keystore with a password
+		// of "changeit".		
+		Properties props = System.getProperties();
+		boolean ksSet = props.containsKey( "javax.net.ssl.keyStore" );
+		boolean pwdSet = props.containsKey( "javax.net.ssl.keyStorePassword" );
+		String pwd = props.getProperty( "javax.net.ssl.keyStorePassword" );
+		pwd = pwdSet ? pwd : "changeit";
 
-		KeyMaterial km = null;
-		try
+		// If "javax.net.ssl.keyStore" is set, then we won't bother with this
+		// silly SSLServer default behaviour.
+		if ( !ksSet )
 		{
-			km = new KeyMaterial( keystore, password.toCharArray() );
-		}
-		catch ( Exception e )
-		{
-			if ( !password.equals( "changeit" ) )
+			String userHome = System.getProperty( "user.home" );
+			String path = userHome + "/.keystore";
+			File f = new File( path );
+			if ( f.exists() )
 			{
-				System.out.println( "commons-ssl attempt to automatically load " + keystore + " failed " );
-				System.out.println( e );
+				try
+				{
+					KeyMaterial km = new KeyMaterial( path, pwd.toCharArray() );
+					setKeyMaterial( km );
+				}
+				catch ( Exception e )
+				{
+					// Don't want to blowup just because this silly default
+					// behaviour didn't work out.
+					if ( pwdSet )
+					{
+						// Buf if the user has specified a non-standard password for
+						// "javax.net.ssl.keyStorePassword", then we will warn them
+						// that things didn't work out.
+						System.out.println( "commons-ssl automatic loading of [" + path + "] failed. " );
+						System.out.println( e );
+					}
+				}
 			}
-		}
-
-		if ( km != null )
-		{
-			setKeyMaterial( km );
 		}
 	}
 

@@ -29,7 +29,13 @@
 
 package org.apache.commons.ssl;
 
-import org.apache.commons.ssl.asn1.*;
+import org.apache.commons.ssl.asn1.ASN1OutputStream;
+import org.apache.commons.ssl.asn1.DEREncodable;
+import org.apache.commons.ssl.asn1.DERInteger;
+import org.apache.commons.ssl.asn1.DERNull;
+import org.apache.commons.ssl.asn1.DERObjectIdentifier;
+import org.apache.commons.ssl.asn1.DEROctetString;
+import org.apache.commons.ssl.asn1.DERSequence;
 
 import javax.crypto.Cipher;
 import javax.crypto.CipherInputStream;
@@ -44,7 +50,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.math.BigInteger;
 import java.security.GeneralSecurityException;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
@@ -55,9 +60,7 @@ import java.security.PrivateKey;
 import java.security.spec.KeySpec;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.Arrays;
-import java.util.Enumeration;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -77,11 +80,6 @@ import java.util.List;
  */
 public class PKCS8Key
 {
-	private static boolean DEBUG = false;
-
-	public final static BigInteger BIGGEST =
-			new BigInteger( Integer.toString( Integer.MAX_VALUE ) );
-
 	public final static String RSA_OID = "1.2.840.113549.1.1.1";
 	public final static String DSA_OID = "1.2.840.10040.4.1";
 
@@ -170,7 +168,7 @@ public class PKCS8Key
 					opensslDSA = opensslDSA || dsa;
 					if ( derBytes != null )
 					{
-						throw new RuntimeException( "more than one pkcs8 key found in supplied byte array!" );
+						throw new ProbablyNotPKCS8Exception( "More than one pkcs8 or OpenSSL key found in the supplied PEM Base64 stream" );
 					}
 					derBytes = item.getDerBytes();
 					keyItem = item;
@@ -180,7 +178,7 @@ public class PKCS8Key
 			// after the loop is finished, did we find anything?
 			if ( derBytes == null )
 			{
-				throw new RuntimeException( "no pkcs8 key found in supplied byte array!" );
+				throw new ProbablyNotPKCS8Exception( "No pkcs8 or OpenSSL key found in the supplied PEM Base64 stream" );
 			}
 
 			if ( opensslDSA || opensslRSA )
@@ -205,20 +203,15 @@ public class PKCS8Key
 			}
 		}
 
-		ASN1InputStream asn = new ASN1InputStream( derBytes );
-		DERSequence seq;
+		ASN1Structure pkcs8;
 		try
 		{
-			seq = (DERSequence) asn.readObject();
+			pkcs8 = ASN1Util.analyze( derBytes );
 		}
-		catch ( IOException ioe )
+		catch ( Exception e )
 		{
-			// ioe.printStackTrace();
-			throw new RuntimeException( "asn1 parse failure: " + ioe );
+			throw new ProbablyNotPKCS8Exception( "asn1 parse failure: " + e );
 		}
-
-		PKCS8Asn1Structure pkcs8 = new PKCS8Asn1Structure();
-		analyzeASN1( seq, pkcs8, 0 );
 
 		String oid = RSA_OID;
 		// With the OpenSSL unencrypted private keys in DER format, the only way
@@ -246,6 +239,23 @@ public class PKCS8Key
 		}
 
 		oid = pkcs8.oid1;
+		if ( !oid.startsWith( "1.2.840.113549.1" ) )
+		{
+			boolean isOkay = false;
+			if ( oid.startsWith( "1.2.840.10040.4." ) )
+			{
+				String s = oid.substring( "1.2.840.10040.4.".length() );
+				// 1.2.840.10040.4.1 -- id-dsa
+				// 1.2.840.10040.4.3 -- id-dsa-with-sha1
+				isOkay = s.equals( "1" ) || s.startsWith( "1." ) ||
+				         s.equals( "3" ) || s.startsWith( "3." );
+			}
+			if ( !isOkay )
+			{
+				throw new ProbablyNotPKCS8Exception( "Valid ASN.1, but not PKCS8 or OpenSSL format.  OID=" + oid );
+			}
+		}
+
 		boolean isRSA = RSA_OID.equals( oid );
 		boolean isDSA = DSA_OID.equals( oid );
 		boolean encrypted = !isRSA && !isDSA;
@@ -258,29 +268,27 @@ public class PKCS8Key
 		}
 		if ( encrypted )
 		{
-			asn = new ASN1InputStream( decryptedPKCS8 );
 			try
 			{
-				seq = (DERSequence) asn.readObject();
+				pkcs8 = ASN1Util.analyze( derBytes );
 			}
-			catch ( IOException ioe )
+			catch ( Exception e )
 			{
-				// ioe.printStackTrace();
-				throw new RuntimeException( "asn1 parse failure: " + ioe );
+				throw new ProbablyBadPasswordException( "Decrypted stream not ASN.1.  Probably bad decryption password." );
 			}
-			pkcs8 = new PKCS8Asn1Structure();
-			analyzeASN1( seq, pkcs8, 0 );
 			oid = pkcs8.oid1;
 			isDSA = DSA_OID.equals( oid );
 		}
 
 		KeySpec spec = new PKCS8EncodedKeySpec( decryptedPKCS8 );
-		PrivateKey pk = null;
+		String type = "RSA";
+		PrivateKey pk;
 		try
 		{
 			KeyFactory KF;
 			if ( isDSA )
 			{
+				type = "DSA";
 				KF = KeyFactory.getInstance( "DSA" );
 			}
 			else
@@ -291,7 +299,7 @@ public class PKCS8Key
 		}
 		catch ( Exception e )
 		{
-			// e.printStackTrace( System.out );
+			throw new ProbablyBadPasswordException( "Cannot create " + type + " private key from decrypted stream.  Probably bad decryption password." );
 		}
 		if ( pk != null )
 		{
@@ -304,7 +312,7 @@ public class PKCS8Key
 		}
 		else
 		{
-			throw new GeneralSecurityException( "failed to decrypt/parse PKCS8 bytes" );
+			throw new GeneralSecurityException( "KeyFactory.generatePrivate() returned null and didn't throw exception!" );
 		}
 	}
 
@@ -458,17 +466,10 @@ public class PKCS8Key
 		}
 	}
 
-	private static DecryptResult decryptPKCS8( PKCS8Asn1Structure pkcs8,
+	private static DecryptResult decryptPKCS8( ASN1Structure pkcs8,
 	                                           char[] password )
-			throws NoSuchAlgorithmException, NoSuchPaddingException,
-			       InvalidKeyException, InvalidAlgorithmParameterException
+			throws GeneralSecurityException
 	{
-
-		if ( DEBUG )
-		{
-			System.out.println( "Trying to decrypt: " + pkcs8 );
-		}
-
 		boolean isVersion1 = true;
 		boolean isVersion2 = false;
 		boolean usePKCS12PasswordPadding = false;
@@ -778,6 +779,14 @@ public class PKCS8Key
 			}
 		}
 
+		// The pkcs8 structure has been thoroughly examined.  If we don't have
+		// a cipher or hash at this point, then we don't support the file we
+		// were given.
+		if ( cipher == null || hash == null )
+		{
+			throw new ProbablyNotPKCS8Exception( "Unsupported PKCS8 format. oid1=[" + pkcs8.oid1 + "], oid2=[" + pkcs8.oid2 + "]" );
+		}
+
 		// In PKCS8 Version 1.5 we need to derive an 8 byte IV.  In those cases
 		// the ASN.1 structure doesn't have the IV, anyway, so I can use that
 		// to decide whether to derive one or not.
@@ -1048,219 +1057,8 @@ public class PKCS8Key
 		return new DerivedKey( key, iv );
 	}
 
-	private static void analyzeASN1( DEREncodable seq, PKCS8Asn1Structure pkcs8,
-	                                 int depth )
-	{
-		if ( depth >= 2 )
-		{
-			pkcs8.derIntegers = null;
-		}
-		Enumeration en = null;
-		if ( seq instanceof DERSequence )
-		{
-			en = ( (DERSequence) seq ).getObjects();
-		}
-		else if ( seq instanceof DERSet )
-		{
-			en = ( (DERSet) seq ).getObjects();
-		}
-		else
-		{
-			System.out.println( "BAD BAD BAD analyzeASN1 error" );
-		}
-		while ( en != null && en.hasMoreElements() )
-		{
-			DEREncodable obj = (DEREncodable) en.nextElement();
-			if ( !( obj instanceof DERSequence ) && !( obj instanceof DERSet ) )
-			{
-				String str = obj.toString();
-				String name = obj.getClass().getName();
-				name = name.substring( name.lastIndexOf( '.' ) + 1 );
-				for ( int i = 0; i < depth; i++ )
-				{
-					name = "  " + name;
-				}
-				if ( obj instanceof DERInteger )
-				{
-					DERInteger dInt = (DERInteger) obj;
-					if ( pkcs8.derIntegers != null )
-					{
-						pkcs8.derIntegers.add( dInt );
-					}
-					BigInteger big = dInt.toBigInteger();
-					int intValue = big.intValue();
-					if ( BIGGEST.compareTo( big ) >= 0 && intValue > 0 )
-					{
-						if ( pkcs8.iterationCount == 0 )
-						{
-							pkcs8.iterationCount = intValue;
-						}
-						else if ( pkcs8.keySize == 0 )
-						{
-							pkcs8.keySize = intValue;
-						}
-					}
-					str = dInt.toBigInteger().toString();
-				}
-				else if ( obj instanceof DERObjectIdentifier )
-				{
-					DERObjectIdentifier id = (DERObjectIdentifier) obj;
-					str = id.getIdentifier();
-					if ( pkcs8.oid1 == null )
-					{
-						pkcs8.oid1 = str;
-					}
-					else if ( pkcs8.oid2 == null )
-					{
-						pkcs8.oid2 = str;
-					}
-					else if ( pkcs8.oid3 == null )
-					{
-						pkcs8.oid3 = str;
-					}
-				}
-				else
-				{
-					pkcs8.derIntegers = null;
-					if ( obj instanceof DERTaggedObject )
-					{
-						DERTaggedObject tag = (DERTaggedObject) obj;
-						str = tag.getTagNo() + ": " + tag.getObject();
-					}
-					if ( obj instanceof DEROctetString )
-					{
-						DEROctetString oct = (DEROctetString) obj;
-						byte[] octets = oct.getOctets();
-						int len = Math.min( 10, octets.length );
-						boolean probablyBinary = false;
-						for ( int i = 0; i < len; i++ )
-						{
-							byte b = octets[ i ];
-							boolean isBinary = b > 128 || b < 0;
-							if ( isBinary )
-							{
-								probablyBinary = true;
-								break;
-							}
-						}
-						if ( probablyBinary && octets.length > 64 )
-						{
-							if ( pkcs8.bigPayload == null )
-							{
-								pkcs8.bigPayload = octets;
-							}
-							str = "probably binary";
-						}
-						else
-						{
-							str = PEMUtil.bytesToHex( octets );
-							if ( octets.length <= 64 )
-							{
-								if ( octets.length % 8 == 0 )
-								{
-									if ( pkcs8.salt == null )
-									{
-										pkcs8.salt = octets;
-									}
-									else if ( pkcs8.iv == null )
-									{
-										pkcs8.iv = octets;
-									}
-								}
-								else
-								{
-									if ( pkcs8.smallPayload == null )
-									{
-										pkcs8.smallPayload = octets;
-									}
-								}
-							}
-						}
-						str += " (length=" + octets.length + ")";
-					}
-					else if ( obj instanceof DERPrintableString )
-					{
-						DERPrintableString dps = (DERPrintableString) obj;
-						str = dps.getString();
-					}
-				}
-
-				if ( DEBUG )
-				{
-					System.out.println( name + ": [" + str + "]" );
-				}
-			}
-			else
-			{
-				analyzeASN1( obj, pkcs8, depth + 1 );
-			}
-		}
-	}
-
-
-	private static class PKCS8Asn1Structure
-	{
-		protected List derIntegers = new LinkedList();
-		protected String oid1;
-		protected String oid2;
-		protected String oid3;
-		protected byte[] salt;
-		protected byte[] iv;
-		protected int iterationCount;
-		protected int keySize;
-		protected byte[] bigPayload;
-		protected byte[] smallPayload;
-
-		public String toString()
-		{
-			StringBuffer buf = new StringBuffer( 256 );
-			buf.append( "---------- pkcs8 ------------" );
-			buf.append( "\noid1:    " );
-			buf.append( oid1 );
-			if ( oid2 != null )
-			{
-				buf.append( "\noid2:    " );
-				buf.append( oid2 );
-			}
-			buf.append( "\nsalt:   " );
-			if ( salt != null )
-			{
-				buf.append( PEMUtil.bytesToHex( salt ) );
-			}
-			else
-			{
-				buf.append( "[null]" );
-			}
-			buf.append( "\nic:      " );
-			buf.append( Integer.toString( iterationCount ) );
-			if ( keySize != 0 )
-			{
-				buf.append( "\nkeySize: " );
-				buf.append( Integer.toString( keySize * 8 ) );
-			}
-			if ( oid2 != null )
-			{
-				buf.append( "\noid3:    " );
-				buf.append( oid3 );
-			}
-			if ( oid2 != null )
-			{
-				buf.append( "\niv:      " );
-				if ( iv != null )
-				{
-					buf.append( PEMUtil.bytesToHex( iv ) );
-				}
-				else
-				{
-					buf.append( "[null]" );
-				}
-			}
-			return buf.toString();
-		}
-	}
-
 	public static byte[] formatAsPKCS8( byte[] privateKey, String oid,
-	                                    PKCS8Asn1Structure pkcs8 )
+	                                    ASN1Structure pkcs8 )
 	{
 		DERInteger derZero = DERInteger.valueOf( 0 );
 		DERSequence outter = new DERSequence();
@@ -1275,19 +1073,14 @@ public class PKCS8Key
 			{
 				if ( pkcs8 == null )
 				{
-					ASN1InputStream asn = new ASN1InputStream( privateKey );
-					DERSequence seq;
 					try
 					{
-						seq = (DERSequence) asn.readObject();
+						pkcs8 = ASN1Util.analyze( privateKey );
 					}
-					catch ( IOException ioe )
+					catch ( Exception e )
 					{
-						// ioe.printStackTrace();
-						throw new RuntimeException( "asn1 parse failure " + ioe );
+						throw new RuntimeException( "asn1 parse failure " + e );
 					}
-					pkcs8 = new PKCS8Asn1Structure();
-					analyzeASN1( seq, pkcs8, 0 );
 				}
 				if ( pkcs8.derIntegers == null || pkcs8.derIntegers.size() < 6 )
 				{

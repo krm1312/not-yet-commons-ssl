@@ -37,6 +37,7 @@ import java.net.UnknownHostException;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
+import java.security.GeneralSecurityException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 
@@ -52,8 +53,7 @@ public class SSLClient extends SSLSocketFactory
 	private final SSL ssl;
 
 	public SSLClient()
-			throws NoSuchAlgorithmException, KeyStoreException,
-			       KeyManagementException, IOException, CertificateException
+			throws GeneralSecurityException, IOException
 	{
 		this.ssl = new SSL();
 	}

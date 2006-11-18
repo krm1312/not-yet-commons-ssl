@@ -30,10 +30,10 @@ import org.apache.commons.ssl.KeyMaterial;
 
 import java.io.IOException;
 import java.net.Socket;
+import java.security.GeneralSecurityException;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
-import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
 
 /**
@@ -167,9 +167,7 @@ public class TrustSSLProtocolSocketFactory extends HttpSecureProtocol
 	 *                         with "-------END CERTIFICATE--------".
 	 */
 	public TrustSSLProtocolSocketFactory( String pathToTrustStore )
-			throws NoSuchAlgorithmException, KeyStoreException,
-			       KeyManagementException, IOException, CertificateException,
-			       UnrecoverableKeyException
+			throws GeneralSecurityException, IOException
 	{
 		this( pathToTrustStore, null );
 	}
@@ -194,9 +192,7 @@ public class TrustSSLProtocolSocketFactory extends HttpSecureProtocol
 	 * @throws KeyManagementException
 	 */
 	public TrustSSLProtocolSocketFactory( String pathToTrustStore, char[] password )
-			throws NoSuchAlgorithmException, KeyStoreException,
-			       KeyManagementException, IOException, CertificateException,
-			       UnrecoverableKeyException
+			throws GeneralSecurityException, IOException
 	{
 		super();
 		KeyMaterial km = new KeyMaterial( pathToTrustStore, password );

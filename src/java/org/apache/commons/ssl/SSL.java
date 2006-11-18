@@ -34,6 +34,7 @@ import javax.net.ssl.SSLServerSocketFactory;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 import java.io.IOException;
+import java.io.File;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
@@ -48,6 +49,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.Properties;
 
 /**
  * @author Credit Union Central of British Columbia
@@ -102,9 +104,36 @@ public class SSL
 			DefaultSSLWrapperFactory.getInstance();
 
 	public SSL()
-			throws NoSuchAlgorithmException, KeyStoreException,
-			       KeyManagementException, IOException, CertificateException
+			throws GeneralSecurityException, IOException
 	{
+		Properties props = System.getProperties();
+		boolean ksSet = props.containsKey( "javax.net.ssl.keyStore" );
+		boolean tsSet = props.containsKey( "javax.net.ssl.trustStore" );
+		if ( ksSet )
+		{
+			String path = System.getProperty( "javax.net.ssl.keyStore" );
+			String pwd = System.getProperty( "javax.net.ssl.keyStorePassword" );
+			pwd = pwd != null ? pwd : ""; // JSSE default is "".
+			File f = new File( path );
+			if ( f.exists() )
+			{
+				KeyMaterial km = new KeyMaterial( path, pwd.toCharArray() );
+				setKeyMaterial( km );
+			}
+		}
+		if ( tsSet )
+		{
+			String path = System.getProperty( "javax.net.ssl.trustStore" );
+			String pwd = System.getProperty( "javax.net.ssl.trustStorePassword" );
+			pwd = pwd != null ? pwd : ""; // JSSE default is "".			
+			File f = new File( path );
+			if ( f.exists() )
+			{
+				TrustMaterial tm = new TrustMaterial( path, pwd.toCharArray() );
+				setTrustMaterial( tm );
+			}
+		}
+
 		dirtyAndReloadIfYoung();
 	}
 

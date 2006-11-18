@@ -1,0 +1,209 @@
+package org.apache.commons.ssl;
+
+import org.apache.commons.ssl.asn1.DEREncodable;
+import org.apache.commons.ssl.asn1.DERInteger;
+import org.apache.commons.ssl.asn1.DERObjectIdentifier;
+import org.apache.commons.ssl.asn1.DEROctetString;
+import org.apache.commons.ssl.asn1.DERPrintableString;
+import org.apache.commons.ssl.asn1.DERSequence;
+import org.apache.commons.ssl.asn1.DERSet;
+import org.apache.commons.ssl.asn1.DERTaggedObject;
+import org.apache.commons.ssl.asn1.ASN1InputStream;
+
+import java.math.BigInteger;
+import java.util.Enumeration;
+import java.util.Vector;
+import java.io.IOException;
+
+/**
+ * @author Julius Davies
+ * @since 16-Nov-2006
+ */
+public class ASN1Util
+{
+	public static boolean DEBUG = false;
+	public final static BigInteger BIGGEST =
+			new BigInteger( Integer.toString( Integer.MAX_VALUE ) );
+
+	public static ASN1Structure analyze( byte[] asn1 )
+			throws IOException
+	{
+		ASN1InputStream asn = new ASN1InputStream( asn1 );
+		DERSequence seq = (DERSequence) asn.readObject();
+		ASN1Structure pkcs8 = new ASN1Structure();
+		ASN1Util.analyze( seq, pkcs8, 0 );
+		return pkcs8;
+	}
+
+
+	public static void analyze( DEREncodable seq, ASN1Structure pkcs8,
+	                            int depth )
+	{
+		String tag = null;
+		if ( depth >= 2 )
+		{
+			pkcs8.derIntegers = null;
+		}
+		Enumeration en;
+		if ( seq instanceof DERSequence )
+		{
+			en = ( (DERSequence) seq ).getObjects();
+		}
+		else if ( seq instanceof DERSet )
+		{
+			en = ( (DERSet) seq ).getObjects();
+		}
+		else if ( seq instanceof DERTaggedObject )
+		{
+			DERTaggedObject derTag = (DERTaggedObject) seq;
+			tag = Integer.toString( derTag.getTagNo() );
+			Vector v = new Vector();
+			v.add( derTag.getObject() );
+			en = v.elements();
+		}
+		else
+		{
+			throw new IllegalArgumentException( "DEREncodable must be one of: DERSequence, DERSet, DERTaggedObject" );
+		}
+		while ( en != null && en.hasMoreElements() )
+		{
+			DEREncodable obj = (DEREncodable) en.nextElement();
+			if ( !( obj instanceof DERSequence ) &&
+			     !( obj instanceof DERSet ) &&
+			     !( obj instanceof DERTaggedObject ) )
+			{
+				String str = obj.toString();
+				String name = obj.getClass().getName();
+				name = name.substring( name.lastIndexOf( '.' ) + 1 );
+				if ( tag != null )
+				{
+					name = " [tag=" + tag + "] " + name;
+				}
+				for ( int i = 0; i < depth; i++ )
+				{
+					name = "  " + name;
+				}
+				if ( obj instanceof DERInteger )
+				{
+					DERInteger dInt = (DERInteger) obj;
+					if ( pkcs8.derIntegers != null )
+					{
+						pkcs8.derIntegers.add( dInt );
+					}
+					BigInteger big = dInt.toBigInteger();
+					int intValue = big.intValue();
+					if ( BIGGEST.compareTo( big ) >= 0 && intValue > 0 )
+					{
+						if ( pkcs8.iterationCount == 0 )
+						{
+							pkcs8.iterationCount = intValue;
+						}
+						else if ( pkcs8.keySize == 0 )
+						{
+							pkcs8.keySize = intValue;
+						}
+					}
+					str = dInt.toBigInteger().toString();
+				}
+				else if ( obj instanceof DERObjectIdentifier )
+				{
+					DERObjectIdentifier id = (DERObjectIdentifier) obj;
+					str = id.getIdentifier();
+					pkcs8.oids.add( str );
+					if ( pkcs8.oid1 == null )
+					{
+						pkcs8.oid1 = str;
+					}
+					else if ( pkcs8.oid2 == null )
+					{
+						pkcs8.oid2 = str;
+					}
+					else if ( pkcs8.oid3 == null )
+					{
+						pkcs8.oid3 = str;
+					}
+				}
+				else
+				{
+					pkcs8.derIntegers = null;
+					if ( obj instanceof DEROctetString )
+					{
+						DEROctetString oct = (DEROctetString) obj;
+						byte[] octets = oct.getOctets();
+						int len = Math.min( 10, octets.length );
+						boolean probablyBinary = false;
+						for ( int i = 0; i < len; i++ )
+						{
+							byte b = octets[ i ];
+							boolean isBinary = b > 128 || b < 0;
+							if ( isBinary )
+							{
+								probablyBinary = true;
+								break;
+							}
+						}
+						if ( probablyBinary && octets.length > 64 )
+						{
+							if ( pkcs8.bigPayload == null )
+							{
+								pkcs8.bigPayload = octets;
+							}
+							str = "probably binary";
+						}
+						else
+						{
+							str = PEMUtil.bytesToHex( octets );
+							if ( octets.length <= 64 )
+							{
+								if ( octets.length % 8 == 0 )
+								{
+									if ( pkcs8.salt == null )
+									{
+										pkcs8.salt = octets;
+									}
+									else if ( pkcs8.iv == null )
+									{
+										pkcs8.iv = octets;
+									}
+								}
+								else
+								{
+									if ( pkcs8.smallPayload == null )
+									{
+										pkcs8.smallPayload = octets;
+									}
+								}
+							}
+						}
+						str += " (length=" + octets.length + ")";
+					}
+					else if ( obj instanceof DERPrintableString )
+					{
+						DERPrintableString dps = (DERPrintableString) obj;
+						str = dps.getString();
+					}
+				}
+
+				if ( DEBUG )
+				{
+					System.out.println( name + ": [" + str + "]" );
+				}
+			}
+			else
+			{
+				if ( tag != null && DEBUG )
+				{
+					String name = obj.getClass().getName();
+					name = name.substring( name.lastIndexOf( '.' ) + 1 );
+					name = " [tag=" + tag + "] " + name;
+					for ( int i = 0; i < depth; i++ )
+					{
+						name = "  " + name;
+					}
+					System.out.println( name );
+				}
+				analyze( obj, pkcs8, depth + 1 );
+			}
+		}
+	}
+}

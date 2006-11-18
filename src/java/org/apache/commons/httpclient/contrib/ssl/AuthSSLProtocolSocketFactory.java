@@ -35,11 +35,7 @@ import org.apache.commons.ssl.TrustMaterial;
 
 import java.io.IOException;
 import java.net.URL;
-import java.security.KeyManagementException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.UnrecoverableKeyException;
-import java.security.cert.CertificateException;
+import java.security.GeneralSecurityException;
 
 /**
  * <p/>
@@ -173,9 +169,7 @@ public class AuthSSLProtocolSocketFactory extends HttpSecureProtocol
 	                                     final String keystorePassword,
 	                                     final URL truststoreUrl,
 	                                     final String truststorePassword )
-			throws KeyStoreException, CertificateException,
-			       NoSuchAlgorithmException, IOException,
-			       UnrecoverableKeyException, KeyManagementException
+			throws GeneralSecurityException, IOException
 	{
 
 		super();

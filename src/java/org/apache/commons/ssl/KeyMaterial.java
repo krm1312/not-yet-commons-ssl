@@ -34,12 +34,10 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
+import java.security.GeneralSecurityException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.UnrecoverableKeyException;
 import java.security.cert.Certificate;
-import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Enumeration;
 
@@ -56,82 +54,62 @@ public class KeyMaterial extends TrustMaterial
 	private X509Certificate[] associatedChain;
 
 	public KeyMaterial( InputStream jks, char[] password )
-			throws KeyStoreException, CertificateException,
-			       NoSuchAlgorithmException, IOException,
-			       UnrecoverableKeyException
+			throws GeneralSecurityException, IOException
 	{
 		this( Util.streamToBytes( jks ), password );
 	}
 
 	public KeyMaterial( InputStream jks, InputStream key, char[] password )
-			throws KeyStoreException, CertificateException,
-			       NoSuchAlgorithmException, IOException,
-			       UnrecoverableKeyException
+			throws GeneralSecurityException, IOException
 	{
 		this( Util.streamToBytes( jks ), Util.streamToBytes( key ), password );
 	}
 
 	public KeyMaterial( String pathToJksFile, char[] password )
-			throws KeyStoreException, CertificateException,
-			       NoSuchAlgorithmException, IOException,
-			       UnrecoverableKeyException
+			throws GeneralSecurityException, IOException
 	{
 		this( new File( pathToJksFile ), password );
 	}
 
 	public KeyMaterial( String pathToCerts, String pathToKey, char[] password )
-			throws KeyStoreException, CertificateException,
-			       NoSuchAlgorithmException, IOException,
-			       UnrecoverableKeyException
+			throws GeneralSecurityException, IOException
 	{
 		this( new File( pathToCerts ), new File( pathToKey ), password );
 	}
 
 	public KeyMaterial( File jksFile, char[] password )
-			throws KeyStoreException, CertificateException,
-			       NoSuchAlgorithmException, IOException,
-			       UnrecoverableKeyException
+			throws GeneralSecurityException, IOException
 	{
 		this( new FileInputStream( jksFile ), password );
 	}
 
 	public KeyMaterial( File certsFile, File keyFile, char[] password )
-			throws KeyStoreException, CertificateException,
-			       NoSuchAlgorithmException, IOException,
-			       UnrecoverableKeyException
+			throws GeneralSecurityException, IOException
 	{
 		this( new FileInputStream( certsFile ), new FileInputStream( keyFile ), password );
 	}
 
 
 	public KeyMaterial( URL urlToJKS, char[] password )
-			throws KeyStoreException, CertificateException,
-			       NoSuchAlgorithmException, IOException,
-			       UnrecoverableKeyException
+			throws GeneralSecurityException, IOException
 	{
 		this( urlToJKS.openStream(), password );
 	}
 
 	public KeyMaterial( URL urlToCerts, URL urlToKey, char[] password )
-			throws KeyStoreException, CertificateException,
-			       NoSuchAlgorithmException, IOException,
-			       UnrecoverableKeyException
+			throws GeneralSecurityException, IOException
 	{
 		this( urlToCerts.openStream(), urlToKey.openStream(), password );
 	}
 
 	public KeyMaterial( byte[] jks, char[] password )
-			throws KeyStoreException, CertificateException,
-			       NoSuchAlgorithmException, IOException,
-			       UnrecoverableKeyException
+			throws GeneralSecurityException, IOException
 	{
 		this( jks, null, password );
 	}
 
 	public KeyMaterial( byte[] jksOrCerts, byte[] key, char[] password )
-			throws KeyStoreException, CertificateException,
-			       NoSuchAlgorithmException, IOException,
-			       UnrecoverableKeyException
+			throws GeneralSecurityException, IOException
 	{
 		// We're not a simple trust type, so set "simpleTrustType" value to 0.
 		// Only TRUST_ALL and TRUST_THIS_JVM are simple trust types.
