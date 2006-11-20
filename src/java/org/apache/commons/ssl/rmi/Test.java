@@ -205,7 +205,7 @@ public class Test
 				SSLClient client = (SSLClient) impl.getDefaultClient();
 				impl.setClient( "ryerson.ca", client );
 				impl.setClient( "neptune.cucbc.com", client );
-				client.setDoVerify( false );
+				client.setCheckHostname( false );
 				client.addTrustMaterial( TrustMaterial.CACERTS );
 			}
 
@@ -215,7 +215,7 @@ public class Test
 		{
 			RMISocketFactoryImpl impl = new RMISocketFactoryImpl();
 			SSLClient client = (SSLClient) impl.getDefaultClient();
-			client.setDoVerify( false );
+			client.setCheckHostname( false );
 			client.addTrustMaterial( TrustMaterial.CACERTS );
 			RMISocketFactory.setSocketFactory( impl ); /* */
 

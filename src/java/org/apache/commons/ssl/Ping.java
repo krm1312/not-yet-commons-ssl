@@ -55,7 +55,8 @@ public class Ping
 	protected final static Arg ARG_TARGET = new Arg( "-t", "--target", "[hostname[:port]]             default port=443", true );
 	protected final static Arg ARG_BIND = new Arg( "-b", "--bind", "[hostname[:port]]             default port=0 \"ANY\"" );
 	protected final static Arg ARG_PROXY = new Arg( "-r", "--proxy", "[hostname[:port]]             default port=80" );
-	protected final static Arg ARG_CLIENT_CERT = new Arg( "-c", "--client-cert", "[path to client's private key]  *.{jks, pkcs12, pkcs8}" );
+	protected final static Arg ARG_TRUST_CERT = new Arg( "-tm", "--trust-cert", "[path to trust material]  *.{pem, der, crt, jks}" );
+	protected final static Arg ARG_CLIENT_CERT = new Arg( "-km", "--client-cert", "[path to client's private key]  *.{jks, pkcs12, pkcs8}" );
 	protected final static Arg ARG_CERT_CHAIN = new Arg( "-cc", "--cert-chain", "[path to client's cert chain if using pkcs8/OpenSSL key]" );
 	protected final static Arg ARG_PASSWORD = new Arg( "-p", "--password", "[client cert password]" );
 
@@ -69,6 +70,7 @@ public class Ping
 	private static File clientCert;
 	private static File certChain;
 	private static char[] password;
+	private static TrustChain trustChain = new TrustChain();
 
 	static
 	{
@@ -128,12 +130,16 @@ public class Ping
 		InputStream in = null;
 		OutputStream out = null;
 		Exception socketException = null;
-		Exception verifyException = null;
+		Exception hostnameException = null;
+		Exception crlException = null;
+		Exception expiryException = null;
 		try
 		{
 			try
 			{
-				ssl.setDoVerify( false );
+				ssl.setCheckHostname( false );
+				ssl.setCheckExpiry( false );
+				ssl.setCheckCRL( false );
 				ssl.addTrustMaterial( TrustMaterial.TRUST_ALL );
 				if ( clientCert != null )
 				{
@@ -156,6 +162,12 @@ public class Ping
 					}
 					ssl.setKeyMaterial( km );
 				}
+
+				if ( !trustChain.isEmpty() )
+				{
+					ssl.addTrustMaterial( trustChain );
+				}
+
 				ssl.setSoTimeout( 10000 );
 				ssl.setConnectTimeout( 5000 );
 
@@ -255,19 +267,10 @@ public class Ping
 			{
 				socketException = e;
 			}
-			try
-			{
-				X509Certificate[] chain = ssl.getCurrentServerChain();
-				if ( chain != null )
-				{
-					String hostName = targetAddress.getHostName();
-					Certificates.verifyHostName( hostName, chain );
-				}
-			}
-			catch ( Exception e )
-			{
-				verifyException = e;
-			}
+
+			hostnameException = testHostname( ssl );
+			crlException = testCRL( ssl );
+			expiryException = testExpiry( ssl );
 		}
 		finally
 		{
@@ -296,13 +299,27 @@ public class Ping
 					X509Certificate cert = peerChain[ i ];
 					String certAsString = Certificates.toString( cert );
 					String certAsPEM = Certificates.toPEMString( cert );
-					System.out.println( certAsString );
+					if ( i > 0 )
+					{
+						System.out.println();
+					}
+					System.out.print( certAsString );
 					System.out.print( certAsPEM );
 				}
 			}
-			if ( verifyException != null )
+			if ( hostnameException != null )
 			{
-				verifyException.printStackTrace();
+				hostnameException.printStackTrace();
+				System.out.println();
+			}
+			if ( crlException != null )
+			{
+				crlException.printStackTrace();
+				System.out.println();
+			}
+			if ( expiryException != null )
+			{
+				expiryException.printStackTrace();
 				System.out.println();
 			}
 			if ( socketException != null )
@@ -311,6 +328,64 @@ public class Ping
 				System.out.println();
 			}
 		}
+	}
+
+	private static Exception testHostname( SSLClient ssl )
+	{
+		try
+		{
+			X509Certificate[] chain = ssl.getCurrentServerChain();
+			if ( chain != null )
+			{
+				String hostName = targetAddress.getHostName();
+				Certificates.verifyHostName( hostName, chain );
+			}
+		}
+		catch ( Exception e )
+		{
+			return e;
+		}
+		return null;
+	}
+
+	private static Exception testCRL( SSLClient ssl )
+	{
+		try
+		{
+			X509Certificate[] chain = ssl.getCurrentServerChain();
+			if ( chain != null )
+			{
+				for ( int i = 0; i < chain.length; i++ )
+				{
+					Certificates.checkCRL( chain[ i ] );
+				}
+			}
+		}
+		catch ( Exception e )
+		{
+			return e;
+		}
+		return null;
+	}
+
+	private static Exception testExpiry( SSLClient ssl )
+	{
+		try
+		{
+			X509Certificate[] chain = ssl.getCurrentServerChain();
+			if ( chain != null )
+			{
+				for ( int i = 0; i < chain.length; i++ )
+				{
+					chain[ i ].checkValidity();
+				}
+			}
+		}
+		catch ( Exception e )
+		{
+			return e;
+		}
+		return null;
 	}
 
 
@@ -392,6 +467,18 @@ public class Ping
 			else if ( arg == ARG_PASSWORD )
 			{
 				password = values[ 0 ].toCharArray();
+			}
+			else if ( arg == ARG_TRUST_CERT )
+			{
+				for ( int i = 0; i < values.length; i++ )
+				{
+					File f = new File( values[ i ] );
+					if ( f.exists() )
+					{
+						TrustMaterial tm = new TrustMaterial( f );
+						trustChain.addTrustMaterial( tm );
+					}
+				}
 			}
 		}
 		args.clear();

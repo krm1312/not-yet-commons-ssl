@@ -42,8 +42,25 @@ import java.io.IOException;
 public interface SSLWrapperFactory
 {
 
+	/**
+	 * Wraps an SSLSSocket.
+	 * @param s  SSLSocket to wrap.
+	 * @return The new wrapped SSLSocket.
+	 * @throws IOException if wrapping failed
+	 */
 	public SSLSocket wrap( SSLSocket s ) throws IOException;
 
-	public SSLServerSocket wrap( SSLServerSocket s ) throws IOException;
+	/**
+	 * Wraps an SSLServerSocket. 
+	 *
+	 * @param s The SSLServerSocket to wrap.
+	 * @param server  The SSLServer object that created the SSLServerSocket.
+	 *                This way some important commons-ssl config can be applied
+	 *                to the returned socket.
+	 * @return The new wrapped SSLServerSocket.
+	 * @throws IOException
+	 */
+	public SSLServerSocket wrap( SSLServerSocket s, SSLServer server )
+			throws IOException;
 
 }

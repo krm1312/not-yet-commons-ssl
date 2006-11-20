@@ -100,14 +100,24 @@ public class SSLClient extends SSLSocketFactory
 		ssl.setEnabledProtocols( protocols );
 	}
 
-	public void setDoVerify( boolean doVerify )
+	public void setCheckExpiry( boolean checkExpiry )
 	{
-		ssl.setDoVerify( doVerify );
+		ssl.setCheckExpiry( checkExpiry );
 	}
 
-	public boolean getDoVerify()
+	public boolean getCheckExpiry()
 	{
-		return ssl.getDoVerify();
+		return ssl.getCheckExpiry();
+	}
+
+	public void setCheckHostname( boolean checkHostname )
+	{
+		ssl.setCheckHostname( checkHostname );
+	}
+
+	public boolean getCheckHostname()
+	{
+		return ssl.getCheckHostname();
 	}
 
 	public X509Certificate[] getAssociatedCertificateChain()

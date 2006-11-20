@@ -58,8 +58,8 @@ public class SSLEchoServer
 		}
 
 		SSLServer ssl = new SSLServer();
-		KeyMaterial km = new KeyMaterial( ".keystore", "changeit".toCharArray() );
-		ssl.setKeyMaterial( km );
+		ssl.setCheckExpiry( true );
+		ssl.setNeedClientAuth( true );
 		ssl.addTrustMaterial( TrustMaterial.TRUST_ALL );
 		SSLServerSocket ss = (SSLServerSocket) ssl.createServerSocket( port, 3 );
 		System.out.println( "SSL Echo server listening on port: " + port );
@@ -93,7 +93,7 @@ public class SSLEchoServer
 
 				try
 				{
-					Certificate[] certs = session.getPeerCertificates();
+					Certificate[] certs = JavaImpl.getPeerCertificates( session );
 					if ( certs != null )
 					{
 						for ( int i = 0; i < certs.length; i++ )
@@ -101,7 +101,7 @@ public class SSLEchoServer
 							// log client cert info
 							X509Certificate cert = (X509Certificate) certs[ i ];
 							String s = "client cert " + i + ":";
-							s += cert.getSubjectX500Principal();
+							s += JavaImpl.getSubjectX500( cert );
 							System.out.println( s );
 							System.out.println( Certificates.toString( cert ) );
 						}
@@ -115,7 +115,7 @@ public class SSLEchoServer
 				in = s.getInputStream();
 				out = s.getOutputStream();
 				String line = Util.readLine( in );
-				if ( line.indexOf( "HTTP" ) > 0 )
+				if ( line != null && line.indexOf( "HTTP" ) > 0 )
 				{
 					out.write( "HTTP/1.1 200 OK\r\n\r\n".getBytes() );
 					out.flush();

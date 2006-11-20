@@ -54,9 +54,13 @@ public class DefaultSSLWrapperFactory implements SSLWrapperFactory
 		return new SSLSocketWrapper( s );
 	}
 
-	public SSLServerSocket wrap( SSLServerSocket s ) throws IOException
+	public SSLServerSocket wrap( SSLServerSocket s, SSLServer server )
+			throws IOException
 	{
-		return new SSLServerSocketWrapper( s, this );
+		// Can't wrap with Java 1.3 because SSLServerSocket's constructor has
+		// default access instead of protected access in Java 1.3.
+		boolean java13 = JavaImpl.isJava13();
+		return java13 ? s : new SSLServerSocketWrapper( s, server, this );
 	}
 
 

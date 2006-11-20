@@ -56,22 +56,38 @@ public class Java14TrustManagerWrapper implements X509TrustManager
 			throws CertificateException
 	{
 		ssl.setCurrentClientChain( chain );
-		if ( trustChain.contains( TrustMaterial.TRUST_ALL ) )
+		CertificateException ce = null;
+		try
 		{
-			return;
+			if ( !trustChain.contains( TrustMaterial.TRUST_ALL ) )
+			{
+				trustManager.checkClientTrusted( chain, authType );
+			}
 		}
-		trustManager.checkClientTrusted( chain, authType );
+		catch ( CertificateException e )
+		{
+			ce = e;
+		}
+		testShouldWeThrow( ce, chain, authType );
 	}
 
 	public void checkServerTrusted( X509Certificate[] chain, String authType )
 			throws CertificateException
 	{
 		ssl.setCurrentServerChain( chain );
-		if ( trustChain.contains( TrustMaterial.TRUST_ALL ) )
+		CertificateException ce = null;
+		try
 		{
-			return;
+			if ( !trustChain.contains( TrustMaterial.TRUST_ALL ) )
+			{
+				trustManager.checkServerTrusted( chain, authType );
+			}
 		}
-		trustManager.checkServerTrusted( chain, authType );
+		catch ( CertificateException e )
+		{
+			ce = e;
+		}
+		testShouldWeThrow( ce, chain, authType );
 	}
 
 	public X509Certificate[] getAcceptedIssuers()
@@ -79,4 +95,29 @@ public class Java14TrustManagerWrapper implements X509TrustManager
 		return trustManager.getAcceptedIssuers();
 	}
 
+	private void testShouldWeThrow( CertificateException checkException,
+	                                X509Certificate[] chain, String authType )
+			throws CertificateException
+	{
+		if ( checkException != null )
+		{
+			if ( !trustChain.contains( TrustMaterial.TRUST_ALL ) )
+			{
+				throw checkException;
+			}
+		}
+
+		for ( int i = 0; i < chain.length; i++ )
+		{
+			X509Certificate c = chain[ i ];
+			if ( ssl.getCheckExpiry() )
+			{
+				c.checkValidity();
+			}
+			if ( ssl.getCheckCRL() )
+			{
+				Certificates.checkCRL( c );
+			}
+		}
+	}
 }

@@ -16,22 +16,24 @@ ul.pkcs8 { float: left; width: 200px; margin-top: 8px; }
 <h1>commons-ssl</h1>
 <div class="nav">
 <a href="index.html">main</a> |
+<a href="ssl.html">ssl</a> |
 <a href="pkcs8.html">pkcs8</a> |
 <a href="rmi.html">rmi</a> |
-<span class="hl" href="ping.html">ping</span> |
+<span class="hl" href="utilities.html">utilities</span> |
 <a href="source.html">source</a> |
+<a href="javadocs/">javadocs</a> |
 <a href="download.html">download</a>
 </div>
 <br clear="all"/>
 <hr/>
-<h2>commons-ssl "Ping" Utility</em></h2>
+<h2>Ping</h2>
 
 <p>"org.apache.commons.ssl.Ping" contains a main method to help you diagnose SSL issues.
 It's modeled on OpenSSL's very handy "s_client" utilitly.  We've been very careful to
 make sure "org.apache.commons.ssl.Ping" can execute without any additional jar files
 on the classpath (except if using Java 1.3 - then you'll need jsse.jar).</p>
 
-<pre style="border: 1px solid red; padding: 10px; float: left;"><u><b>"Ping" Utility Attempts "HEAD / HTTP/1.1" Request:</b></u>
+<pre style="border: 1px solid red; padding: 10px; float: left;"><u><b>"Ping" Utility Attempts "HEAD / HTTP/1.1" Request</b></u>
 This utility is very handy because it can get you the server's public
 certificate even if your client certificate is bad (so even though the SSL
 handshake fails).  And unlike "openssl s_client", this utility can bind
@@ -52,5 +54,24 @@ java -jar commons-ssl.jar -t cucbc.com:443 -c ./client.pfx -p `cat ./pass.txt`</
 <p style="margin-top: 8px;"><b>TODO:</b><br/>Apparently Java 6.0 includes support for grabbing passwords from
 standard-in without echoing the typed characters.  Would be nice to use that feature when it's
 available, instead of requiring the password to be specified as a command-line argument.</p>
+
+<hr/>
+<h2>KeyStoreBuilder</em></h2>
+<p><code>java -cp build/commons-ssl.jar org.apache.commons.ssl.KeyStoreBuilder</code></p>
+
+<pre style="border: 1px solid red; padding: 10px; float: left;"><u><b>KeyStoreBuilder converts PKCS12 and PKCS8 to Java "Keystore"</b></u>
+
+KeyStoreBuilder:  outputs JKS file (java keystore) as ./[alias].jks
+[alias] will be set to the first CN value of the X509 certificate.
+-------------------------------------------------------------------
+Usage1:  [password] [file:pkcs12]
+Usage2:  [password] [file:private-key] [file:certificate-chain]
+-------------------------------------------------------------------
+[private-key] can be openssl format, or pkcs8.
+[password] decrypts [private-key], and also encrypts outputted JKS file.
+All files can be PEM or DER.
+</pre><br clear="all"/>
+
+
 </body>
 </html>

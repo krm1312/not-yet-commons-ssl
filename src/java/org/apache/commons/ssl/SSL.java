@@ -85,8 +85,9 @@ public class SSL
 	private int initCount = 0;
 	private SSLSocketFactory socketFactory = null;
 	private SSLServerSocketFactory serverSocketFactory = null;
-	private boolean doVerify = true;
+	private boolean checkHostname = true;
 	private boolean checkCRL = true;
+	private boolean checkExpiry = true;	
 	private boolean useClientMode = false;
 	private boolean useClientModeDefault = true;
 	private int soTimeout = 24 * 60 * 60 * 1000; // default: one day
@@ -251,14 +252,14 @@ public class SSL
 		dirty();
 	}
 
-	public boolean getDoVerify()
+	public boolean getCheckHostname()
 	{
-		return doVerify;
+		return checkHostname;
 	}
 
-	public synchronized void setDoVerify( boolean doVerify )
+	public synchronized void setCheckHostname( boolean checkHostname )
 	{
-		this.doVerify = doVerify;
+		this.checkHostname = checkHostname;
 	}
 
 	public boolean getCheckCRL()
@@ -269,6 +270,16 @@ public class SSL
 	public void setCheckCRL( boolean checkCRL )
 	{
 		this.checkCRL = checkCRL;
+	}
+
+	public boolean getCheckExpiry()
+	{
+		return checkExpiry;
+	}
+
+	public void setCheckExpiry( boolean checkExpiry )
+	{
+		this.checkExpiry = checkExpiry;
 	}
 
 	public void setSoTimeout( int soTimeout )
@@ -305,6 +316,16 @@ public class SSL
 		this.needClientAuth = needClientAuth;
 	}
 
+	public boolean getWantClientAuth()
+	{
+		return wantClientAuth;
+	}
+
+	public boolean getNeedClientAuth()
+	{
+		return needClientAuth;
+	}
+
 	public SSLWrapperFactory getSSLWrapperFactory()
 	{
 		return this.sslWrapperFactory;
@@ -314,7 +335,6 @@ public class SSL
 	{
 		this.sslWrapperFactory = wf;
 	}
-
 
 	private synchronized void initThrowRuntime()
 	{
@@ -366,7 +386,7 @@ public class SSL
 	public void doPostConnectSocketStuff( Socket s, String host )
 			throws IOException
 	{
-		if ( doVerify )
+		if ( checkHostname )
 		{
 			Util.verifyHostName( host, s );
 		}

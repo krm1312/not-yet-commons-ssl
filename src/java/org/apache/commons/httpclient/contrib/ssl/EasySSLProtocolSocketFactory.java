@@ -34,10 +34,7 @@ import org.apache.commons.ssl.TrustMaterial;
 
 import java.io.IOException;
 import java.net.Socket;
-import java.security.KeyManagementException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.cert.CertificateException;
+import java.security.GeneralSecurityException;
 
 /**
  * <p/>
@@ -86,17 +83,20 @@ import java.security.cert.CertificateException;
 
 public class EasySSLProtocolSocketFactory extends HttpSecureProtocol
 {
-
+	
 	/**
 	 * Constructor for EasySSLProtocolSocketFactory.
+	 * @throws GeneralSecurityException   GeneralSecurityException
+	 * @throws IOException                IOException
 	 */
 	public EasySSLProtocolSocketFactory()
-			throws NoSuchAlgorithmException, KeyStoreException,
-			       KeyManagementException, IOException, CertificateException
+			throws GeneralSecurityException, IOException
 	{
 		super();
 		super.setTrustMaterial( TrustMaterial.TRUST_ALL );
-		super.setDoVerify( false );
+		super.setCheckHostname( false );
+		super.setCheckExpiry( false );
+		super.setCheckCRL( false );
 	}
 
 }

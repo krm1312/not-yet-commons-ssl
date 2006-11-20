@@ -30,27 +30,30 @@
 package org.apache.commons.ssl;
 
 import javax.net.ssl.SSLException;
-import java.io.IOException;
-import java.io.Serializable;
-import java.io.UnsupportedEncodingException;
+import java.io.*;
 import java.math.BigInteger;
 import java.net.URL;
-import java.security.cert.CRL;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.CRLException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.security.cert.X509Extension;
+import java.security.cert.CRL;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 
 /**
  * @author Credit Union Central of British Columbia
@@ -62,7 +65,7 @@ public class Certificates
 {
 
 	public final static CertificateFactory CF;
-	private final static HashMap crls = new HashMap();
+	private final static HashMap crl_cache = new HashMap();
 
 	public final static String CRL_EXTENSION = "2.5.29.31";
 	public final static String OCSP_EXTENSION = "1.3.6.1.5.5.7.1.1";
@@ -326,10 +329,13 @@ public class Certificates
 		// I happen to like some of the functions available to the String
 		// object).    - juliusdavies@cucbc.com, May 10th, 2006
 		byte[] bytes = cert.getExtensionValue( CRL_EXTENSION );
-		LinkedList crls = new LinkedList();
+		LinkedList httpCRLS = new LinkedList();
+		LinkedList ftpCRLS = new LinkedList();
+		LinkedList otherCRLS = new LinkedList();
 		if ( bytes == null )
 		{
-			return crls;
+			// just return empty list
+			return httpCRLS;
 		}
 		else
 		{
@@ -370,7 +376,19 @@ public class Certificates
 					{
 						crl = crl.substring( 0, crl.length() - 1 );
 					}
-					crls.add( crl );
+					String crlTest = crl.trim().toLowerCase();
+					if ( crlTest.startsWith( "http" ) )
+					{
+						httpCRLS.add( crl );
+					}
+					else if ( crlTest.startsWith( "ftp" ) )
+					{
+						ftpCRLS.add( crl );
+					}
+					else
+					{
+						otherCRLS.add( crl );
+					}
 					pos = y;
 				}
 				else
@@ -379,81 +397,179 @@ public class Certificates
 				}
 			}
 		}
-		return crls;
+
+		httpCRLS.addAll( ftpCRLS );
+		httpCRLS.addAll( otherCRLS );
+		return httpCRLS;
 	}
 
-	public static void checkValidity( X509Certificate cert )
-			throws IOException, CertificateException
+	public static void checkCRL( X509Certificate cert )
+			throws CertificateException
 	{
 		// String name = cert.getSubjectX500Principal().toString();
 		byte[] bytes = cert.getExtensionValue( "2.5.29.31" );
-		String urlToCrl = null;
 		if ( bytes == null )
 		{
 			// log.warn( "Cert doesn't contain X509v3 CRL Distribution Points (2.5.29.31): " + name );
 		}
 		else
 		{
-			urlToCrl = CRLUtil.getURLToCRL( bytes ).trim();
-			if ( "".equals( urlToCrl ) )
+			List crlList = getCRLs( cert );
+			Iterator it = crlList.iterator();
+			while ( it.hasNext() )
 			{
-				// log.warn( "URI to CRL is empty: " + name );
+				String url = (String) it.next();
+				CRLHolder holder = (CRLHolder) crl_cache.get( url );
+				if ( holder == null )
+				{
+					holder = new CRLHolder( url );
+					crl_cache.put( url, holder );
+				}
+				// success == false means we couldn't actually load the CRL
+				// (probably due to an IOException), so let's try the next one in
+				// our list.
+				boolean success = holder.checkCRL( cert );
+				if ( success )
+				{
+					break;
+				}
 			}
 		}
 
-		CRLHolder holder = (CRLHolder) crls.get( urlToCrl );
-		if ( holder == null )
-		{
-			holder = new CRLHolder( urlToCrl );
-			crls.put( urlToCrl, holder );
-		}
-		holder.checkValidity( cert );
 	}
 
+	public static BigInteger getFingerprint( X509Certificate x509 )
+			throws CertificateEncodingException
+	{
+		return getFingerprint( x509.getEncoded() );
+	}
+
+	public static BigInteger getFingerprint( byte[] x509 )
+			throws CertificateEncodingException
+	{
+		MessageDigest sha1;
+		try
+		{
+			sha1 = MessageDigest.getInstance( "SHA1" );
+		}
+		catch ( NoSuchAlgorithmException nsae )
+		{
+			throw JavaImpl.newRuntimeException( nsae );
+		}
+
+		sha1.reset();
+		byte[] result = sha1.digest( x509 );
+		return new BigInteger( result );
+	}
 
 	private static class CRLHolder
 	{
-		private CRL crl;
-		private String urlString;
+		private final String urlString;
+
+		private File tempCRLFile;
 		private long creationTime;
+		private Set passedTest = new HashSet();
+		private Set failedTest = new HashSet();		
 
 		CRLHolder( String urlString )
 		{
+			if ( urlString == null )
+			{
+				throw new NullPointerException( "urlString can't be null" );
+			}
 			this.urlString = urlString;
-			this.creationTime = System.currentTimeMillis();
 		}
 
-		public void checkValidity( X509Certificate cert )
+		public synchronized boolean checkCRL( X509Certificate cert )
 				throws CertificateException
 		{
-			cert.checkValidity();
-			// String name = cert.getSubjectX500Principal().toString();
+			CRL crl = null;
 			long now = System.currentTimeMillis();
-			if ( crl == null || now - creationTime > 24 * 60 * 60 * 1000 )
+			if ( now - creationTime > 24 * 60 * 60 * 1000 )
 			{
-				if ( urlString != null )
+				// Expire cache every 24 hours
+				if ( tempCRLFile != null && tempCRLFile.exists() )
 				{
+					tempCRLFile.delete();
+				}
+				tempCRLFile = null;
+				passedTest.clear();
+				failedTest.clear();
+			}
+
+			BigInteger fingerprint = getFingerprint( cert );
+			if ( failedTest.contains( fingerprint ) )
+			{
+				throw new CertificateException( "Revoked by CRL (cached response)" );
+			}
+			if ( passedTest.contains( fingerprint ) )
+			{
+				return true;
+			}
+
+			if ( tempCRLFile == null )
+			{
+				try
+				{
+					// log.info( "Trying to load CRL [" + urlString + "]" );
+					URL url = new URL( urlString );
+					File tempFile = File.createTempFile( "crl", ".tmp" );
+					tempFile.deleteOnExit();
+
+					OutputStream out = new FileOutputStream( tempFile );
+					out = new BufferedOutputStream( out );
+					InputStream in = new BufferedInputStream( url.openStream() );
 					try
 					{
-						// log.info( "Trying to load CRL [" + urlString + "]" );
-						URL url = new URL( urlString );
-						this.crl = CF.generateCRL( url.openStream() );
+						Util.pipeStream( in, out );
 					}
-					catch ( Exception e )
+					catch ( IOException ioe )
 					{
-						// log.warn( "Cannot check CRL: " + e );
+						// better luck next time
+						tempFile.delete();
+						throw ioe;
+					}
+					this.tempCRLFile = tempFile;
+					this.creationTime = System.currentTimeMillis();
+				}
+				catch ( IOException ioe )
+				{
+					// log.warn( "Cannot check CRL: " + e );
+				}
+			}
+
+			if ( tempCRLFile != null && tempCRLFile.exists() )
+			{
+				try
+				{
+					InputStream in = new FileInputStream( tempCRLFile );
+					in = new BufferedInputStream( in );
+					crl = CF.generateCRL( in );
+					in.close();
+					if ( crl.isRevoked( cert ) )
+					{
+						// log.warn( "Revoked by CRL [" + urlString + "]: " + name );
+						passedTest.remove( fingerprint );
+						failedTest.add( fingerprint );
+						throw new CertificateException( "Revoked by CRL" );
+					}
+					else
+					{
+						passedTest.add( fingerprint );
 					}
 				}
-			}
-			if ( crl != null )
-			{
-				if ( crl.isRevoked( cert ) )
+				catch ( IOException ioe )
 				{
-					// log.warn( "Revoked by CRL [" + urlString + "]: " + name );
-					throw new CertificateException( "Revoked by CRL" );
+					// couldn't load CRL that's supposed to be stored in Temp file.
+					// log.warn(  );
+				}
+				catch ( CRLException crle )
+				{
+					// something is wrong with the CRL
+					// log.warn(  );					
 				}
 			}
+			return crl != null;
 		}
 	}
-
 }

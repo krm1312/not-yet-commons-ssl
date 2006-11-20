@@ -46,10 +46,7 @@ package org.apache.commons.httpclient.contrib.ssl;
 import org.apache.commons.ssl.HttpSecureProtocol;
 
 import java.io.IOException;
-import java.security.KeyManagementException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.cert.CertificateException;
+import java.security.GeneralSecurityException;
 
 /**
  * A <code>SecureProtocolSocketFactory</code> that uses JSSE to create
@@ -92,11 +89,10 @@ public class StrictSSLProtocolSocketFactory extends HttpSecureProtocol
 	 *                       </blockquote>
 	 */
 	public StrictSSLProtocolSocketFactory( boolean verifyHostname )
-			throws NoSuchAlgorithmException, KeyStoreException,
-			       KeyManagementException, IOException, CertificateException
+			throws GeneralSecurityException, IOException
 	{
 		super();
-		super.setDoVerify( verifyHostname );
+		super.setCheckHostname( verifyHostname );
 	}
 
 	/**
@@ -104,8 +100,7 @@ public class StrictSSLProtocolSocketFactory extends HttpSecureProtocol
 	 * Host name verification will be enabled by default.
 	 */
 	public StrictSSLProtocolSocketFactory()
-			throws NoSuchAlgorithmException, KeyStoreException,
-			       KeyManagementException, IOException, CertificateException
+			throws GeneralSecurityException, IOException
 	{
 		this( true );
 	}
@@ -123,7 +118,7 @@ public class StrictSSLProtocolSocketFactory extends HttpSecureProtocol
 	 */
 	public void setHostnameVerification( boolean verifyHostname )
 	{
-		super.setDoVerify( verifyHostname );
+		super.setCheckHostname( verifyHostname );
 	}
 
 	/**
@@ -135,7 +130,7 @@ public class StrictSSLProtocolSocketFactory extends HttpSecureProtocol
 	 */
 	public boolean getHostnameVerification()
 	{
-		return super.getDoVerify();
+		return super.getCheckHostname();
 	}
 
 }

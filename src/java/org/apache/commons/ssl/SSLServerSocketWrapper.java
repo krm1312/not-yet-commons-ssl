@@ -39,25 +39,44 @@ import java.net.SocketException;
 import java.nio.channels.ServerSocketChannel;
 
 /**
+ * Wraps an SSLServerSocket - NOTE that the accept() method applies a number of
+ * important common-ssl settings before returning the SSLSocket!
+ *
  * @author Credit Union Central of British Columbia
  * @author <a href="http://www.cucbc.com/">www.cucbc.com</a>
  * @author <a href="mailto:juliusdavies@cucbc.com">juliusdavies@cucbc.com</a>
- * @since 11-Sep-2006
+ * @since 20-Nov-2006
  */
 public class SSLServerSocketWrapper extends SSLServerSocket
 {
 	protected SSLServerSocket s;
+	protected SSLServer server;
 	protected SSLWrapperFactory wf;
 
-	public SSLServerSocketWrapper( SSLServerSocket s, SSLWrapperFactory wf )
+	public SSLServerSocketWrapper( SSLServerSocket s, SSLServer server,
+	                               SSLWrapperFactory wf )
 			throws IOException
 	{
 		super();
 		this.s = s;
+		this.server = server;		
 		this.wf = wf;
 	}
 
 	/* javax.net.ssl.SSLServerSocket */
+
+	public Socket accept() throws IOException
+	{
+		SSLSocket secureSocket = (SSLSocket) s.accept();
+
+		// Do the commons-ssl usual housekeeping for every socket:
+		server.ssl.doPreConnectSocketStuff( secureSocket );
+		InetAddress addr = secureSocket.getInetAddress();
+		String hostName = addr.getHostName();
+		server.ssl.doPostConnectSocketStuff( secureSocket, hostName );
+
+		return wf.wrap( secureSocket );
+	}		
 
 	public String[] getEnabledCipherSuites()
 	{
@@ -168,12 +187,6 @@ public class SSLServerSocketWrapper extends SSLServerSocket
 	}
 
 	public String toString() { return s.toString(); }
-
-	public Socket accept() throws IOException
-	{
-		// System.out.println( "server-socket accept(): " + this );
-		return wf.wrap( (SSLSocket) s.accept() );
-	}
 
 	/*  Java 1.5
 	public void setPerformancePreferences(int connectionTime, int latency, int bandwidth)

@@ -31,6 +31,7 @@ package org.apache.commons.ssl;
 
 import com.sun.net.ssl.X509TrustManager;
 
+import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 
 /**
@@ -56,18 +57,15 @@ public class Java13TrustManagerWrapper implements X509TrustManager
 	public boolean isClientTrusted( X509Certificate[] chain )
 	{
 		ssl.setCurrentClientChain( chain );
-		return trustChain.contains( TrustMaterial.TRUST_ALL ) ||
-		       trustManager.isClientTrusted( chain );
+		boolean firstTest = trustManager.isClientTrusted( chain );
+		return test( firstTest, chain );
 	}
 
 	public boolean isServerTrusted( X509Certificate[] chain )
 	{
 		ssl.setCurrentServerChain( chain );
-		if ( trustChain.contains( TrustMaterial.TRUST_ALL ) )
-		{
-			return true;
-		}
-		return trustManager.isServerTrusted( chain );
+		boolean firstTest = trustManager.isServerTrusted( chain );
+		return test( firstTest, chain );
 	}
 
 	public X509Certificate[] getAcceptedIssuers()
@@ -75,5 +73,39 @@ public class Java13TrustManagerWrapper implements X509TrustManager
 		return trustManager.getAcceptedIssuers();
 	}
 
+	private boolean test( boolean firstTest, X509Certificate[] chain )
+	{
+		// Even if the first test failed, we might still be okay as long as
+		// this SSLServer or SSLClient is setup to trust all certificates.
+		if ( !firstTest )
+		{
+			if ( !trustChain.contains( TrustMaterial.TRUST_ALL ) )
+			{
+				return false;
+			}
+		}
+
+		try
+		{
+			for ( int i = 0; i < chain.length; i++ )
+			{
+				X509Certificate c = chain[ i ];
+				if ( ssl.getCheckExpiry() )
+				{
+					c.checkValidity();
+				}
+				if ( ssl.getCheckCRL() )
+				{
+					Certificates.checkCRL( c );
+				}
+			}
+			return true;
+		}
+		catch ( CertificateException ce )
+		{
+			System.out.println( " FAILED!" );
+			return false;
+		}
+	}
 
 }

@@ -51,8 +51,7 @@ import java.util.Properties;
  */
 public class SSLServer extends SSLServerSocketFactory
 {
-
-	private final SSL ssl;
+	protected final SSL ssl;
 
 	public SSLServer()
 			throws GeneralSecurityException, IOException
@@ -119,11 +118,6 @@ public class SSLServer extends SSLServerSocketFactory
 		ssl.setKeyMaterial( keyMaterial );
 	}
 
-	public X509Certificate[] getAssociatedCertificateChain()
-	{
-		return ssl.getAssociatedCertificateChain();
-	}
-
 	public String[] getEnabledCiphers()
 	{
 		return ssl.getEnabledCiphers();
@@ -145,14 +139,64 @@ public class SSLServer extends SSLServerSocketFactory
 		ssl.setEnabledProtocols( protocols );
 	}
 
-	public void setDoVerify( boolean doVerify )
+	public void setCheckExpiry( boolean checkExpiry )
 	{
-		ssl.setDoVerify( doVerify );
+		ssl.setCheckExpiry( checkExpiry );
+	}
+
+	public boolean getCheckExpiry()
+	{
+		return ssl.getCheckExpiry();
+	}		
+
+	public void setCheckHostname( boolean checkHostname )
+	{
+		ssl.setCheckHostname( checkHostname );
+	}
+
+	public boolean getCheckHostname()
+	{
+		return ssl.getCheckHostname();
+	}
+
+	public X509Certificate[] getAssociatedCertificateChain()
+	{
+		return ssl.getAssociatedCertificateChain();
+	}
+
+	public void setCheckCRL( boolean checkCRL )
+	{
+		ssl.setCheckCRL( checkCRL );
+	}
+
+	public boolean getCheckCRL()
+	{
+		return ssl.getCheckCRL();
 	}
 
 	public void setSoTimeout( int soTimeout )
 	{
 		ssl.setSoTimeout( soTimeout );
+	}
+
+	public void setUseClientMode( boolean useClientMode )
+	{
+		ssl.setUseClientMode( useClientMode );
+	}
+
+	public void setConnectTimeout( int connectTimeout )
+	{
+		ssl.setConnectTimeout( connectTimeout );
+	}
+
+	public void setDefaultProtocol( String protocol )
+	{
+		ssl.setDefaultProtocol( protocol );
+	}
+
+	public TrustChain getTrustChain()
+	{
+		return ssl.getTrustChain();
 	}
 
 	public String[] getDefaultCipherSuites()
@@ -173,6 +217,16 @@ public class SSLServer extends SSLServerSocketFactory
 	public void setNeedClientAuth( boolean needClientAuth )
 	{
 		ssl.setNeedClientAuth( needClientAuth );
+	}
+
+	public boolean getWantClientAuth()
+	{
+		return ssl.getWantClientAuth();
+	}
+
+	public boolean getNeedClientAuth()
+	{
+		return ssl.getNeedClientAuth();
 	}
 
 	public SSLWrapperFactory getSSLWrapperFactory()

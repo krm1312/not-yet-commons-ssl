@@ -85,6 +85,11 @@ public abstract class JavaImpl
 		}
 	}
 
+	public static boolean isJava13()
+	{
+		return HANDLER instanceof Java13; 
+	}
+
 	public static void uprade()
 	{
 		if ( HANDLER instanceof Java13 )

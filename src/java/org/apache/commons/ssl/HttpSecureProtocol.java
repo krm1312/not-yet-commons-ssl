@@ -35,10 +35,7 @@ import org.apache.commons.httpclient.protocol.SecureProtocolSocketFactory;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
-import java.security.KeyManagementException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.cert.CertificateException;
+import java.security.GeneralSecurityException;
 
 /**
  * Hook into HttpClient.
@@ -53,8 +50,7 @@ public class HttpSecureProtocol extends SSLClient
 {
 
 	public HttpSecureProtocol()
-			throws NoSuchAlgorithmException, KeyStoreException,
-			       KeyManagementException, IOException, CertificateException
+			throws GeneralSecurityException, IOException
 	{
 		super();
 	}

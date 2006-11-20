@@ -100,26 +100,19 @@ public class TrustChain
 		// Now that the X509Certificates are extracted, create the unified
 		// keystore.
 		it = x509Certificates.iterator();
-		if ( !it.hasNext() && !this.contains( TrustMaterial.TRUST_ALL ) )
+		KeyStore ks = KeyStore.getInstance( KeyStore.getDefaultType() );
+		ks.load( null, null );
+		int count = 0;
+		while ( it.hasNext() )
 		{
-			return null;
+			X509Certificate cert = (X509Certificate) it.next();
+			// The "count" should keep the aliases unique (is that important?)
+			String alias = "commons-ssl-" + count;
+			ks.setCertificateEntry( alias, cert );
+			count++;
 		}
-		else
-		{
-			KeyStore ks = KeyStore.getInstance( KeyStore.getDefaultType() );
-			ks.load( null, null );
-			int count = 0;
-			while ( it.hasNext() )
-			{
-				X509Certificate cert = (X509Certificate) it.next();
-				// The "count" should keep the aliases unique (is that important?)
-				String alias = "commons-ssl-" + count;
-				ks.setCertificateEntry( alias, cert );
-				count++;
-			}
-			this.unifiedKeyStore = ks;
-			return unifiedKeyStore;
-		}
+		this.unifiedKeyStore = ks;
+		return unifiedKeyStore;
 	}
 
 	public synchronized void addTrustMaterial( TrustChain tc )
@@ -204,5 +197,34 @@ public class TrustChain
 		}
 		return Collections.unmodifiableSortedSet( x509Certificates );
 	}
+
+	/**
+	 * @return Count of all X509Certificates contained in this TrustChain.
+	 * @throws KeyStoreException
+	 * @throws IOException
+	 * @throws NoSuchAlgorithmException
+	 * @throws CertificateException
+	 */
+	public synchronized int getSize()
+			throws KeyStoreException, IOException, NoSuchAlgorithmException,
+			       CertificateException
+	{
+		return getCertificates().size();
+	}
+
+	/**
+	 * @return Count of all X509Certificates contained in this TrustChain.
+	 * @throws KeyStoreException
+	 * @throws IOException
+	 * @throws NoSuchAlgorithmException
+	 * @throws CertificateException
+	 */
+	public synchronized boolean isEmpty()
+			throws KeyStoreException, IOException, NoSuchAlgorithmException,
+			       CertificateException
+	{
+		return getCertificates().isEmpty();		
+	}
+
 
 }

@@ -35,6 +35,7 @@ import javax.net.ssl.SSLSocket;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.security.cert.Certificate;
@@ -86,6 +87,36 @@ public class Util
 				return true;
 			default:
 				return false;
+		}
+	}
+
+	public static void pipeStream( InputStream in, OutputStream out )
+			throws IOException
+	{
+		byte[] buf = new byte[ 4096 ];
+		IOException ioe = null;
+		try
+		{
+			int bytesRead = in.read( buf );
+			while ( bytesRead >= 0 )
+			{
+				if ( bytesRead > 0 )
+				{
+					out.write( buf, 0, bytesRead );
+				}
+				bytesRead = in.read( buf );
+			}
+		}
+		finally
+		{
+			// Probably it's best to let consumer call "close", but I'm usually
+			// the consumer, and I want to be lazy.  [Julius, November 20th, 2006]
+			try { in.close(); } catch ( IOException e ) { ioe = e; }
+			try { out.close(); } catch ( IOException e ) { ioe = e; }
+		}
+		if ( ioe != null )
+		{
+			throw ioe;
 		}
 	}
 
