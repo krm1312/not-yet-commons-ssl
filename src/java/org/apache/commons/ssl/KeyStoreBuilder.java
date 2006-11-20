@@ -161,7 +161,7 @@ public class KeyStoreBuilder
 				{
 					throw new KeyStoreException( "Can't build keystore: [No certificates belong to the private-key]" );
 				}
-				X509CertificateChainBuilder.buildPath( theOne, chain );
+				chain = X509CertificateChainBuilder.buildPath( theOne, chain );
 			}
 
 			String alias = "alias";
