@@ -53,7 +53,6 @@ public class SSLSocketWrapper extends SSLSocket
 	public SSLSocketWrapper( SSLSocket s )
 	{
 		this.s = s;
-		// System.out.println( "SSLSocketWrapper new! " + this );
 	}
 
 	/* javax.net.ssl.SSLSocket */
@@ -254,37 +253,31 @@ public class SSLSocketWrapper extends SSLSocket
 
 	public void bind( SocketAddress bindpoint ) throws IOException
 	{
-		//System.out.println( "bind " + s );
 		s.bind( bindpoint );
 	}
 
 	public void close() throws IOException
 	{
-		// System.out.println( "close " + s );
 		s.close();
 	}
 
 	public void connect( SocketAddress endpoint ) throws IOException
 	{
-		// System.out.println( "connect " + s );
 		s.connect( endpoint );
 	}
 
 	public void connect( SocketAddress endpoint, int timeout ) throws IOException
 	{
-		// System.out.println( "connect-timeout " + s );
 		s.connect( endpoint, timeout );
 	}
 
 	public InputStream getInputStream() throws IOException
 	{
-		// System.out.println( "getInputStream " + s );
 		return s.getInputStream();
 	}
 
 	public OutputStream getOutputStream() throws IOException
 	{
-		// System.out.println( "getOutputStream " + s );
 		return s.getOutputStream();
 	}
 

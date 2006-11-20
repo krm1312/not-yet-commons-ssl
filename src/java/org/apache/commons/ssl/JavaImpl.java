@@ -67,8 +67,8 @@ public abstract class JavaImpl
 		}
 		catch ( Throwable t )
 		{
-			System.out.println( t.toString() );
-			System.out.println( "commons-ssl: java.net.ssl.* (Java 1.4) not available - reverting to  com.sun.net.ssl.* (Java 1.3 + jsse.jar)" );
+			// System.out.println( t.toString() );
+			System.out.println( "commons-ssl reverting to: Java 1.3 + jsse.jar" );
 		}
 		if ( h == null )
 		{

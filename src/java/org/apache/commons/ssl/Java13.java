@@ -90,13 +90,13 @@ public final class Java13 extends JavaImpl
 			{
 				Class c = Class.forName( "com.sun.crypto.provider.SunJCE" );
 				Security.addProvider( (Provider) c.newInstance() );
-				System.out.println( "jce not loaded: " + e + " - loading SunJCE!" );
-				e.printStackTrace( System.out );
+				// System.out.println( "jce not loaded: " + e + " - loading SunJCE!" );
+				//e.printStackTrace( System.out );
 			}
 			catch ( Exception e2 )
 			{
-				System.out.println( "jce unavailable: " + e );
-				e2.printStackTrace( System.out );
+				System.out.println( "com.sun.crypto.provider.SunJCE unavailable: " + e2 );
+				// e2.printStackTrace( System.out );
 			}
 		}
 		try
@@ -106,11 +106,11 @@ public final class Java13 extends JavaImpl
 		}
 		catch ( Exception e )
 		{
-			System.out.println( "java.net.URL support of https not loaded: " + e + " - attempting to load com.sun.net.ssl.internal.ssl.Provider!" );
+			// System.out.println( "java.net.URL support of https not loaded: " + e + " - attempting to load com.sun.net.ssl.internal.ssl.Provider!" );
 			Security.addProvider( new com.sun.net.ssl.internal.ssl.Provider() );
 			System.setProperty( "java.protocol.handler.pkgs", "com.sun.net.ssl.internal.www.protocol" );
 		}
-		System.out.println( "old HANDLER: " + HANDLER );
+		// System.out.println( "old HANDLER: " + HANDLER );
 	}
 
 	public static Java13 getInstance()
@@ -146,8 +146,11 @@ public final class Java13 extends JavaImpl
 				javax.security.cert.X509Certificate javaxCert = chain[ i ];
 				byte[] encoded = javaxCert.getEncoded();
 				ByteArrayInputStream in = new ByteArrayInputStream( encoded );
-				Certificate c = Certificates.CF.generateCertificate( in );
-				newChain[ i ] = (X509Certificate) c;
+				synchronized( Certificates.CF )
+				{
+					Certificate c = Certificates.CF.generateCertificate( in );
+					newChain[ i ] = (X509Certificate) c;
+				}
 			}
 		}
 		catch ( Exception e )

@@ -65,6 +65,8 @@ public class Certificates
 {
 
 	public final static CertificateFactory CF;
+	public final static String LINE_ENDING = System.getProperty( "line.separator" );
+
 	private final static HashMap crl_cache = new HashMap();
 
 	public final static String CRL_EXTENSION = "2.5.29.31";
@@ -190,9 +192,10 @@ public class Certificates
 			{
 				buf.append( new String( encoded, i, encoded.length - i ) );
 			}
-			buf.append( '\n' );
+			buf.append( LINE_ENDING );
 		}
-		buf.append( "-----END CERTIFICATE-----\n" );
+		buf.append( "-----END CERTIFICATE-----" );
+		buf.append( LINE_ENDING );		
 		return buf.toString();
 	}
 
@@ -203,7 +206,6 @@ public class Certificates
 
 	public static String toString( X509Certificate cert, boolean htmlStyle )
 	{
-		String LINE_ENDING = System.getProperty( "line.separator" );
 		String cn = getCN( cert );
 		String startStart = DF.format( cert.getNotBefore() );
 		String endDate = DF.format( cert.getNotAfter() );
@@ -544,7 +546,10 @@ public class Certificates
 				{
 					InputStream in = new FileInputStream( tempCRLFile );
 					in = new BufferedInputStream( in );
-					crl = CF.generateCRL( in );
+					synchronized( CF )
+					{
+						crl = CF.generateCRL( in );
+					}
 					in.close();
 					if ( crl.isRevoked( cert ) )
 					{

@@ -562,7 +562,7 @@ public class KeyStoreBuilder
 		ks.store( jks, password );
 		jks.flush();
 		jks.close();
-		System.out.println( "Successfuly wrote: " + f.getPath() );
+		System.out.println( "Successfuly wrote: [" + f.getPath() + "]" );
 	}
 
 

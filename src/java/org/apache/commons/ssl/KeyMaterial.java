@@ -173,8 +173,8 @@ public class KeyMaterial extends TrustMaterial
 		X509Certificate[] certs = km.getAssociatedCertificateChain();
 		for ( int i = 0; i < certs.length; i++ )
 		{
-			System.out.println( Certificates.toString( certs[ i ] ) );
-			System.out.println( Certificates.toPEMString( certs[ i ] ) );
+			System.out.print( Certificates.toString( certs[ i ] ) );
+			System.out.print( Certificates.toPEMString( certs[ i ] ) );
 		}
 	}
 }

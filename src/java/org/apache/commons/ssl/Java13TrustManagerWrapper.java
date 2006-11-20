@@ -103,7 +103,6 @@ public class Java13TrustManagerWrapper implements X509TrustManager
 		}
 		catch ( CertificateException ce )
 		{
-			System.out.println( " FAILED!" );
 			return false;
 		}
 	}
