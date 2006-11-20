@@ -57,6 +57,9 @@ public class SSLServer extends SSLServerSocketFactory
 			throws GeneralSecurityException, IOException
 	{
 		this.ssl = new SSL();
+		// client certs aren't usually tied down to a single host (and who knows
+		// if the DNS reverse-lookup will work!).
+		setCheckHostname( false );
 
 		// commons-ssl default KeyMaterial will be ~/.keystore with a password
 		// of "changeit".		
@@ -242,7 +245,7 @@ public class SSLServer extends SSLServerSocketFactory
 	public ServerSocket createServerSocket() throws IOException
 	{
 		SSLServerSocket ss = JavaImpl.createServerSocket( ssl );
-		return ssl.getSSLWrapperFactory().wrap( ss );
+		return ssl.getSSLWrapperFactory().wrap( ss, this );
 	}
 
 	public ServerSocket createServerSocket( int port )
@@ -275,7 +278,7 @@ public class SSLServer extends SSLServerSocketFactory
 		ServerSocket ss = f.createServerSocket( port, backlog, localHost );
 		SSLServerSocket s = (SSLServerSocket) ss;
 		ssl.doPreConnectServerSocketStuff( s );
-		return ssl.getSSLWrapperFactory().wrap( s );
+		return ssl.getSSLWrapperFactory().wrap( s, this );
 	}
 
 	public X509Certificate[] getCurrentClientChain()

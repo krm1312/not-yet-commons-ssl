@@ -58,8 +58,8 @@ public class SSLEchoServer
 		}
 
 		SSLServer ssl = new SSLServer();
-		ssl.setCheckExpiry( true );
-		ssl.setNeedClientAuth( true );
+		// ssl.setCheckExpiry( false );
+		// ssl.setNeedClientAuth( true );
 		ssl.addTrustMaterial( TrustMaterial.TRUST_ALL );
 		SSLServerSocket ss = (SSLServerSocket) ssl.createServerSocket( port, 3 );
 		System.out.println( "SSL Echo server listening on port: " + port );

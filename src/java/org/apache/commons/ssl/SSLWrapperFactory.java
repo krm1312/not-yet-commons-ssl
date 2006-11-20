@@ -58,7 +58,7 @@ public interface SSLWrapperFactory
 	 *                This way some important commons-ssl config can be applied
 	 *                to the returned socket.
 	 * @return The new wrapped SSLServerSocket.
-	 * @throws IOException
+	 * @throws IOException if wrapping failed
 	 */
 	public SSLServerSocket wrap( SSLServerSocket s, SSLServer server )
 			throws IOException;
