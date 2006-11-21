@@ -39,7 +39,7 @@ li { padding-bottom: 6px; }
 <li  style="margin-top: 6px;"><b>Make SSL and Java Easier.</b>  Ever wanted to work with self-signed
 certificates in your Java application in a secure fashion?  Ever wanted to use more than one client
 certificte in a single running JVM?  You can edit your <code>$JAVA_HOME/jre/lib/security/cacerts</code>
-file, or you can invoke Java with <code>-Djavax.net.ssl.keyStore=/path/to/keystore</code>.  Both of
+file, and you can invoke Java with <code>-Djavax.net.ssl.keyStore=/path/to/keystore</code>.  Both of
 these approaches are great at first, but they don't scale well.  Do you really want to pollute every
 SSL socket in your JVM (HTTP, LDAP, JDBC, RMI, etc...) with those system-wide changes?  Commons-SSL let's you
 control the SSL options you need in an natural way for each SSLSocketFactory, and those options
@@ -54,8 +54,8 @@ other options can be enabled/disabled for each SSLSocketFactory created.</li>
 <li style="margin-top: 6px;"><b>Support more file formats, and support these formats more robustly.</b>
 <ul>
 <li>commons-ssl supports over <a href="samples/rsa_result.html">50 formats</a> of PKCS8 and OpenSSL Encrypted Private Keys in PEM or DER</li>
-<li>X.509 Certificates can be PEM or DER encoded.  Can also come in PKCS7 chains.</li>
-<li>PKCS12 files can be in PEM (as created by <code>openssl pkcs12</code>).</li>
+<li>X.509 Certificates can be PEM or DER encoded.  Can also come in PKCS7 chains.  (To be fair, Java always supported this.)</li>
+<li>PKCS12 files can be in <a href="samples/pkcs12/pkcs12_client_cert.pem">PEM</a> (as created by <code>openssl pkcs12</code>).</li>
 <li>Parsing of Base64-PEM is more tolerant of extra whitespace or comments, especially outside the Base64 sections:
 <pre style="padding-left: 100px;">any comments or whitespace up here are ignored
 
@@ -70,11 +70,16 @@ whether keystore is PKCS12 or JKS.  They just need to know the password to decry
 <hr/>
 <h4>About</h4>
 <p>Commons-SSL was originally developed by
-<a href="http://www.cucbc.com">Credit Union Central of British Columbia</a>.
+<a href="https://www.cucbc.com">Credit Union Central of British Columbia</a>.
 It was donated to the Apache Software Foundation in August 2006.
-<p>
-
-
-<!--#include virtual="tree.html" -->
+</p>
+<p>The ASN.1 parsing code was originally developed by the Apache Directory Project
+(<a href="http://directory.apache.org/">directory.apache.org</a>).</p>
+<p>The PKCS12 key derivation function (for some PKCS8 version 1.5 encrypted keys) was cut &amp; paste from
+BouncyCastle (<a href="http://bouncycastle.org/">bouncycastle.org</a>).  They 
+originally got it from RSA's PKCS12 specification
+(<a href="ftp://ftp.rsasecurity.com/pub/pkcs/pkcs-12/pkcs-12v1.pdf">ftp://ftp.rsasecurity.com/pub/pkcs/pkcs-12/pkcs-12v1.pdf</a>),
+so I hope this copy &amp; paste operation is
+okay!</p>
 </body>
 </html>

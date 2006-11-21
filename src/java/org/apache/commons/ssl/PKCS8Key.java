@@ -270,7 +270,7 @@ public class PKCS8Key
 		{
 			try
 			{
-				pkcs8 = ASN1Util.analyze( derBytes );
+				pkcs8 = ASN1Util.analyze( decryptedPKCS8 );
 			}
 			catch ( Exception e )
 			{
@@ -299,7 +299,7 @@ public class PKCS8Key
 		}
 		catch ( Exception e )
 		{
-			throw new ProbablyBadPasswordException( "Cannot create " + type + " private key from decrypted stream.  Probably bad decryption password." );
+			throw new ProbablyBadPasswordException( "Cannot create " + type + " private key from decrypted stream.  Probably bad decryption password. " + e );
 		}
 		if ( pk != null )
 		{

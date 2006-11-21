@@ -69,6 +69,8 @@ KeyMaterial km = new KeyMaterial( certificateChain, privateKey, password );
 
 server.setKeyMaterial( km );
 
+<em style="color: green;">// These settings have to do with how we'll treat client certificates that are presented</em>
+<em style="color: green;">// to us.  If the client doesn't present any client certificate, then these are ignored.</em>
 server.setCheckHostname( false ); <em style="color: green;">// default setting is "false" for SSLServer</em>
 server.setCheckExpiry( true );    <em style="color: green;">// default setting is "true" for SSLServer</em>
 server.setCheckCRL( true );       <em style="color: green;">// default setting is "true" for SSLServer</em>
@@ -100,6 +102,5 @@ SSLSocket socket = (SSLSocket) ss.accept();</pre>
 
 <br clear="all">
 
-<!--#include virtual="tree.html" -->
 </body>
 </html>
