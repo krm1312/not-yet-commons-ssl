@@ -1,4 +1,6 @@
-<title>commons-ssl proposal - may 3rd, 2006</title>
+<html>
+<head>
+<title>Commons-SSL - RMI over SSL Java Example</title>
 <style type="text/css">
 h1, h2, h3 { margin: 0; border: 0; padding: 0; font-size: 100%; }
 h1 { float: left; color: red; }
@@ -51,7 +53,9 @@ RMISocketFactoryImpl impl = new RMISocketFactoryImpl();
 
 <em style="color: green;">// Let's change some settings on our default SSL client.</em>
 SSLClient defaultClient = (SSLClient) impl.getDefaultClient();
-client.setDoVerify( false );
+client.setCheckHostname( false );
+client.setCheckCRL( true );
+client.setCheckExpiry( false );
 
 <em style="color: green;">// By default we trust Java's "cacerts", as well as whatever cert is on localhost:1099,</em>
 <em style="color: green;">// so this is redundant:   (Trusting localhost:1099 is some commons-ssl magic).</em>
