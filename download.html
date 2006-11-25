@@ -1,15 +1,18 @@
-<title>commons-ssl proposal - may 3rd, 2006</title>
+<html>
+<head>
+<title>Commons-SSL - Downloads, Features, Future Directions</title>
 <style type="text/css">
-h1, h2, h3 { margin: 0; border: 0; padding: 0; font-size: 100%; }
+dl, h1, h2, h3, h4 { margin: 0; border: 0; padding: 0; font-size: 100%; }
 h1 { float: left; color: red; }
 b.n { font-family: arial; font-weight: bold; }
 span.hl { color: white; background-color: green; }
 div.nav { float: left; margin-left: 20px; font-weight: bold; }
 .nav a, .nav span { padding: 0 5px; }
 .nav a { color: blue; }
-li.top { margin-top: 10px; }
-ul.openssl { float: left; width: 100px; margin-top: 8px; }
-ul.pkcs8 { float: left; width: 200px; margin-top: 8px; }
+td.v { text-align: center; }
+dt { padding: 8px 0 8px 5px; }
+dd { padding-left: 15px; }
+li { padding-bottom: 6px; }
 </style>
 </head>
 <body>
@@ -28,19 +31,92 @@ ul.pkcs8 { float: left; width: 200px; margin-top: 8px; }
 <hr/>
 <h2>Download commons-ssl!</em></h2>
 <br/>
-<code>Full source:</code> <a href="commons-ssl-0.3.2.zip">commons-ssl-0.3.2.zip</a> (<em style="color: red;">Alpha</em>)
-<br/><code>Binary only:</code> <a href="commons-ssl-0.3.2.jar">commons-ssl-0.3.2.jar</a> (<em style="color: red;">Alpha</em>)
+<code>Full source:</code> <a href="commons-ssl-0.3.4.zip">commons-ssl-0.3.4.zip</a> (<em style="color: red;">Alpha</em>)
+<br/><code>Binary only:</code> <a href="commons-ssl-0.3.4.jar">commons-ssl-0.3.4.jar</a> (<em style="color: red;">Alpha</em>)
 <br/><br/><b>Warning:</b>
-<br/><em style="color: red; font-weight: bold;">Code should be considered to be of "Alpha" quality!</em>
-<p>Future versions will definitely break the current API.  I hope to freeze the API for version 0.5.0,
-have all JUnits in place by version 0.7.5, with minor API improvements (but 100% reverse compatible with
-0.5.0).  The final "BETA" series will start when version 0.9.0 is
-released.  All targeted platforms will have hopefully been realized, and releases will only contain bug fixes
-from that point on.</p>
-<p>Commons-SSL will mostly stop development once 1.0.0 is hit.  The problem we're solving with Commons-SSL
+&nbsp;<span style="color: red; font-weight: bold;">commons-ssl-0.3.4 should be considered to be of "Alpha" quality!
+This code probably contains bugs.  This code may have security issues.</span>
+<p>Future versions will definitely break the current API in a non-reverse compatible way.  After commons-ssl-0.5.0, though, we
+plan on always being reverse compatible with ourselves.
+
+<h3>Features as of commons-ssl-0.3.4:</h3>
+<dl>
+<dt>1. &nbsp;<code>"javax.net.ssl.keyStore"</code> and <code>"javax.net.ssl.trustStore"</code></dt>
+<dd>SSLClient and SSLServer now set their default TrustMaterial and KeyMaterial from these
+ system properties if they are present.</dd>
+<dt>2. &nbsp;<code>ssl.setCheckCRL( true/false )</code> <em>Note: <a href="http://en.wikipedia.org/wiki/Certificate_revocation_list">CRL</a> is an abbreviation for "Certificate Revocation List"</em></dt>
+<dd>Set to <code>true</code> by default.  If you're using SSLClient, then the remote
+server's certificate chain is checked.  If you're using SSLServer, CRL checking is ignored <em>unless</em>
+client certificates are presented.  Commons-SSL tries to perform the CRL check against each certificate in
+the chain, but we're not sure if we always know the entire chain.
+<p><em>Implementation note:</em>
+To reduce memory consumption all CRL's are saved to disk using
+<code>File.createTempFile()</code> and <code>File.deleteOnExit()</code>.
+CRL's are re-downloaded every 24 hours.  To reduce disk IO
+the "pass/fail" result of a CRL check for a given X.509 Certificate is cached using the 20 byte SHA1 hash of the
+certificate as the key.  The cached "pass/fail" result is discarded every 24 hours.
+</p>
+</dd>
+<dt>3. &nbsp;<code>ssl.setCheckExpiry( true/false )</code></dt>
+<dd>Certificate expiry checking can be turned off.  Turned on by default.  For Java 1.4 and newer we're
+intercepting the CertificateException thrown by the TrustManager.  But we still implemented our own
+expiry checking because Java 1.3 doesn't check expiry.  We check every certificate in
+the chain, but we're not sure if we always know the entire chain.</dd>
+<dt>4. &nbsp;<code>ssl.setCheckHostname( true/false )</code></dt>
+<dd>Certificate hostname checking improved.  Turned on by default for SSLClient, but turned off by
+default for SSLServer.  If turned on for SSLServer, only applied to client certificates by testing
+against a reverse DNS lookup of the client's IP address.
+<p>Support added for certificates with wildcards in the CN field
+(e.g. <a href="https://www.credential.com/">*.credential.com</a>).
+<pre style="font-style: 90%; padding: 0 30px;">
+s: CN=*.credential.com, OU=Domain Control Validated - RapidSSL(R), OU=See www.rapidssl.com/cps (c)05,
+   OU=businessprofile.geotrust.com/get.jsp?GT27402892, O=*.credential.com, C=CA
+i: CN=Equifax Secure Global eBusiness CA-1, O=Equifax Secure Inc., C=US
+</pre>
+</p>
+</dd>
+<dt>5. &nbsp;PKCS8 support.</dt>
+<dd>Support for OpenSSL "Traditional" and PKCS8 encrypted private keys added.
+Private keys can be RSA or DSA.  See the <a href="pkcs8.html">pkcs8</a> page for more details.</dt>
+<dt>6. &nbsp;New Utility: "<code>KeyStoreBuilder</code>"</dt>
+<dd>Command line utility converts an OpenSSL pair (private key + certificate) into a Java Keystore ("JKS")
+file.  To see the command-line options, visit the <a href="utilities.html">utilities</a> page, or just run:
+<pre style="font-style: 90%; padding: 0 30px;">
+java -cp commons-ssl-0.3.4.jar org.apache.commons.ssl.KeyStoreBuilder
+</pre></dd>
+</dl>
+
+<hr/>
+<h3>Road Map For Future Versions</h3>
+<p>0.3.5 - 0.3.8 are just some feature ideas.  They might not be feasible.</p>
+<table cellspacing="0" cellpadding="4" border="1">
+<tr><th>Version</th><th>Description</th></tr>
+<tr><td class="v">0.3.4</td><td>90% feature complete.  Probably contains some bugs.</td></tr>
+<tr><td class="v">0.3.5</td><td><a href="http://en.wikipedia.org/wiki/Online_Certificate_Status_Protocol">OCSP</a> - Online Certificate Status Protocol</td></tr>
+<tr><td class="v">0.3.6</td><td>Socket monitoring.  Make it easier for long-running server applications to warn
+about impending certificate expiries. </td></tr>
+<tr><td class="v">0.3.7</td><td>
+NotQuiteSoEasySSLProtocolSocketFactory will trust any server The First Time, and store that server's cert on disk for future accesses.
+</td></tr>
+<tr><td class="v">0.3.8</td><td><code>TrustMaterial.setAutoReload( true / false )</code>, and <code>KeyMaterial.setAutoReload( true / false )</code>,
+but only if no password, or "changeit" was provided.  (Question:  should this "reload" tear down all open sockets?).
+</td></tr>
+<tr><td class="v">0.4.0</td><td>Non-public code (protected, private, etc) moved into a separate "impl" package where possible.</td></tr>
+<tr><td class="v">0.5.0</td><td>API froven.  All future versions must be reverse-compatible with 0.5.0 (except for any parts of 0.5.0 later found to be insecure).</td></tr>
+<tr><td class="v">0.7.0</td><td>JavaDocs written for all public methods and classes.</td></tr>
+<tr><td class="v">0.7.5</td><td>JUnit tests written for all classes.</td></tr>
+<tr><td class="v">0.9.0</td><td>First BETA release.  JUnit tests passing on all targetted platforms
+<ol>
+<li>Intel/AMD: (Sun, IBM, BEA) x (Linux, Mac, Windows) x (1.3, 1.4, 5.0, 6.0)</li>
+<li>All of the above with and without BouncyCastle.</li>
+<li>PowerPC:  Mac OS X 10.4, 10.5</li>
+<li>Linux: Latest GCJ, Kaffe, and Blackdown releases.  BouncyCastle added if necessary to get tests to pass.</li>
+<li>Anyone got an IBM mainframe we can test on?</li>
+</td></tr>
+<tr><td class="v">0.9.1&nbsp;-&nbsp;0.9.9</td><td>Bug fixes.</td></tr>
+<tr><td class="v">1.0.0</td><td>Development mostly stops.</td></tr>
+</table>
+<p>The problem we're solving with Commons-SSL
 is quite small, so I don't see any reason to ever go beyond 1.0.0, except for fixing bugs.</p>
-
-
-
 </body>
 </html>
