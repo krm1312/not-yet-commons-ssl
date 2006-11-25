@@ -38,7 +38,7 @@ li { padding-bottom: 6px; }
 This code probably contains bugs.  This code may have security issues.</span>
 <p>Future versions will definitely break the current API in a non-reverse compatible way.  After commons-ssl-0.5.0, though, we
 plan on always being reverse compatible with ourselves.
-
+<hr/>
 <h3>Features as of commons-ssl-0.3.4:</h3>
 <dl>
 <dt>1. &nbsp;<code>"javax.net.ssl.keyStore"</code> and <code>"javax.net.ssl.trustStore"</code></dt>
@@ -64,10 +64,12 @@ expiry checking because Java 1.3 doesn't check expiry.  We check every certifica
 the chain, but we're not sure if we always know the entire chain.</dd>
 <dt>4. &nbsp;<code>ssl.setCheckHostname( true/false )</code></dt>
 <dd>Certificate hostname checking improved.  Turned on by default for SSLClient, but turned off by
-default for SSLServer.  If turned on for SSLServer, only applied to client certificates by testing
+default for SSLServer.  If turned on for SSLServer, only applied to client certificates by checking
 against a reverse DNS lookup of the client's IP address.
-<p>Support added for certificates with wildcards in the CN field
-(e.g. <a href="https://www.credential.com/">*.credential.com</a>).
+<p>Support added for certificates with wildcards in the CN field 
+(e.g. <a href="https://www.credential.com/">*.credential.com</a>). 
+Java already had this, to be fair.  We broke it
+by accident!
 <pre style="font-style: 90%; padding: 0 30px;">
 s: CN=*.credential.com, OU=Domain Control Validated - RapidSSL(R), OU=See www.rapidssl.com/cps (c)05,
    OU=businessprofile.geotrust.com/get.jsp?GT27402892, O=*.credential.com, C=CA
