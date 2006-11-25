@@ -496,7 +496,18 @@ public class Certificates
 				}
 				tempCRLFile = null;
 				passedTest.clear();
-				failedTest.clear();
+
+				/*
+				  Note:  if any certificate ever fails the check, we will
+				  remember that fact.
+
+				  This breaks with temporary "holds" that CRL's can issue.
+				  Apparently a certificate can have a temporary "hold" on its
+				  validity, but I'm not interested in supporting that.  If a "held"
+				  certificate is suddenly "unheld", you're just going to need
+				  to restart your JVM.
+				*/
+				// failedTest.clear();  <-- DO NOT UNCOMMENT!
 			}
 
 			BigInteger fingerprint = getFingerprint( cert );

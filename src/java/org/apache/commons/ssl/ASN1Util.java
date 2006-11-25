@@ -42,7 +42,9 @@ import org.apache.commons.ssl.asn1.ASN1InputStream;
 import java.math.BigInteger;
 import java.util.Enumeration;
 import java.util.Vector;
+import java.util.List;
 import java.io.IOException;
+import java.io.FileInputStream;
 
 /**
  * @author Credit Union Central of British Columbia
@@ -64,6 +66,27 @@ public class ASN1Util
 		ASN1Structure pkcs8 = new ASN1Structure();
 		ASN1Util.analyze( seq, pkcs8, 0 );
 		return pkcs8;
+	}
+
+	public static void main( String[] args ) throws Exception
+	{
+		DEBUG = true;
+		FileInputStream in = new FileInputStream( args[ 0 ] );
+		byte[] bytes = Util.streamToBytes( in );
+		List list = PEMUtil.decode( bytes );
+		if ( !list.isEmpty() )
+		{
+			bytes = ( (PEMItem) list.get( 0 ) ).getDerBytes();
+		}
+
+		ASN1Structure asn1 = analyze( bytes );
+		while ( asn1.bigPayload != null )
+		{
+			System.out.println( "------------------------------------------" );
+			System.out.println( asn1 );
+			System.out.println( "------------------------------------------" );
+			asn1 = analyze( asn1.bigPayload );
+		}
 	}
 
 

@@ -31,6 +31,7 @@ package org.apache.commons.ssl;
 
 import javax.net.ssl.X509TrustManager;
 import java.security.cert.CertificateException;
+import java.security.cert.CertificateExpiredException;
 import java.security.cert.X509Certificate;
 
 /**
@@ -59,16 +60,13 @@ public class Java14TrustManagerWrapper implements X509TrustManager
 		CertificateException ce = null;
 		try
 		{
-			if ( !trustChain.contains( TrustMaterial.TRUST_ALL ) )
-			{
-				trustManager.checkClientTrusted( chain, authType );
-			}
+			trustManager.checkClientTrusted( chain, authType );
 		}
 		catch ( CertificateException e )
 		{
 			ce = e;
 		}
-		testShouldWeThrow( ce, chain, authType );
+		testShouldWeThrow( ce, chain );
 	}
 
 	public void checkServerTrusted( X509Certificate[] chain, String authType )
@@ -78,16 +76,13 @@ public class Java14TrustManagerWrapper implements X509TrustManager
 		CertificateException ce = null;
 		try
 		{
-			if ( !trustChain.contains( TrustMaterial.TRUST_ALL ) )
-			{
-				trustManager.checkServerTrusted( chain, authType );
-			}
+			trustManager.checkServerTrusted( chain, authType );
 		}
 		catch ( CertificateException e )
 		{
 			ce = e;
 		}
-		testShouldWeThrow( ce, chain, authType );
+		testShouldWeThrow( ce, chain );
 	}
 
 	public X509Certificate[] getAcceptedIssuers()
@@ -96,14 +91,29 @@ public class Java14TrustManagerWrapper implements X509TrustManager
 	}
 
 	private void testShouldWeThrow( CertificateException checkException,
-	                                X509Certificate[] chain, String authType )
+	                                X509Certificate[] chain )
 			throws CertificateException
 	{
 		if ( checkException != null )
 		{
-			if ( !trustChain.contains( TrustMaterial.TRUST_ALL ) )
+			Throwable root = getRootThrowable( checkException );
+			boolean expiryProblem = root instanceof CertificateExpiredException;
+			if ( expiryProblem )
 			{
-				throw checkException;
+				if ( ssl.getCheckExpiry() )
+				{
+					// We're expired, and this factory cares.
+					throw checkException;
+				}
+			}
+			else
+			{
+				// Probably the cert isn't trusted.  Only let it through if
+				// this factory trusts everything.
+				if ( !trustChain.contains( TrustMaterial.TRUST_ALL ) )
+				{
+					throw checkException;
+				}
 			}
 		}
 
@@ -119,5 +129,20 @@ public class Java14TrustManagerWrapper implements X509TrustManager
 				Certificates.checkCRL( c );
 			}
 		}
+	}
+
+	private static Throwable getRootThrowable( Throwable t )
+	{
+		if ( t == null )
+		{
+			return t;
+		}
+		Throwable cause = t.getCause();
+		while ( cause != null && !t.equals( cause ) )
+		{
+			t = cause;
+			cause = t.getCause();
+		}
+		return t;
 	}
 }

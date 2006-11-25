@@ -33,8 +33,8 @@ import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLServerSocketFactory;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
-import java.io.IOException;
 import java.io.File;
+import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
@@ -47,9 +47,9 @@ import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Properties;
 import java.util.SortedSet;
 import java.util.TreeSet;
-import java.util.Properties;
 
 /**
  * @author Credit Union Central of British Columbia
@@ -87,7 +87,7 @@ public class SSL
 	private SSLServerSocketFactory serverSocketFactory = null;
 	private boolean checkHostname = true;
 	private boolean checkCRL = true;
-	private boolean checkExpiry = true;	
+	private boolean checkExpiry = true;
 	private boolean useClientMode = false;
 	private boolean useClientModeDefault = true;
 	private int soTimeout = 24 * 60 * 60 * 1000; // default: one day
@@ -122,19 +122,60 @@ public class SSL
 				setKeyMaterial( km );
 			}
 		}
+		boolean trustMaterialSet = false;
 		if ( tsSet )
 		{
 			String path = System.getProperty( "javax.net.ssl.trustStore" );
 			String pwd = System.getProperty( "javax.net.ssl.trustStorePassword" );
-			pwd = pwd != null ? pwd : ""; // JSSE default is "".			
+			boolean pwdWasNull = pwd == null;
+			pwd = pwdWasNull ? "" : pwd; // JSSE default is "".			
 			File f = new File( path );
 			if ( f.exists() )
 			{
-				TrustMaterial tm = new TrustMaterial( path, pwd.toCharArray() );
+				TrustMaterial tm;
+				try
+				{
+					tm = new TrustMaterial( path, pwd.toCharArray() );
+				}
+				catch ( GeneralSecurityException gse )
+				{
+					// Probably a bad password.  If we're using the default password,
+					// let's try and survive this setback.
+					if ( pwdWasNull )
+					{
+						tm = new TrustMaterial( path );
+					}
+					else
+					{
+						throw gse;
+					}
+				}
+
 				setTrustMaterial( tm );
+				trustMaterialSet = true;
 			}
 		}
 
+		/*
+		  No default trust material was set.  We'll use the JSSE standard way
+		  where we test for "JSSE_CACERTS" first, and then fall back on
+		  "CACERTS".  We could just leave TrustMaterial null, but then our
+		  setCheckCRL() and setCheckExpiry() features won't work.  We need a
+		  non-null TrustMaterial object in order to intercept and decorate
+		  the JVM's default TrustManager.
+		*/
+		if ( !trustMaterialSet )
+		{
+			if ( TrustMaterial.JSSE_CACERTS != null )
+			{
+				setTrustMaterial( TrustMaterial.JSSE_CACERTS );
+			}
+			else
+			{
+				setTrustMaterial( TrustMaterial.CACERTS );
+			}
+		}
+		
 		dirtyAndReloadIfYoung();
 	}
 
@@ -383,7 +424,7 @@ public class SSL
 		}
 	}
 
-	public void doPostConnectSocketStuff( Socket s, String host )
+	public void doPostConnectSocketStuff( SSLSocket s, String host )
 			throws IOException
 	{
 		if ( checkHostname )
@@ -450,7 +491,6 @@ public class SSL
 		                                     localHost, localPort,
 		                                     connectTimeout );
 		return sslWrapperFactory.wrap( s );
-		// return s;
 	}
 
 	public Socket createSocket( Socket s, String remoteHost, int remotePort,
@@ -458,12 +498,10 @@ public class SSL
 			throws IOException
 	{
 		SSLSocketFactory sf = getSSLSocketFactory();
-		SSLSocket ss = (SSLSocket) sf.createSocket( s, remoteHost, remotePort,
-		                                            autoClose );
-		doPreConnectSocketStuff( ss );
-		doPostConnectSocketStuff( ss, remoteHost );
-		return sslWrapperFactory.wrap( ss );
-		// return ss;
+		s = sf.createSocket( s, remoteHost, remotePort, autoClose );
+		doPreConnectSocketStuff( (SSLSocket) s );
+		doPostConnectSocketStuff( (SSLSocket) s, remoteHost );
+		return sslWrapperFactory.wrap( (SSLSocket) s );
 	}
 
 	public void doPreConnectServerSocketStuff( SSLServerSocket s )
