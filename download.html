@@ -92,31 +92,31 @@ java -cp commons-ssl-0.3.4.jar org.apache.commons.ssl.KeyStoreBuilder
 <h3><a name="roadmap">Road Map For Future Versions</a></h3>
 <p>0.3.5 - 0.3.8 are just some feature ideas.  They might not be feasible.</p>
 <table cellspacing="0" cellpadding="4" border="1">
-<tr><th>Version</th><th>Description</th></tr>
-<tr><td class="v">0.3.4</td><td>90% feature complete.  Probably contains some bugs.</td></tr>
-<tr><td class="v">0.3.5</td><td><a href="http://en.wikipedia.org/wiki/Online_Certificate_Status_Protocol">OCSP</a> - Online Certificate Status Protocol</td></tr>
-<tr><td class="v">0.3.6</td><td>Socket monitoring.  Make it easier for long-running server applications to warn
+<tr><th>Version</th><th>Release&nbsp;Date?</th><th>Description</th></tr>
+<tr><td class="v">0.3.4</td><td class="v">Nov&nbsp;2006</td><td>90% feature complete.  Probably contains some bugs.</td></tr>
+<tr><td class="v">0.3.5</td><td class="v">Jan&nbsp;2007</td><td><a href="http://en.wikipedia.org/wiki/Online_Certificate_Status_Protocol">OCSP</a> - Online Certificate Status Protocol</td></tr>
+<tr><td class="v">0.3.6</td><td class="v">Feb&nbsp;2007</td><td>Socket monitoring.  Make it easier for long-running server applications to warn
 about impending certificate expiries. </td></tr>
-<tr><td class="v">0.3.7</td><td>
+<tr><td class="v">0.3.7</td><td class="v">Mar&nbsp;2007</td><td>
 NotQuiteSoEasySSLProtocolSocketFactory will trust any server The First Time, and store that server's cert on disk for future accesses.
 </td></tr>
-<tr><td class="v">0.3.8</td><td><code>TrustMaterial.setAutoReload( true / false )</code>, and <code>KeyMaterial.setAutoReload( true / false )</code>,
+<tr><td class="v">0.3.8</td><td class="v">Apr&nbsp;2007</td><td><code>TrustMaterial.setAutoReload( true / false )</code>, and <code>KeyMaterial.setAutoReload( true / false )</code>,
 but only if no password, or "changeit" was provided.  (Question:  should this "reload" tear down all open sockets?).
 </td></tr>
-<tr><td class="v">0.4.0</td><td>Non-public code (protected, private, etc) moved into a separate "impl" package where possible.</td></tr>
-<tr><td class="v">0.5.0</td><td>API froven.  All future versions must be reverse-compatible with 0.5.0 (except for any parts of 0.5.0 later found to be insecure).</td></tr>
-<tr><td class="v">0.7.0</td><td>JavaDocs written for all public methods and classes.</td></tr>
-<tr><td class="v">0.7.5</td><td>JUnit tests written for all classes.</td></tr>
-<tr><td class="v">0.9.0</td><td>First BETA release.  JUnit tests passing on all targetted platforms
+<tr><td class="v">0.4.0</td><td class="v">Jun&nbsp;2007</td><td>Non-public code (protected, private, etc) moved into a separate "impl" package where possible.</td></tr>
+<tr><td class="v">0.5.0</td><td class="v">Aug&nbsp;2007</td><td>API froven.  All future versions must be reverse-compatible with 0.5.0 (except for any parts of 0.5.0 later found to be insecure).</td></tr>
+<tr><td class="v">0.7.0</td><td class="v">Nov&nbsp;2007</td><td>JavaDocs written for all public methods and classes.</td></tr>
+<tr><td class="v">0.7.5</td><td class="v">Mar&nbsp;2008</td><td>JUnit tests written for all classes.</td></tr>
+<tr><td class="v">0.9.0</td><td class="v">May&nbsp;2008</td><td>First BETA release.  JUnit tests passing on all targetted platforms
 <ol>
-<li>Intel/AMD: (Sun, IBM, BEA) x (Linux, Mac, Windows) x (1.3, 1.4, 5.0, 6.0)</li>
+<li>Intel/AMD: (Sun, IBM, BEA) x (Linux, Mac, Windows) x (1.3, 1.4, 5, 6, 7)</li>
 <li>All of the above with and without BouncyCastle.</li>
 <li>PowerPC:  Mac OS X 10.4, 10.5</li>
 <li>Linux: Latest GCJ, Kaffe, and Blackdown releases.  BouncyCastle added if necessary to get tests to pass.</li>
 <li>Anyone got an IBM mainframe we can test on?</li>
 </td></tr>
-<tr><td class="v">0.9.1&nbsp;-&nbsp;0.9.9</td><td>Bug fixes.</td></tr>
-<tr><td class="v">1.0.0</td><td>Development mostly stops.</td></tr>
+<tr><td class="v">0.9.1&nbsp;-&nbsp;0.9.9</td><td class="v">Aug&nbsp;2008</td><td>Bug fixes.</td></tr>
+<tr><td class="v">1.0.0</td><td class="v">Jan&nbsp;2009</td><td>Development mostly stops.</td></tr>
 </table>
 <p>The problem we're solving with Commons-SSL
 is quite small, so I don't see any reason to ever go beyond 1.0.0, except for fixing bugs.</p>
