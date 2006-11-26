@@ -7,5 +7,3 @@ This is not a real Jakarta Project yet.  I'm just
 trying to copy their directory structure while I work
 on this proposal.
 
-CVS test - juliusd
-CVS test #2 - quy
