@@ -51,6 +51,9 @@ import java.util.Iterator;
  */
 public class TrustMaterial extends TrustChain
 {
+	final static int SIMPLE_TRUST_TYPE_TRUST_ALL = 1;
+	final static int SIMPLE_TRUST_TYPE_TRUST_THIS_JVM = 2;
+
 	/**
 	 * Might be null if "$JAVA_HOME/jre/lib/security/cacerts" doesn't exist.
 	 */
@@ -60,11 +63,6 @@ public class TrustMaterial extends TrustChain
 	 * Might be null if "$JAVA_HOME/jre/lib/security/jssecacerts" doesn't exist.
 	 */	
 	public final static TrustMaterial JSSE_CACERTS;
-	public final static TrustMaterial TRUST_ALL = new TrustMaterial( 1 );
-	public final static TrustMaterial TRUST_THIS_JVM = new TrustMaterial( 2 );
-
-	public final int simpleTrustType;
-	private final KeyStore jks;
 
 	static
 	{
@@ -103,6 +101,15 @@ public class TrustMaterial extends TrustChain
 		JSSE_CACERTS = jssecacerts;
 	}
 
+	public final static TrustMaterial TRUST_ALL =
+			new TrustMaterial( SIMPLE_TRUST_TYPE_TRUST_ALL );
+
+	public final static TrustMaterial TRUST_THIS_JVM =
+			new TrustMaterial( SIMPLE_TRUST_TYPE_TRUST_THIS_JVM );
+
+	public final int simpleTrustType;
+	private final KeyStore jks;	
+
 	private TrustMaterial( int simpleTrustType )
 	{
 		this( null, simpleTrustType );
@@ -110,7 +117,18 @@ public class TrustMaterial extends TrustChain
 
 	TrustMaterial( KeyStore jks, int simpleTrustType )
 	{
-		this.jks = jks;
+		if ( jks == null && simpleTrustType != 0 )
+		{
+			// Just use CACERTS as a place holder, since Java 5 and 6 seem to get
+			// upset when we hand SSLContext null TrustManagers.  See
+			// Java14.initSSL(), which despite its name, is also used
+			// with Java5 and Java6.
+			this.jks = CACERTS != null ? CACERTS.jks : JSSE_CACERTS.jks;
+		}
+		else
+		{
+			this.jks = jks;
+		}
 		addTrustMaterial( this );
 		this.simpleTrustType = simpleTrustType;
 	}
