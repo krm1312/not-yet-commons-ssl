@@ -29,11 +29,14 @@ li { padding-bottom: 6px; }
 </div>
 <br clear="all"/>
 <hr/>
-<h2>Download commons-ssl!</em></h2>
-<br/>
-<code>Full source:</code> <a href="commons-ssl-0.3.4.zip">commons-ssl-0.3.4.zip</a> (<em style="color: red;">Alpha</em>)
-<br/><code>Binary only:</code> <a href="commons-ssl-0.3.4.jar">commons-ssl-0.3.4.jar</a> (<em style="color: red;">Alpha</em>)
-<br/><br/><b>Warning:</b>
+<h2>Download Commons-SSL!</em></h2>
+<p>Commons-SSL currently has no affiliation with the <a href="http://apache.org/">Apache Software Foundation</a> (apache.org), but we're hoping
+to start <a href="http://incubator.apache.org/incubation/Incubation_Policy.html">Incubation</a> soon!
+<table cellpadding="6" cellspacing="0" border="0" style="margin-top: 9px;">
+<tr><td>Full source:</td><td><a href="commons-ssl-0.3.4.zip">commons-ssl-0.3.4.zip</a></td><td>2.0MB</td><td><span style="color: red;">Alpha</span></td></tr>
+<tr><td>Binary only:</td><td><a href="commons-ssl-0.3.4.jar">commons-ssl-0.3.4.jar</a></td><td>153KB</td><td><span style="color: red;">Alpha</span></td></tr>
+</table>
+<br/><b>Warning:</b>
 &nbsp;<span style="color: red; font-weight: bold;">commons-ssl-0.3.4 should be considered to be of "Alpha" quality!
 This code probably contains bugs.  This code may have security issues.</span>
 <p>Future versions will definitely break the current API in a non-reverse compatible way.  After commons-ssl-0.5.0, though, we
@@ -54,7 +57,8 @@ To reduce memory consumption all CRL's are saved to disk using
 <code>File.createTempFile()</code> and <code>File.deleteOnExit()</code>.
 CRL's are re-downloaded every 24 hours.  To reduce disk IO
 the "pass/fail" result of a CRL check for a given X.509 Certificate is cached using the 20 byte SHA1 hash of the
-certificate as the key.  The cached "pass/fail" result is discarded every 24 hours.
+certificate as the key.  The cached "pass" result is discarded every 24 hours.  The cached "fail" result is retained 
+until the JVM restarts.
 </p>
 </dd>
 <dt>3. &nbsp;<code>ssl.setCheckExpiry( true/false )</code></dt>
@@ -65,7 +69,10 @@ the chain, but we're not sure if we always know the entire chain.</dd>
 <dt>4. &nbsp;<code>ssl.setCheckHostname( true/false )</code></dt>
 <dd>Certificate hostname checking improved.  Turned on by default for SSLClient, but turned off by
 default for SSLServer.  If turned on for SSLServer, only applied to client certificates by checking
-against a reverse DNS lookup of the client's IP address.
+against a reverse DNS lookup of the client's IP address.  Turning on for SSLServer will probably be
+quite rare.  We imagine that applications (such as Tomcat) will pass the client chain back up into
+the business layer where people can code in any kind of validation logic they like.  But we put
+it in anyway to keep things consistent.
 <p>Support added for certificates with wildcards in the CN field 
 (e.g. <a href="https://www.credential.com/">*.credential.com</a>). 
 Java already had this, to be fair.  We broke it
@@ -107,7 +114,7 @@ but only if no password, or "changeit" was provided.  (Question:  should this "r
 <tr><td class="v">0.5.0</td><td class="v">Aug&nbsp;2007</td><td>API froven.  All future versions must be reverse-compatible with 0.5.0 (except for any parts of 0.5.0 later found to be insecure).</td></tr>
 <tr><td class="v">0.7.0</td><td class="v">Nov&nbsp;2007</td><td>JavaDocs written for all public methods and classes.</td></tr>
 <tr><td class="v">0.7.5</td><td class="v">Mar&nbsp;2008</td><td>JUnit tests written for all classes.</td></tr>
-<tr><td class="v">0.9.0</td><td class="v">May&nbsp;2008</td><td>First BETA release.  JUnit tests passing on all targetted platforms
+<tr><td class="v">0.9.0</td><td class="v">May&nbsp;2008</td><td>First BETA release.  JUnit tests passing on all targetted platforms:
 <ol>
 <li>Intel/AMD: (Sun, IBM, BEA) x (Linux, Mac, Windows) x (1.3, 1.4, 5, 6, 7)</li>
 <li>All of the above with and without BouncyCastle.</li>
