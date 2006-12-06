@@ -71,7 +71,6 @@ import java.security.cert.X509Certificate;
  */
 public final class Java13 extends JavaImpl
 {
-	private static final String HANDLER = System.getProperty( "java.protocol.handler.pkgs" );
 	private final static Java13 instance = new Java13();
 
 	private Java13()
@@ -276,6 +275,19 @@ public final class Java13 extends JavaImpl
 	{
 		// Not supported in Java 1.3.
 	}
+
+	protected void checkTrusted(  Object trustManager, X509Certificate[] chain,
+	                              String authType )
+			throws CertificateException
+	{
+		X509TrustManager tm = (X509TrustManager) trustManager;
+		boolean result = tm.isServerTrusted( chain );
+		if ( !result )
+		{
+			throw new CertificateException( "commons-ssl java13 mode: certificate chain not trusted" );
+		}
+	}
+
 
 	protected final Object initSSL( SSL ssl, TrustChain tc, KeyMaterial k )
 			throws NoSuchAlgorithmException, KeyStoreException,

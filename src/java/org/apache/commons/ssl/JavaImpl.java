@@ -150,6 +150,11 @@ public abstract class JavaImpl
 			throws NoSuchAlgorithmException, KeyStoreException,
 			       CertificateException, KeyManagementException, IOException;
 
+	protected abstract void checkTrusted(  Object trustManager,
+	                                       X509Certificate[] chain,
+	                                       String authType )
+			throws CertificateException;
+
 	public static Object init( SSL ssl, TrustChain trustChain, KeyMaterial keyMaterial )
 			throws NoSuchAlgorithmException, KeyStoreException,
 			       CertificateException, KeyManagementException, IOException
@@ -250,6 +255,13 @@ public abstract class JavaImpl
 			throws SSLPeerUnverifiedException
 	{
 		return HANDLER.retrieveClientAuth( session );
+	}
+
+	public static void testTrust( Object trustManager, X509Certificate[] chain,
+	                              String authType )
+			throws CertificateException
+	{
+		HANDLER.checkTrusted( trustManager, chain, authType );		
 	}
 
 	public static void load()

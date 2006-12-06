@@ -64,6 +64,14 @@ public class TrustMaterial extends TrustChain
 	 */	
 	public final static TrustMaterial JSSE_CACERTS;
 
+	/**
+	 * Should never be null (unless both CACERTS and JSSE_CACERTS are not
+	 * present???).  Is either CACERTS or JSSE_CACERTS.  Priority given to
+	 * JSSE_CACERTS, but 99.9% of the time it's CACERTS, since JSSE_CACERTS
+	 * is almost never present.
+	 */
+	public final static TrustMaterial DEFAULT;
+
 	static
 	{
 		JavaImpl.load();
@@ -99,6 +107,14 @@ public class TrustMaterial extends TrustChain
 
 		CACERTS = cacerts;
 		JSSE_CACERTS = jssecacerts;
+		if ( JSSE_CACERTS != null )
+		{
+			DEFAULT = JSSE_CACERTS;
+		}
+		else
+		{
+			DEFAULT = CACERTS;
+		}
 	}
 
 	public final static TrustMaterial TRUST_ALL =

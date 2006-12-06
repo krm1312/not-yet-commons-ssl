@@ -62,7 +62,6 @@ public class PEMItem
 
 	public PEMItem( byte[] derBytes, String type, Map properties )
 	{
-		boolean doubleDES = false;
 		this.derBytes = derBytes;
 		this.pemType = type;
 		if ( properties == null )
@@ -89,93 +88,19 @@ public class PEMItem
 		this.iv = PEMUtil.hexToBytes( diIV );
 		if ( !"".equals( diCipher ) )
 		{
-			String CIPHER = "UNKNOWN";
-			String MODE = "";
-			int keySize = -1;
-			StringTokenizer st = new StringTokenizer( dekInfo, "-" );
-			if ( st.hasMoreTokens() )
-			{
-				CIPHER = st.nextToken().toUpperCase();
-				if ( st.hasMoreTokens() )
-				{
-					// Is this the middle token?  Or the last token?
-					String tok = st.nextToken();
-					if ( st.hasMoreTokens() )
-					{
-						try
-						{
-							keySize = Integer.parseInt( tok );
-						}
-						catch ( NumberFormatException nfe )
-						{
-							// I guess 2nd token isn't an integer
-							String upper = tok.toUpperCase();
-							if ( "EDE3".equals( upper ) )
-							{
-								CIPHER = "DESede";
-							}
-							if ( "EDE".equals( upper ) )
-							{
-								CIPHER = "DESede";
-								doubleDES = true;
-							}
-						}
-						MODE = st.nextToken().toUpperCase();
-					}
-					else
-					{
-						// It's the last token, so must be mode (usually "CBC").
-						MODE = tok.toUpperCase();
-						if ( "EDE".equals( MODE ) )
-						{
-							CIPHER = "DESede";
-							MODE = "ECB";
-							doubleDES = true;
-						}
-						else if ( "EDE3".equals( MODE ) )
-						{
-							CIPHER = "DESede";
-							MODE = "ECB";
-						}
-					}
-				}
-			}
-			if ( "BF".equals( CIPHER ) )
-			{
-				CIPHER = "Blowfish";
-			}
-
-
-			this.mode = MODE;
-			this.cipher = CIPHER;
-			if ( keySize == -1 )
-			{
-				if ( CIPHER.startsWith( "DESede" ) )
-				{
-					keySizeInBits = 192;
-				}
-				else if ( CIPHER.startsWith( "DES" ) )
-				{
-					keySizeInBits = 64;
-				}
-				else
-				{
-					// RC2, RC4, and Blowfish ?
-					keySizeInBits = 128;
-				}
-			}
-			else
-			{
-				keySizeInBits = keySize;
-			}
+			OpenSSL.CipherInfo cipherInfo = OpenSSL.lookup( diCipher );
+			this.cipher = cipherInfo.javaCipher;
+			this.mode = cipherInfo.blockMode;
+			this.keySizeInBits = cipherInfo.keySize;
+			this.des2 = cipherInfo.des2;			
 		}
 		else
 		{
 			this.mode = "";
 			cipher = "UNKNOWN";
 			keySizeInBits = -1;
+			des2 = false;
 		}
-		this.des2 = doubleDES;
 	}
 
 	public byte[] getDerBytes()

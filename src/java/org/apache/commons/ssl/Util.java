@@ -93,6 +93,13 @@ public class Util
 	public static void pipeStream( InputStream in, OutputStream out )
 			throws IOException
 	{
+		pipeStream( in, out, true );
+	}
+
+	public static void pipeStream( InputStream in, OutputStream out,
+	                               boolean autoClose )
+			throws IOException
+	{
 		byte[] buf = new byte[ 4096 ];
 		IOException ioe = null;
 		try
@@ -112,7 +119,10 @@ public class Util
 			// Probably it's best to let consumer call "close", but I'm usually
 			// the consumer, and I want to be lazy.  [Julius, November 20th, 2006]
 			try { in.close(); } catch ( IOException e ) { ioe = e; }
-			try { out.close(); } catch ( IOException e ) { ioe = e; }
+			if ( autoClose )
+			{
+				try { out.close(); } catch ( IOException e ) { ioe = e; }
+			}
 		}
 		if ( ioe != null )
 		{
@@ -120,10 +130,24 @@ public class Util
 		}
 	}
 
+	public static byte[] streamToBytes( final InputStream in, int maxLength )
+			throws IOException
+	{
+		byte[] buf = new byte[ maxLength ];
+		int[] status = fill( buf, 0, in );
+		int size = status[ SIZE_KEY ];
+		if ( buf.length != size )
+		{
+			byte[] smallerBuf = new byte[ size ];
+			System.arraycopy( buf, 0, smallerBuf, 0, size );
+			buf = smallerBuf;
+		}
+		return buf;
+	}
 
 	public static byte[] streamToBytes( final InputStream in ) throws IOException
 	{
-		byte[] buf = new byte[4096];
+		byte[] buf = new byte[ 4096 ];
 		try
 		{
 			int[] status = fill( buf, 0, in );
@@ -138,7 +162,7 @@ public class Util
 			}
 			if ( buf.length != size )
 			{
-				byte[] smallerBuf = new byte[size];
+				byte[] smallerBuf = new byte[ size ];
 				System.arraycopy( buf, 0, smallerBuf, 0, size );
 				buf = smallerBuf;
 			}
@@ -152,7 +176,7 @@ public class Util
 
 	public static byte[] streamToBytes( final ByteArrayInputStream in )
 	{
-		byte[] buf = new byte[4096];
+		byte[] buf = new byte[ 4096 ];
 		int[] status = fill( buf, 0, in );
 		int size = status[ SIZE_KEY ];
 		int lastRead = status[ LAST_READ_KEY ];
@@ -165,7 +189,7 @@ public class Util
 		}
 		if ( buf.length != size )
 		{
-			byte[] smallerBuf = new byte[size];
+			byte[] smallerBuf = new byte[ size ];
 			System.arraycopy( buf, 0, smallerBuf, 0, size );
 			buf = smallerBuf;
 		}
@@ -191,10 +215,7 @@ public class Util
 				read += lastRead;
 			}
 		}
-		int[] status = new int[2];
-		status[ SIZE_KEY ] = offset + read;
-		status[ LAST_READ_KEY ] = lastRead;
-		return status;
+		return new int[] { offset + read, lastRead }; 
 	}
 
 	public static int[] fill( final byte[] buf, final int offset,
@@ -214,10 +235,7 @@ public class Util
 				read += lastRead;
 			}
 		}
-		int[] status = new int[2];
-		status[ SIZE_KEY ] = offset + read;
-		status[ LAST_READ_KEY ] = lastRead;
-		return status;
+		return new int[] { offset + read, lastRead };
 	}
 
 	public static byte[] resizeArray( final byte[] bytes )
@@ -402,6 +420,37 @@ public class Util
 			throw new IllegalArgumentException( "Invalid host: " + target );
 		}
 		return new HostPort( host, port );
+	}
+
+	public static String cipherToAuthType( String cipher )
+	{
+		// SSL_DHE_DSS_EXPORT_WITH_DES40_CBC_SHA  ==> "DHE_DSS_EXPORT"
+		// SSL_DHE_DSS_WITH_3DES_EDE_CBC_SHA      ==> "DHE_DSS"
+		// SSL_RSA_WITH_3DES_EDE_CBC_SHA          ==> "RSA"
+
+		StringTokenizer st = new StringTokenizer( cipher.trim(), "_" );
+		if ( st.hasMoreTokens() )
+		{
+			st.nextToken();  // always skip first token
+		}
+		if ( st.hasMoreTokens() )
+		{
+			String tok = st.nextToken();
+			StringBuffer buf = new StringBuffer();
+			buf.append( tok );
+			if ( st.hasMoreTokens() )
+			{
+				tok = st.nextToken();
+				while ( !"WITH".equalsIgnoreCase( tok ) )
+				{
+					buf.append( '_' );
+					buf.append( tok );
+					tok = st.nextToken();
+				}
+			}
+			return buf.toString();
+		}
+		throw new IllegalArgumentException( "not a valid cipher: " + cipher );
 	}
 
 

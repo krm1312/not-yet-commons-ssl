@@ -166,14 +166,7 @@ public class SSL
 		*/
 		if ( !trustMaterialSet )
 		{
-			if ( TrustMaterial.JSSE_CACERTS != null )
-			{
-				setTrustMaterial( TrustMaterial.JSSE_CACERTS );
-			}
-			else
-			{
-				setTrustMaterial( TrustMaterial.CACERTS );
-			}
+			setTrustMaterial( TrustMaterial.DEFAULT );
 		}
 		
 		dirtyAndReloadIfYoung();

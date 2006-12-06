@@ -31,6 +31,13 @@ package org.apache.commons.ssl;
 
 import javax.net.SocketFactory;
 import javax.net.ssl.*;
+import javax.net.ssl.KeyManager;
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.TrustManagerFactory;
+import javax.net.ssl.X509KeyManager;
+import javax.net.ssl.X509TrustManager;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -236,6 +243,14 @@ public final class Java14 extends JavaImpl
 		{
 			throw new ClassCastException( "need SSLSocket or SSLServerSocket" );
 		}
+	}
+
+	protected void checkTrusted(  Object trustManager, X509Certificate[] chain,
+	                              String authType )
+			throws CertificateException
+	{
+		X509TrustManager tm = (X509TrustManager) trustManager;
+		tm.checkServerTrusted( chain, authType );
 	}
 
 	protected final Object initSSL( SSL ssl, TrustChain tc, KeyMaterial k )

@@ -37,8 +37,9 @@ import org.apache.commons.ssl.asn1.DERObjectIdentifier;
 import org.apache.commons.ssl.asn1.DEROctetString;
 import org.apache.commons.ssl.asn1.DERSequence;
 
+import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
-import javax.crypto.CipherInputStream;
+import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.Mac;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
@@ -346,7 +347,7 @@ public class PKCS8Key
 		return privateKey;
 	}
 
-	private static class DecryptResult
+	public static class DecryptResult
 	{
 		public final String transformation;
 		public final int keySize;
@@ -374,16 +375,15 @@ public class PKCS8Key
 			pwd[ i ] = (byte) password[ i ];
 		}
 		MessageDigest md = MessageDigest.getInstance( "MD5" );
-		DerivedKey dk = deriveKeyOpenSSL( pwd, salt, keySize, md );
+		DerivedKey dk = OpenSSL.deriveKey( pwd, salt, keySize, md );
 		return decrypt( cipher, mode, dk, item.des2, null, item.getDerBytes() );
 	}
 
-	public static DecryptResult decrypt( String cipher, String mode,
+	public static Cipher generateCipher( String cipher, String mode,
 	                                     final DerivedKey dk,
 	                                     final boolean des2,
 	                                     final byte[] iv,
-	                                     final byte[] encryptedBytes )
-
+	                                     final boolean decryptMode )
 			throws NoSuchAlgorithmException, NoSuchPaddingException,
 			       InvalidKeyException, InvalidAlgorithmParameterException
 	{
@@ -393,7 +393,7 @@ public class PKCS8Key
 			System.arraycopy( dk.key, 0, dk.key, 16, 8 );
 		}
 
-		int keySize = dk.key.length * 8;
+		final int keySize = dk.key.length * 8;
 		cipher = cipher.trim();
 		mode = mode.trim().toUpperCase();
 		// Is the cipher even available?
@@ -421,49 +421,59 @@ public class PKCS8Key
 		{
 			ivParams = dk.iv != null ? new IvParameterSpec( dk.iv ) : null;
 		}
-		InputStream in = new ByteArrayInputStream( encryptedBytes );
-		try
-		{
-			Cipher c = Cipher.getInstance( transformation );
 
-			// RC2 requires special params to inform engine of keysize.
-			if ( "RC2".equalsIgnoreCase( cipher ) )
+		Cipher c = Cipher.getInstance( transformation );
+		int cipherMode = Cipher.ENCRYPT_MODE;
+		if ( decryptMode )
+		{
+			cipherMode = Cipher.DECRYPT_MODE;
+		}
+
+		// RC2 requires special params to inform engine of keysize.
+		if ( "RC2".equalsIgnoreCase( cipher ) )
+		{
+			RC2ParameterSpec rcParams;
+			if ( "ECB".equals( mode ) || ivParams == null )
 			{
-				RC2ParameterSpec rcParams;
-				if ( "ECB".equals( mode ) || ivParams == null )
-				{
-					// ECB doesn't take an IV.
-					rcParams = new RC2ParameterSpec( keySize );
-				}
-				else
-				{
-					rcParams = new RC2ParameterSpec( keySize, ivParams.getIV() );
-				}
-				c.init( Cipher.DECRYPT_MODE, secret, rcParams );
-			}
-			else if ( "ECB".equals( mode ) || "RC4".equals( cipher ) )
-			{
-				// RC4 doesn't require any params.
-				// Any cipher using ECB does not require an IV. 
-				c.init( Cipher.DECRYPT_MODE, secret );
+				// ECB doesn't take an IV.
+				rcParams = new RC2ParameterSpec( keySize );
 			}
 			else
 			{
-				// DES, DESede, AES, BlowFish require IVParams (when in CBC, CFB,
-				// or OFB mode).  (In ECB mode they don't require IVParams).
-				c.init( Cipher.DECRYPT_MODE, secret, ivParams );
+				rcParams = new RC2ParameterSpec( keySize, ivParams.getIV() );
 			}
-			in = new CipherInputStream( in, c );
-
-			byte[] decryptedBytes = Util.streamToBytes( in );
-			return new DecryptResult( transformation, keySize, decryptedBytes );
+			c.init( cipherMode, secret, rcParams );
 		}
-		catch ( IOException e )
+		else if ( "ECB".equals( mode ) || "RC4".equals( cipher ) )
 		{
-			// unlikely to happen, since we're backed by a ByteArrayInputStream
-			// e.printStackTrace();
-			throw new RuntimeException( "couldn't read CipherInputStream: " + e.toString() );
+			// RC4 doesn't require any params.
+			// Any cipher using ECB does not require an IV.
+			c.init( cipherMode, secret );
 		}
+		else
+		{
+			// DES, DESede, AES, BlowFish require IVParams (when in CBC, CFB,
+			// or OFB mode).  (In ECB mode they don't require IVParams).
+			c.init( cipherMode, secret, ivParams );
+		}
+		return c;
+	}
+
+	public static DecryptResult decrypt( String cipher, String mode,
+	                                     final DerivedKey dk,
+	                                     final boolean des2,
+	                                     final byte[] iv,
+	                                     final byte[] encryptedBytes )
+
+			throws NoSuchAlgorithmException, NoSuchPaddingException,
+			       InvalidKeyException, InvalidAlgorithmParameterException,
+			       IllegalBlockSizeException, BadPaddingException
+	{
+		Cipher c = generateCipher( cipher, mode, dk, des2, iv, true );
+		final String transformation = c.getAlgorithm();
+		final int keySize = dk.key.length * 8;
+		byte[] decryptedBytes = c.doFinal( encryptedBytes );
+		return new DecryptResult( transformation, keySize, decryptedBytes );
 	}
 
 	private static DecryptResult decryptPKCS8( ASN1Structure pkcs8,
@@ -833,49 +843,6 @@ public class PKCS8Key
 		return decrypt( cipher, mode, dk, use2DES, pkcs8.iv, pkcs8.bigPayload );
 	}
 
-	public static DerivedKey deriveKeyOpenSSL( byte[] password, byte[] salt,
-	                                           int keySizeInBits,
-	                                           MessageDigest md )
-	{
-		md.reset();
-		byte[] key = new byte[keySizeInBits / 8];
-		if ( salt == null || salt.length == 0 )
-		{
-			// RC4 problem - OpenSSL isn't giving us the salt!
-			salt = null;
-		}
-		byte[] result;
-		int currentPos = 0;
-		while ( currentPos < key.length )
-		{
-			md.update( password );
-			// salt is only null for RC4
-			if ( salt != null )
-			{
-				// First 8 bytes of salt ONLY!  (That wasn't obvious to me with
-				// those longer AES salts.   MUCH gnashing of teeth.)
-				md.update( salt, 0, 8 );
-			}
-			result = md.digest();
-			int stillNeed = key.length - currentPos;
-			// Digest gave us more than we need.  Let's truncate it.
-			if ( result.length > stillNeed )
-			{
-				byte[] b = new byte[stillNeed];
-				System.arraycopy( result, 0, b, 0, b.length );
-				result = b;
-			}
-			System.arraycopy( result, 0, key, currentPos, result.length );
-			currentPos += result.length;
-			if ( currentPos < key.length )
-			{
-				// Next round starts with a hash of the hash.
-				md.reset();
-				md.update( result );
-			}
-		}
-		return new DerivedKey( key, salt );
-	}
 
 	public static DerivedKey deriveKeyV1( byte[] password, byte[] salt,
 	                                      int iterations, int keySizeInBits,

@@ -29,6 +29,7 @@
 
 package org.apache.commons.ssl;
 
+import javax.net.ssl.SSLSocket;
 import java.io.File;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -130,9 +131,11 @@ public class Ping
 		InputStream in = null;
 		OutputStream out = null;
 		Exception socketException = null;
+		Exception trustException = null;		
 		Exception hostnameException = null;
 		Exception crlException = null;
 		Exception expiryException = null;
+		String sslCipher = null;
 		try
 		{
 			try
@@ -244,6 +247,9 @@ public class Ping
 				out.flush();
 
 				in = s.getInputStream();
+
+				sslCipher = ( (SSLSocket) s ).getSession().getCipherSuite();
+
 				int c = in.read();
 				StringBuffer buf = new StringBuffer();
 				System.out.println( "Reading: " );
@@ -267,7 +273,7 @@ public class Ping
 			{
 				socketException = e;
 			}
-
+			trustException = testTrust( ssl, sslCipher );
 			hostnameException = testHostname( ssl );
 			crlException = testCRL( ssl );
 			expiryException = testExpiry( ssl );
@@ -322,12 +328,36 @@ public class Ping
 				expiryException.printStackTrace();
 				System.out.println();
 			}
+			if ( trustException != null )
+			{
+				trustException.printStackTrace();
+				System.out.println();
+			}
 			if ( socketException != null )
 			{
 				socketException.printStackTrace();
 				System.out.println();
 			}
 		}
+	}
+
+	private static Exception testTrust( SSLClient ssl, String cipher )
+	{
+		try
+		{
+			X509Certificate[] chain = ssl.getCurrentServerChain();
+			Object[] trustManagers = TrustMaterial.DEFAULT.getTrustManagers();
+			for ( int i = 0; i < trustManagers.length; i++ )
+			{
+				String authType = Util.cipherToAuthType( cipher );
+				JavaImpl.testTrust( trustManagers[ i ], chain, authType );
+			}
+		}
+		catch ( Exception e )
+		{
+			return e;
+		}
+		return null;
 	}
 
 	private static Exception testHostname( SSLClient ssl )

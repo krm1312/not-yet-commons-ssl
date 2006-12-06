@@ -173,23 +173,12 @@ public class Base64
 	/**
 	 * Returns whether or not the <code>octect</code> is in the base 64 alphabet.
 	 *
-	 * @param octect The value to test
+	 * @param b The value to test
 	 * @return <code>true</code> if the value is defined in the the base 64 alphabet, <code>false</code> otherwise.
 	 */
-	private static boolean isBase64( byte octect )
+	public static boolean isBase64( byte b )
 	{
-		if ( octect == PAD )
-		{
-			return true;
-		}
-		else if ( octect < 0 || base64Alphabet[ octect ] == -1 )
-		{
-			return false;
-		}
-		else
-		{
-			return true;
-		}
+		return ( b == PAD ) || ( b >= 0 && base64Alphabet[ b ] >= 0 );
 	}
 
 	/**
@@ -294,8 +283,8 @@ public class Base64
 		int lengthDataBits = binaryData.length * EIGHTBIT;
 		int fewerThan24bits = lengthDataBits % TWENTYFOURBITGROUP;
 		int numberTriplets = lengthDataBits / TWENTYFOURBITGROUP;
-		byte encodedData[] = null;
-		int encodedDataLength = 0;
+		byte encodedData[];
+		int encodedDataLength;
 		int nbrChunks = 0;
 
 		if ( fewerThan24bits != 0 )
@@ -322,11 +311,10 @@ public class Base64
 
 		encodedData = new byte[encodedDataLength];
 
-		byte k = 0, l = 0, b1 = 0, b2 = 0, b3 = 0;
-
+		byte k, l, b1, b2, b3;
+		int dataIndex;
+		int i;
 		int encodedIndex = 0;
-		int dataIndex = 0;
-		int i = 0;
 		int nextSeparatorIndex = CHUNK_SIZE;
 		int chunksSoFar = 0;
 
@@ -452,13 +440,12 @@ public class Base64
 		}
 
 		int numberQuadruple = base64Data.length / FOURBYTE;
-		byte decodedData[] = null;
-		byte b1 = 0, b2 = 0, b3 = 0, b4 = 0, marker0 = 0, marker1 = 0;
+		byte decodedData[];
+		byte b1, b2, b3, b4, marker0, marker1;
 
 		// Throw away anything not in base64Data
-
+		int dataIndex;
 		int encodedIndex = 0;
-		int dataIndex = 0;
 		{
 			// this sizes the output array properly - rlw
 			int lastData = base64Data.length;
@@ -498,7 +485,7 @@ public class Base64
 				//Two PAD e.g. 3c[Pad][Pad]
 				decodedData[ encodedIndex ] = (byte) ( b1 << 2 | b2 >> 4 );
 			}
-			else if ( marker1 == PAD )
+			else // if ( marker1 == PAD ) (always true at this point)
 			{
 				//One PAD e.g. 3cQ[Pad]
 				b3 = base64Alphabet[ marker0 ];
