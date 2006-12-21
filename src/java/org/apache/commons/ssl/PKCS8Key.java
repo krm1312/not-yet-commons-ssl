@@ -109,7 +109,7 @@ public class PKCS8Key
 	 *                                  occured.
 	 * @throws IOException              If the supplied InputStream could not be read.
 	 */
-	PKCS8Key( final InputStream in, char[] password )
+	public PKCS8Key( final InputStream in, char[] password )
 			throws GeneralSecurityException, IOException
 	{
 		this( Util.streamToBytes( in ), password );
@@ -122,7 +122,7 @@ public class PKCS8Key
 	 * @throws GeneralSecurityException If a parsing or decryption problem
 	 *                                  occured.
 	 */
-	PKCS8Key( final ByteArrayInputStream in, char[] password )
+	public PKCS8Key( final ByteArrayInputStream in, char[] password )
 			throws GeneralSecurityException
 	{
 		this( Util.streamToBytes( in ), password );
@@ -135,7 +135,7 @@ public class PKCS8Key
 	 * @throws GeneralSecurityException If a parsing or decryption problem
 	 *                                  occured.
 	 */
-	PKCS8Key( final byte[] encoded, char[] password )
+	public PKCS8Key( final byte[] encoded, char[] password )
 			throws GeneralSecurityException
 	{
 		DecryptResult decryptResult =
