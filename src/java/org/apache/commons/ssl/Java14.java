@@ -95,7 +95,7 @@ public final class Java14 extends JavaImpl
 		return cert.getIssuerX500Principal().toString();
 	}
 
-	protected final Certificate[] retrieveClientAuth( SSLSession sslSession )
+	protected final Certificate[] retrievePeerCerts( SSLSession sslSession )
 			throws SSLPeerUnverifiedException
 	{
 		return sslSession.getPeerCertificates();

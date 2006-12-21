@@ -115,7 +115,7 @@ public abstract class JavaImpl
 
 	protected abstract String retrieveIssuerX500( X509Certificate cert );
 
-	protected abstract Certificate[] retrieveClientAuth( SSLSession sslSession )
+	protected abstract Certificate[] retrievePeerCerts( SSLSession sslSession )
 			throws SSLPeerUnverifiedException;
 
 	protected abstract SSLSocketFactory buildSSLSocketFactory( Object ssl );
@@ -254,7 +254,7 @@ public abstract class JavaImpl
 	public static Certificate[] getPeerCertificates( SSLSession session )
 			throws SSLPeerUnverifiedException
 	{
-		return HANDLER.retrieveClientAuth( session );
+		return HANDLER.retrievePeerCerts( session );
 	}
 
 	public static void testTrust( Object trustManager, X509Certificate[] chain,

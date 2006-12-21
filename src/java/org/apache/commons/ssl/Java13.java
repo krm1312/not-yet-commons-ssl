@@ -132,7 +132,7 @@ public final class Java13 extends JavaImpl
 		return cert.getIssuerDN().toString();
 	}
 
-	protected final Certificate[] retrieveClientAuth( SSLSession sslSession )
+	protected final Certificate[] retrievePeerCerts( SSLSession sslSession )
 			throws SSLPeerUnverifiedException
 	{
 		javax.security.cert.X509Certificate[] chain;
