@@ -131,7 +131,7 @@ public class Ping
 		InputStream in = null;
 		OutputStream out = null;
 		Exception socketException = null;
-		Exception trustException = null;		
+		Exception trustException = null;
 		Exception hostnameException = null;
 		Exception crlException = null;
 		Exception expiryException = null;
@@ -346,11 +346,19 @@ public class Ping
 		try
 		{
 			X509Certificate[] chain = ssl.getCurrentServerChain();
-			Object[] trustManagers = TrustMaterial.DEFAULT.getTrustManagers();
-			for ( int i = 0; i < trustManagers.length; i++ )
+			String authType = Util.cipherToAuthType( cipher );
+			if ( authType == null )
 			{
-				String authType = Util.cipherToAuthType( cipher );
-				JavaImpl.testTrust( trustManagers[ i ], chain, authType );
+				// default of "RSA" just for Ping's purposes.
+				authType = "RSA";
+			}
+			if ( chain != null )
+			{
+				Object[] trustManagers = TrustMaterial.DEFAULT.getTrustManagers();
+				for ( int i = 0; i < trustManagers.length; i++ )
+				{
+					JavaImpl.testTrust( trustManagers[ i ], chain, authType );
+				}
 			}
 		}
 		catch ( Exception e )

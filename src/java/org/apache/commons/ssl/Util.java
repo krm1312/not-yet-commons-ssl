@@ -255,8 +255,19 @@ public class Util
 			return;
 		}
 		SSLSocket s = (SSLSocket) socket;
-		SSLSession session = s.getSession();
-		Certificate[] certs;
+        SSLSession session = s.getSession();
+        if ( session == null )
+        {
+            // This seems to only happen with IBM 1.4.x when the server's
+            // cert chain includes some additional spurious certs.
+            // IBM is not happy, but won't tell us until we do something
+            // with the socket input stream.
+            s.getInputStream().available();
+
+            session = s.getSession();
+        }
+
+        Certificate[] certs;
 		try
 		{
 			certs = JavaImpl.getPeerCertificates( session );
@@ -424,7 +435,12 @@ public class Util
 
 	public static String cipherToAuthType( String cipher )
 	{
-		// SSL_DHE_DSS_EXPORT_WITH_DES40_CBC_SHA  ==> "DHE_DSS_EXPORT"
+        if ( cipher == null )
+        {
+            return null;
+        }
+        
+        // SSL_DHE_DSS_EXPORT_WITH_DES40_CBC_SHA  ==> "DHE_DSS_EXPORT"
 		// SSL_DHE_DSS_WITH_3DES_EDE_CBC_SHA      ==> "DHE_DSS"
 		// SSL_RSA_WITH_3DES_EDE_CBC_SHA          ==> "RSA"
 
