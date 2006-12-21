@@ -14,13 +14,12 @@ import java.util.StringTokenizer;
 /**
  * Class for encrypting or decrypting data with a password (PBE - password
  * based encryption).  Compatible with "openssl enc" unix utility.
- * <p>
+ * <p/>
  * This class is able to decrypt files encrypted with "openssl" unix utility.
- * <p>
+ * <p/>
  * The "openssl" unix utility is able to decrypt files encrypted by this class.
- * <p>
+ * <p/>
  * This class is also able to encrypt and decrypt its own files.
- *  
  *
  * @author Julius Davies
  * @since 5-Dec-2006
@@ -29,20 +28,18 @@ public class OpenSSL
 {
 
 	/**
-     * Decrypts data using a password and an OpenSSL compatible cipher
-     * name.
-     *
-	 * @param cipher  The OpenSSL compatible cipher to use (try "man enc" on a
-	 *        unix box to see what's possible).  Some examples:
-	 *              <ul><li>des, des3, des-ede3-cbc
-	 *              <li>aes128, aes192, aes256, aes-256-cbc
-	 *              <li>rc2, rc4, bf</ul>
+	 * Decrypts data using a password and an OpenSSL compatible cipher
+	 * name.
 	 *
-	 *
-	 * @param pwd  password to use for this PBE decryption
-	 * @param encrypted  InputStream to decrypt.  Can be raw, or base64.
+	 * @param cipher    The OpenSSL compatible cipher to use (try "man enc" on a
+	 *                  unix box to see what's possible).  Some examples:
+	 *                  <ul><li>des, des3, des-ede3-cbc
+	 *                  <li>aes128, aes192, aes256, aes-256-cbc
+	 *                  <li>rc2, rc4, bf</ul>
+	 * @param pwd       password to use for this PBE decryption
+	 * @param encrypted InputStream to decrypt.  Can be raw, or base64.
 	 * @return decrypted bytes as an InputStream
-	 * @throws IOException problems with InputStream
+	 * @throws IOException              problems with InputStream
 	 * @throws GeneralSecurityException problems decrypting
 	 */
 	public static InputStream decrypt( String cipher, byte[] pwd,
@@ -100,9 +97,9 @@ public class OpenSSL
 		}
 		else
 		{
-            // Encrypted data wasn't salted.  Need to put the "saltLine" we
-            // extracted back into the stream.
-            InputStream head = new ByteArrayInputStream( saltLine );
+			// Encrypted data wasn't salted.  Need to put the "saltLine" we
+			// extracted back into the stream.
+			InputStream head = new ByteArrayInputStream( saltLine );
 			encrypted = new ComboInputStream( head, encrypted );
 		}
 
@@ -121,62 +118,59 @@ public class OpenSSL
 		return new CipherInputStream( encrypted, c );
 	}
 
-    public static InputStream encrypt( String cipher, byte[] pwd,
-                                       InputStream data )
-            throws IOException, GeneralSecurityException
-    {
-        // base64 is the default output format.
-        return encrypt( cipher, pwd, data, true );
-    }
+	public static InputStream encrypt( String cipher, byte[] pwd,
+	                                   InputStream data )
+			throws IOException, GeneralSecurityException
+	{
+		// base64 is the default output format.
+		return encrypt( cipher, pwd, data, true );
+	}
 
-    public static InputStream encrypt( String cipher, byte[] pwd,
-                                       InputStream data, boolean toBase64 )
-            throws IOException, GeneralSecurityException
-    {
-        // we use a salt by default.
-        return encrypt( cipher, pwd, data, toBase64, true );
-    }
+	public static InputStream encrypt( String cipher, byte[] pwd,
+	                                   InputStream data, boolean toBase64 )
+			throws IOException, GeneralSecurityException
+	{
+		// we use a salt by default.
+		return encrypt( cipher, pwd, data, toBase64, true );
+	}
 
-    /**
-     * Encrypts data using a password and an OpenSSL compatible cipher
-     * name.
-     *
-	 * @param cipher  The OpenSSL compatible cipher to use (try "man enc" on a
-	 *        unix box to see what's possible).  Some examples:
-	 *              <ul><li>des, des3, des-ede3-cbc
-	 *              <li>aes128, aes192, aes256, aes-256-cbc
-	 *              <li>rc2, rc4, bf</ul>
+	/**
+	 * Encrypts data using a password and an OpenSSL compatible cipher
+	 * name.
 	 *
-	 *
-	 * @param pwd  password to use for this PBE encryption
-	 * @param data  InputStream to encrypt
-	 * @param toBase64  true if resulting InputStream should contain base64,
-	 *                  <br>false if InputStream should contain raw binary.
-	 * @param useSalt   true if a salt should be used to derive the key.
-     *                  <br>false otherwise.  (Best security practises
-     *                  always recommend using a salt!). 
-     *
+	 * @param cipher   The OpenSSL compatible cipher to use (try "man enc" on a
+	 *                 unix box to see what's possible).  Some examples:
+	 *                 <ul><li>des, des3, des-ede3-cbc
+	 *                 <li>aes128, aes192, aes256, aes-256-cbc
+	 *                 <li>rc2, rc4, bf</ul>
+	 * @param pwd      password to use for this PBE encryption
+	 * @param data     InputStream to encrypt
+	 * @param toBase64 true if resulting InputStream should contain base64,
+	 *                 <br>false if InputStream should contain raw binary.
+	 * @param useSalt  true if a salt should be used to derive the key.
+	 *                 <br>false otherwise.  (Best security practises
+	 *                 always recommend using a salt!).
 	 * @return encrypted bytes as an InputStream.  First 16 bytes include the
 	 *         special OpenSSL "Salted__" info if <code>useSalt</code> is true.
-	 * @throws IOException problems with the data InputStream
+	 * @throws IOException              problems with the data InputStream
 	 * @throws GeneralSecurityException problems encrypting
 	 */
 	public static InputStream encrypt( String cipher, byte[] pwd,
 	                                   InputStream data, boolean toBase64,
-                                       boolean useSalt )
+	                                   boolean useSalt )
 			throws IOException, GeneralSecurityException
 	{
 		CipherInfo cipherInfo = lookup( cipher );
 		MessageDigest md5 = MessageDigest.getInstance( "MD5" );
-        byte[] salt = null;
-        if ( useSalt )
-        {
-            SecureRandom rand = SecureRandom.getInstance( "SHA1PRNG" );
-            salt = new byte[8];
-            rand.nextBytes( salt );
-        }
+		byte[] salt = null;
+		if ( useSalt )
+		{
+			SecureRandom rand = SecureRandom.getInstance( "SHA1PRNG" );
+			salt = new byte[8];
+			rand.nextBytes( salt );
+		}
 
-        int keySize = cipherInfo.keySize;
+		int keySize = cipherInfo.keySize;
 		int ivSize = 64;
 		if ( cipherInfo.javaCipher.startsWith( "AES" ) )
 		{
@@ -190,16 +184,16 @@ public class OpenSSL
 
 		InputStream cipherStream = new CipherInputStream( data, c );
 
-        if ( useSalt )
-        {
-            byte[] saltLine = new byte[16];
-            byte[] salted = "Salted__".getBytes();
-            System.arraycopy( salted, 0, saltLine, 0, salted.length );
-            System.arraycopy( salt, 0, saltLine, salted.length, salt.length );            
-            InputStream head = new ByteArrayInputStream( saltLine );
-            cipherStream = new ComboInputStream( head, cipherStream );
-        }
-        if ( toBase64 )
+		if ( useSalt )
+		{
+			byte[] saltLine = new byte[16];
+			byte[] salted = "Salted__".getBytes();
+			System.arraycopy( salted, 0, saltLine, 0, salted.length );
+			System.arraycopy( salt, 0, saltLine, salted.length, salt.length );
+			InputStream head = new ByteArrayInputStream( saltLine );
+			cipherStream = new ComboInputStream( head, cipherStream );
+		}
+		if ( toBase64 )
 		{
 			cipherStream = new Base64InputStream( cipherStream, false );
 		}
@@ -231,15 +225,15 @@ public class OpenSSL
 			if ( salt != null )
 			{
 				// First 8 bytes of salt ONLY!  That wasn't obvious to me
-                // when using AES encrypted private keys in "Traditional
-                // SSLeay Format".
-                //
-                // Example:
-                // DEK-Info: AES-128-CBC,8DA91D5A71988E3D4431D9C2C009F249
-                //
-                // Only the first 8 bytes are salt, but the whole thing is
-                // re-used again later as the IV.  MUCH gnashing of teeth!
-                md.update( salt, 0, 8 );
+				// when using AES encrypted private keys in "Traditional
+				// SSLeay Format".
+				//
+				// Example:
+				// DEK-Info: AES-128-CBC,8DA91D5A71988E3D4431D9C2C009F249
+				//
+				// Only the first 8 bytes are salt, but the whole thing is
+				// re-used again later as the IV.  MUCH gnashing of teeth!
+				md.update( salt, 0, 8 );
 			}
 			result = md.digest();
 			int stillNeed = keyAndIv.length - currentPos;
@@ -261,12 +255,12 @@ public class OpenSSL
 		}
 		if ( ivSize == 0 )
 		{
-            // if ivSize == 0, then "keyAndIv" array is actually all key.
+			// if ivSize == 0, then "keyAndIv" array is actually all key.
 
-            // Must be "Traditional SSLeay Format" encrypted private key in
-            // PEM.  The "salt" in its entirety (not just first 8 bytes) will
-            // probably be re-used later as the IV (initialization vector). 
-            return new DerivedKey( keyAndIv, salt );
+			// Must be "Traditional SSLeay Format" encrypted private key in
+			// PEM.  The "salt" in its entirety (not just first 8 bytes) will
+			// probably be re-used later as the IV (initialization vector).
+			return new DerivedKey( keyAndIv, salt );
 		}
 		else
 		{
@@ -303,10 +297,9 @@ public class OpenSSL
 
 	/**
 	 * Converts the way OpenSSL names its ciphers into a Java-friendly naming.
-	 *  
-	 * @param openSSLCipher OpenSSL cipher name, e.g. "des3" or "des-ede3-cbc".
-	 *        Try "man enc" on a unix box to see what's possible.
 	 *
+	 * @param openSSLCipher OpenSSL cipher name, e.g. "des3" or "des-ede3-cbc".
+	 *                      Try "man enc" on a unix box to see what's possible.
 	 * @return CipherInfo object with the Java-friendly cipher information.
 	 */
 	public static CipherInfo lookup( String openSSLCipher )
@@ -423,18 +416,16 @@ public class OpenSSL
 
 
 	/**
-	 *
 	 * @param args command line arguments: [password] [cipher] [file-to-decrypt]
-	 *        <br>[cipher] == OpenSSL cipher name, e.g. "des3" or "des-ede3-cbc".
-	 *        Try "man enc" on a unix box to see what's possible.
-	 *
-	 * @throws IOException  problems with the [file-to-decrypt]
-	 * @throws GeneralSecurityException  decryption problems
+	 *             <br>[cipher] == OpenSSL cipher name, e.g. "des3" or "des-ede3-cbc".
+	 *             Try "man enc" on a unix box to see what's possible.
+	 * @throws IOException              problems with the [file-to-decrypt]
+	 * @throws GeneralSecurityException decryption problems
 	 */
 	public static void main( String[] args )
 			throws IOException, GeneralSecurityException
 	{
-        if ( args.length < 3 )
+		if ( args.length < 3 )
 		{
 			System.out.println( Version.versionString() );
 			System.out.println( "Pure-java utility to decrypt files previously encrypted by \'openssl enc\'" );
@@ -442,7 +433,7 @@ public class OpenSSL
 			System.out.println( "Usage:  java -cp commons-ssl.jar org.apache.commons.ssl.OpenSSL [args]" );
 			System.out.println( "        [args]   == [password] [cipher] [file-to-decrypt]" );
 			System.out.println( "        [cipher] == des, des3, des-ede3-cbc, aes256, rc2, rc4, bf, bf-cbc, etc..." );
-            System.out.println( "                    Try 'man enc' on a unix box to see what's possible." );
+			System.out.println( "                    Try 'man enc' on a unix box to see what's possible." );
 			System.out.println();
 			System.out.println( "This utility can handle base64 or raw, salted or unsalted." );
 			System.out.println();
