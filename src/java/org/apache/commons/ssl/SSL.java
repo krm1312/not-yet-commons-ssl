@@ -85,6 +85,7 @@ public class SSL
 	private int initCount = 0;
 	private SSLSocketFactory socketFactory = null;
 	private SSLServerSocketFactory serverSocketFactory = null;
+	private final HostnameVerifier hostnameVerifier = HostnameVerifier.DEFAULT;
 	private boolean checkHostname = true;
 	private boolean checkCRL = true;
 	private boolean checkExpiry = true;
@@ -422,7 +423,7 @@ public class SSL
 	{
 		if ( checkHostname )
 		{
-			Util.verifyHostName( host, s );
+			hostnameVerifier.verify( host, s );
 		}
 	}
 

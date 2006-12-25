@@ -29,20 +29,18 @@
 
 package org.apache.commons.ssl;
 
-import javax.net.ssl.SSLException;
 import java.io.*;
 import java.math.BigInteger;
 import java.net.URL;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.cert.CRL;
 import java.security.cert.CRLException;
-import java.security.cert.Certificate;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.security.cert.X509Extension;
-import java.security.cert.CRL;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
@@ -247,79 +245,29 @@ public class Certificates
 		return buf.toString();
 	}
 
-	public static void verifyHostName( String host, Certificate[] chain )
-			throws SSLException
-	{
-		verifyHostName( host, (X509Certificate) chain[ 0 ] );
-	}
-
-	public static void verifyHostName( String host, X509Certificate cert )
-			throws SSLException
-	{
-		String cn = getCN( cert );
-		boolean match;
-		if ( cn == null )
-		{
-			String s = JavaImpl.getSubjectX500( cert );
-			throw new SSLException( "certificate doesn't contain CN: " + s );
-		}
-
-		// Firefox, IE, and java.net.URL support '*.host.com' style CN values
-		// (with a wildcard).  Try "https://www.credential.com/" to see an
-		// example.  Note:  I'm not allowing things like "*.com".
-
-		// See:  RFC 2595 - search for "*"
-
-		// The CN better have at least two dots if it wants wildcard action.
-		boolean wildcard = cn.startsWith( "*." ) && cn.lastIndexOf( '.' ) > 1;
-		if ( wildcard )
-		{
-			match = host.endsWith( cn.substring( 1 ) );
-		}
-		else
-		{
-			match = host.equals( cn );
-		}
-		if ( !match )
-		{
-			throw new SSLException( "hostname in certificate didn't match: <" + host + "> != <" + cn + ">" );
-		}
-	}
-
 	public static String getCN( X509Certificate cert )
 	{
 		/*
-				  // toString() seems to do a better job than getName() on some
-				  // of the complicated conversions with X500 - at least in SUN's
-				  // Java 1.4.2_09.
-				  //
-				  // For example, getName() gives me this:
-				  // 1.2.840.113549.1.9.1=#16166a756c6975736461766965734063756362632e636f6d
-				  //
-				  // whereas toString() gives me this:
-				  // EMAILADDRESS=juliusdavies@cucbc.com
-				  */
+		toString() seems to do a better job than getName() on some
+		of the complicated conversions with X500 - at least in SUN's
+		Kava 1.4.2_09.
+
+		For example, getName() gives me this:
+		1.2.840.113549.1.9.1=#16166a756c6975736461766965734063756362632e636f6d
+
+		Whereas toString() gives me this:
+		EMAILADDRESS=juliusdavies@cucbc.com
+		*/
 		String subjectPrincipal = JavaImpl.getSubjectX500( cert );
 		int x = subjectPrincipal.indexOf( "CN=" );
 		int y = subjectPrincipal.indexOf( ',', x );
 		y = y >= 0 ? y : subjectPrincipal.length();
-
-		/*
-				  // X500 CommonName parsing is actually much, much harder than this -
-				  // there are all sorts of special escape characters and hexadecimal
-				  // conversions to consider (see: <code>RFC 2253</code>).  Maybe
-				  // toString() is doing these already?  I don't know.
-				  //
-				  // (Thanks to Sebastian Hauer's StrictSSLProtocolSocketFactory for
-				  // pointing out how tricky X500 parsing can be!)
-				  */
 		return subjectPrincipal.substring( x + 3, y );
 	}
 
 
 	public static List getCRLs( X509Extension cert )
 	{
-
 		// What follows is a poor man's CRL extractor, for those lacking
 		// a BouncyCastle "bcprov.jar" in their classpath.
 

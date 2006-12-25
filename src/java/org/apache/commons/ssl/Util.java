@@ -29,16 +29,11 @@
 
 package org.apache.commons.ssl;
 
-import javax.net.ssl.SSLPeerUnverifiedException;
-import javax.net.ssl.SSLSession;
-import javax.net.ssl.SSLSocket;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.net.Socket;
 import java.net.UnknownHostException;
-import java.security.cert.Certificate;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.StringTokenizer;
@@ -243,42 +238,6 @@ public class Util
 		byte[] biggerBytes = new byte[bytes.length * 2];
 		System.arraycopy( bytes, 0, biggerBytes, 0, bytes.length );
 		return biggerBytes;
-	}
-
-	public static void verifyHostName( final String host, final Socket socket )
-			throws IOException
-	{
-		boolean isSecure = socket instanceof SSLSocket;
-		if ( !isSecure )
-		{
-			// Don't bother verifying if it's not a secure socket.
-			return;
-		}
-		SSLSocket s = (SSLSocket) socket;
-        SSLSession session = s.getSession();
-        if ( session == null )
-        {
-            // This seems to only happen with IBM 1.4.x when the server's
-            // cert chain includes some additional spurious certs.
-            // IBM is not happy, but won't tell us until we do something
-            // with the socket input stream.
-            s.getInputStream().available();
-
-            session = s.getSession();
-        }
-
-        Certificate[] certs;
-		try
-		{
-			certs = JavaImpl.getPeerCertificates( session );
-		}
-		catch ( SSLPeerUnverifiedException spue )
-		{
-			// let's see if this unearths the real problem:
-			s.startHandshake();
-			throw spue;
-		}
-		Certificates.verifyHostName( host, certs );
 	}
 
 	public static String pad( String s, final int length, final boolean left )
