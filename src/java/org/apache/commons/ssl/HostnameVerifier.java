@@ -321,7 +321,6 @@ public interface HostnameVerifier extends javax.net.ssl.HostnameVerifier {
 		     if ( x >= 0 && x + 1 < cn.length() ) {
 			     tld = cn.substring( x + 1 );
 		     }
-System.out.println( "testing: [" + tld + "]" );		     
 		     for ( int i = 0; i < tld.length(); i++ ) {
 			     if ( !Character.isDigit( tld.charAt( 0 ) ) ) {
 				     isIP4 = false;
