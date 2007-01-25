@@ -536,4 +536,19 @@ public class Certificates
 			return crl != null;
 		}
 	}
+
+	public static void main( String[] args ) throws Exception
+	{
+		for ( int i = 0; i < args.length; i++ )
+		{
+			FileInputStream in = new FileInputStream( args[ i ] );
+			TrustMaterial tm = new TrustMaterial( in );
+			Iterator it = tm.getCertificates().iterator();
+			while ( it.hasNext() )
+			{
+				X509Certificate x509 = (X509Certificate) it.next();
+				System.out.println( toString( x509 ) );
+			}
+		}
+	}
 }

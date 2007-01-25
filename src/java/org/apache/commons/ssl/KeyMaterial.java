@@ -62,7 +62,9 @@ public class KeyMaterial extends TrustMaterial
 	public KeyMaterial( InputStream jks, InputStream key, char[] password )
 			throws GeneralSecurityException, IOException
 	{
-		this( Util.streamToBytes( jks ), Util.streamToBytes( key ), password );
+		this( jks != null ? Util.streamToBytes( jks ) : null,
+		      key != null ? Util.streamToBytes( key ) : null,
+		      password );
 	}
 
 	public KeyMaterial( String pathToJksFile, char[] password )
@@ -74,7 +76,9 @@ public class KeyMaterial extends TrustMaterial
 	public KeyMaterial( String pathToCerts, String pathToKey, char[] password )
 			throws GeneralSecurityException, IOException
 	{
-		this( new File( pathToCerts ), new File( pathToKey ), password );
+		this( pathToCerts != null ? new File( pathToCerts ) : null,
+		      pathToKey != null ? new File( pathToKey ) : null,
+		      password );
 	}
 
 	public KeyMaterial( File jksFile, char[] password )
@@ -86,7 +90,9 @@ public class KeyMaterial extends TrustMaterial
 	public KeyMaterial( File certsFile, File keyFile, char[] password )
 			throws GeneralSecurityException, IOException
 	{
-		this( new FileInputStream( certsFile ), new FileInputStream( keyFile ), password );
+		this( certsFile != null ? new FileInputStream( certsFile ) : null,
+		      keyFile != null ? new FileInputStream( keyFile ) : null,
+		      password );
 	}
 
 
@@ -158,6 +164,16 @@ public class KeyMaterial extends TrustMaterial
 	public X509Certificate[] getAssociatedCertificateChain()
 	{
 		return associatedChain;
+	}
+
+	public KeyStore getKeyStore()
+	{
+		return super.getKeyStore();
+	}
+
+	public String getAlias()
+	{
+		return alias;
 	}
 
 	public static void main( String[] args ) throws Exception
