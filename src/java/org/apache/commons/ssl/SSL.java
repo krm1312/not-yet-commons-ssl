@@ -102,8 +102,7 @@ public class SSL
 	private X509Certificate[] currentClientChain;
 	private boolean wantClientAuth = true;
 	private boolean needClientAuth = false;
-	private SSLWrapperFactory sslWrapperFactory =
-			DefaultSSLWrapperFactory.getInstance();
+	private SSLWrapperFactory sslWrapperFactory = SSLWrapperFactory.NO_WRAP;
 
 	public SSL()
 			throws GeneralSecurityException, IOException

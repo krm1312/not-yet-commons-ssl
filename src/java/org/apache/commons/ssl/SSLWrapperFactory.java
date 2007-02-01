@@ -63,4 +63,35 @@ public interface SSLWrapperFactory
 	public SSLServerSocket wrap( SSLServerSocket s, SSLServer server )
 			throws IOException;
 
+
+	public final static SSLWrapperFactory NO_WRAP = new SSLWrapperFactory()
+	{
+		// Notice!  No wrapping!
+		public SSLSocket wrap( SSLSocket s ) { return s; }
+
+		public SSLServerSocket wrap( SSLServerSocket s, SSLServer server )
+				throws IOException
+		{
+			// Can't wrap with Java 1.3 because SSLServerSocket's constructor has
+			// default access instead of protected access in Java 1.3.
+			boolean java13 = JavaImpl.isJava13();
+			return java13 ? s : new SSLServerSocketWrapper( s, server, this );
+		}
+	};
+
+	public final static SSLWrapperFactory DEFAULT = new SSLWrapperFactory()
+	{
+		public SSLSocket wrap( SSLSocket s ) { return new SSLSocketWrapper( s ); }
+
+		public SSLServerSocket wrap( SSLServerSocket s, SSLServer server )
+				throws IOException
+		{
+			// Can't wrap with Java 1.3 because SSLServerSocket's constructor has
+			// default access instead of protected access in Java 1.3.
+			boolean java13 = JavaImpl.isJava13();
+			return java13 ? s : new SSLServerSocketWrapper( s, server, this );
+		}
+	};
+
+
 }
