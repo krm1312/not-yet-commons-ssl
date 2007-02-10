@@ -29,6 +29,9 @@
 
 package org.apache.commons.ssl;
 
+import org.apache.commons.ssl.asn1.DERInteger;
+import org.apache.commons.ssl.asn1.DERSequence;
+
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -48,6 +51,8 @@ import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
+import java.security.interfaces.DSAParams;
+import java.security.interfaces.DSAPrivateKey;
 import java.security.interfaces.RSAPrivateCrtKey;
 import java.security.interfaces.RSAPublicKey;
 import java.util.Collection;
@@ -513,11 +518,13 @@ public class KeyStoreBuilder
 	{
 		if ( args.length < 2 )
 		{
-			System.out.println( "KeyStoreBuilder:  outputs JKS file (java keystore) as ./[alias].jks" );
+			System.out.println( "KeyStoreBuilder:  creates '[alias].jks' (Java Key Store)" );
+			System.out.println( "    -topk8 mode:  creates '[alias].pem' (x509 chain + unencrypted pkcs8)" );
 			System.out.println( "[alias] will be set to the first CN value of the X509 certificate." );
 			System.out.println( "-------------------------------------------------------------------" );
-			System.out.println( "Usage1:  [password] [file:pkcs12]" );
-			System.out.println( "Usage2:  [password] [file:private-key] [file:certificate-chain]" );
+			System.out.println( "Usage1: [password] [file:pkcs12]" );
+			System.out.println( "Usage2: [password] [file:private-key] [file:certificate-chain]" );
+			System.out.println( "Usage3: -topk8 [password] [file:jks]" );
 			System.out.println( "-------------------------------------------------------------------" );
 			System.out.println( "[private-key] can be openssl format, or pkcs8." );
 			System.out.println( "[password] decrypts [private-key], and also encrypts outputted JKS file." );
@@ -525,6 +532,15 @@ public class KeyStoreBuilder
 			System.exit( 1 );
 		}
 		char[] password = args[ 0 ].toCharArray();
+		boolean toPKCS8 = false;
+		if ( "-topk8".equalsIgnoreCase( args[ 0 ] ) )
+		{
+			toPKCS8 = true;
+			password = args[ 1 ].toCharArray();
+			args[ 1 ] = args[ 2 ];
+			args[ 2 ] = null;
+		}
+
 		FileInputStream fin1 = new FileInputStream( args[ 1 ] );
 		byte[] bytes1 = Util.streamToBytes( fin1 );
 		byte[] bytes2 = null;
@@ -533,7 +549,6 @@ public class KeyStoreBuilder
 			FileInputStream fin2 = new FileInputStream( args[ 2 ] );
 			bytes2 = Util.streamToBytes( fin2 );
 		}
-
 
 		KeyStore ks = build( bytes1, bytes2, password );
 		Enumeration en = ks.aliases();
@@ -550,7 +565,7 @@ public class KeyStoreBuilder
 			}
 		}
 
-		File f = new File( alias + ".jks" );
+		File f = new File( alias + ( toPKCS8 ? ".pem" : ".jks" ) );
 		int count = 1;
 		while ( f.exists() )
 		{
@@ -559,7 +574,72 @@ public class KeyStoreBuilder
 		}
 
 		FileOutputStream jks = new FileOutputStream( f );
-		ks.store( jks, password );
+		if ( toPKCS8 )
+		{
+			List pemItems = new LinkedList();
+			PrivateKey key = (PrivateKey) ks.getKey( alias, password );
+			Certificate[] chain = ks.getCertificateChain( alias );
+			byte[] pkcs8DerBytes = null;
+			if ( key instanceof RSAPrivateCrtKey )
+			{
+				RSAPrivateCrtKey rsa = (RSAPrivateCrtKey) key;
+				DERSequence seq = new DERSequence();
+				seq.add( DERInteger.valueOf( 0 ) );
+				seq.add( new DERInteger( rsa.getModulus() ) );
+				seq.add( new DERInteger( rsa.getPublicExponent() ) );
+				seq.add( new DERInteger( rsa.getPrivateExponent() ) );
+				seq.add( new DERInteger( rsa.getPrimeP() ) );
+				seq.add( new DERInteger( rsa.getPrimeQ() ) );
+				seq.add( new DERInteger( rsa.getPrimeExponentP() ) );
+				seq.add( new DERInteger( rsa.getPrimeExponentQ() ) );
+				seq.add( new DERInteger( rsa.getCrtCoefficient() ) );
+				byte[] derBytes = PKCS8Key.encode( seq );
+				PKCS8Key pkcs8 = new PKCS8Key( derBytes, null );
+				pkcs8DerBytes = pkcs8.getDecryptedBytes();
+			}
+			else if ( key instanceof DSAPrivateKey )
+			{
+				DSAPrivateKey dsa = (DSAPrivateKey) key;
+				DSAParams params = dsa.getParams();
+				BigInteger g = params.getG();
+				BigInteger p = params.getP();
+				BigInteger q = params.getQ();
+				BigInteger x = dsa.getX();
+				BigInteger y = q.modPow( x, p );
+
+				DERSequence seq = new DERSequence();
+				seq.add( DERInteger.valueOf( 0 ) );
+				seq.add( new DERInteger( p ) );
+				seq.add( new DERInteger( q ) );
+				seq.add( new DERInteger( g ) );
+				seq.add( new DERInteger( y ) );
+				seq.add( new DERInteger( x ) );
+				byte[] derBytes = PKCS8Key.encode( seq );
+				PKCS8Key pkcs8 = new PKCS8Key( derBytes, null );
+				pkcs8DerBytes = pkcs8.getDecryptedBytes();
+			}
+			if ( chain != null && chain.length > 0 )
+			{
+				for ( int i = 0; i < chain.length; i++ )
+				{
+					X509Certificate x509 = (X509Certificate) chain[ i ];
+					byte[] derBytes = x509.getEncoded();
+					PEMItem item = new PEMItem( derBytes, "CERTIFICATE" );
+					pemItems.add( item );
+				}
+			}
+			if ( pkcs8DerBytes != null )
+			{
+				PEMItem item = new PEMItem( pkcs8DerBytes, "PRIVATE KEY" );
+				pemItems.add( item );
+			}			
+			byte[] pem = PEMUtil.encode( pemItems );
+			jks.write( pem );
+		}
+		else
+		{
+			ks.store( jks, password );
+		}
 		jks.flush();
 		jks.close();
 		System.out.println( "Successfuly wrote: [" + f.getPath() + "]" );

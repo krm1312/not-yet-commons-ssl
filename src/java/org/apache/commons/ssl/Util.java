@@ -125,6 +125,21 @@ public class Util
 		}
 	}
 
+	public static byte[] streamToBytes( final ByteArrayInputStream in,
+	                                    int maxLength )
+	{
+		byte[] buf = new byte[ maxLength ];
+		int[] status = fill( buf, 0, in );
+		int size = status[ SIZE_KEY ];
+		if ( buf.length != size )
+		{
+			byte[] smallerBuf = new byte[ size ];
+			System.arraycopy( buf, 0, smallerBuf, 0, size );
+			buf = smallerBuf;
+		}
+		return buf;
+	}
+
 	public static byte[] streamToBytes( final InputStream in, int maxLength )
 			throws IOException
 	{

@@ -32,11 +32,15 @@ public class DERInteger extends DERObject
 	/**
 	 * Basic DERObject constructor.
 	 */
-	DERInteger( byte[] value )
+	public DERInteger( byte[] value )
 	{
 		super( INTEGER, value );
 	}
 
+	public DERInteger( BigInteger integer )
+	{
+		this( integer.toByteArray() );
+	}
 
 	/**
 	 * Static factory method, type-conversion operator.

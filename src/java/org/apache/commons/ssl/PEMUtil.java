@@ -30,6 +30,8 @@
 package org.apache.commons.ssl;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.math.BigInteger;
 import java.security.interfaces.RSAPrivateCrtKey;
 import java.util.ArrayList;
@@ -48,6 +50,43 @@ import java.util.Map;
 public class PEMUtil
 {
 	final static String LINE_SEPARATOR = System.getProperty( "line.separator" );
+
+	public static byte[] encode( List list ) throws IOException
+	{
+		final byte[] LINE_SEPARATOR_BYTES = LINE_SEPARATOR.getBytes( "UTF-8" );
+		ByteArrayOutputStream out = new ByteArrayOutputStream( 4096 );
+		Iterator it = list.iterator();
+		while ( it.hasNext() )
+		{
+			PEMItem item = (PEMItem) it.next();
+			out.write( "-----BEGIN ".getBytes( "UTF-8" ) );
+			out.write( item.pemType.getBytes( "UTF-8" ) );
+			out.write( "-----".getBytes( "UTF-8" ) );
+			out.write( LINE_SEPARATOR_BYTES );
+
+			byte[] derBytes = item.getDerBytes();
+			ByteArrayInputStream bin = new ByteArrayInputStream( derBytes );
+			byte[] line = Util.streamToBytes( bin, 48 );
+			while ( line.length == 48 )
+			{
+				byte[] base64Line = Base64.encodeBase64( line );
+				out.write( base64Line );
+				out.write( LINE_SEPARATOR_BYTES );
+				line = Util.streamToBytes( bin, 48 );				
+			}
+			if ( line.length > 0 )
+			{
+				byte[] base64Line = Base64.encodeBase64( line );
+				out.write( base64Line );
+				out.write( LINE_SEPARATOR_BYTES );
+			}
+			out.write( "-----END ".getBytes( "UTF-8" ) );
+			out.write( item.pemType.getBytes( "UTF-8" ) );
+			out.write( "-----".getBytes( "UTF-8" ) );
+			out.write( LINE_SEPARATOR_BYTES );
+		}
+		return out.toByteArray();
+	}
 
 	public static List decode( byte[] pemBytes )
 	{

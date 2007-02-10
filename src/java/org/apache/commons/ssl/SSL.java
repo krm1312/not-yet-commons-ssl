@@ -33,6 +33,7 @@ import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLServerSocketFactory;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.SSLContext;
 import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
@@ -198,6 +199,42 @@ public class SSL
 		}
 	}
 
+	public synchronized SSLContext getSSLContext()
+			throws GeneralSecurityException, IOException
+
+	{
+		Object obj = getSSLContextAsObject();
+		if ( JavaImpl.isJava13() )
+		{
+			try
+			{
+				return (SSLContext) obj;
+			}
+			catch ( ClassCastException cce )
+			{
+				throw new ClassCastException( "When using Java13 SSL, you must call SSL.getSSLContextAsObject() - " + cce );				
+			}
+		}
+		return (SSLContext) obj;
+	}
+
+	/**
+	 * @return com.sun.net.ssl.SSLContext or javax.net.ssl.SSLContext depending
+	 *         on the JSSE implementation we're using.
+	 * @throws GeneralSecurityException  problem creating SSLContext
+	 * @throws IOException  problem creating SSLContext
+	 */
+	public synchronized Object getSSLContextAsObject()
+			throws GeneralSecurityException, IOException
+
+	{		
+		if ( sslContext == null )
+		{
+			init();
+		}
+		return sslContext;
+	}
+
 	public synchronized void addTrustMaterial( TrustChain trustChain )
 			throws NoSuchAlgorithmException, KeyStoreException,
 			       KeyManagementException, IOException, CertificateException
@@ -286,12 +323,12 @@ public class SSL
 		dirty();
 	}
 
-	public boolean getCheckHostname()
+	boolean getCheckHostname()
 	{
 		return checkHostname;
 	}
 
-	public synchronized void setCheckHostname( boolean checkHostname )
+	synchronized void setCheckHostname( boolean checkHostname )
 	{
 		this.checkHostname = checkHostname;
 	}
