@@ -38,6 +38,7 @@ import java.security.GeneralSecurityException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.cert.Certificate;
+import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
 import java.util.Enumeration;
 
@@ -186,11 +187,32 @@ public class KeyMaterial extends TrustMaterial
 		String keypath = args[ 0 ];
 		char[] password = args[ 1 ].toCharArray();
 		KeyMaterial km = new KeyMaterial( keypath, password );
-		X509Certificate[] certs = km.getAssociatedCertificateChain();
-		for ( int i = 0; i < certs.length; i++ )
+		System.out.println( km );
+	}
+
+	public String toString()
+	{
+		X509Certificate[] certs = getAssociatedCertificateChain();
+		StringBuffer buf = new StringBuffer( 1024 );
+		buf.append( "Alias: " );
+		buf.append( alias );
+		buf.append( '\n' );
+		if ( certs != null )
 		{
-			System.out.print( Certificates.toString( certs[ i ] ) );
-			System.out.print( Certificates.toPEMString( certs[ i ] ) );
+			for ( int i = 0; i < certs.length; i++ )
+			{
+				buf.append( Certificates.toString( certs[ i ] ) );
+				try
+				{
+					buf.append( Certificates.toPEMString( certs[ i ] ) );
+				}
+				catch ( CertificateEncodingException cee )
+				{
+					buf.append( cee.toString() );
+					buf.append( '\n' );
+				}
+			}
 		}
+		return buf.toString();
 	}
 }

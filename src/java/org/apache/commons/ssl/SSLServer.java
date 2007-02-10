@@ -61,39 +61,61 @@ public class SSLServer extends SSLServerSocketFactory
 		// if the DNS reverse-lookup will work!).
 		setCheckHostname( false );
 
-		// commons-ssl default KeyMaterial will be ~/.keystore with a password
-		// of "changeit".		
-		Properties props = System.getProperties();
-		boolean ksSet = props.containsKey( "javax.net.ssl.keyStore" );
-		boolean pwdSet = props.containsKey( "javax.net.ssl.keyStorePassword" );
-		String pwd = props.getProperty( "javax.net.ssl.keyStorePassword" );
-		pwd = pwdSet ? pwd : "changeit";
+		// If running inside Tomcat, let's try to re-use Tomcat's SSL certificate
+		// for our own stuff (e.g. RMI-SSL). 
+		Integer p8443 = new Integer( 8443 );
+		KeyMaterial km;
+		TrustMaterial tm;
+		km = (KeyMaterial) TomcatServerXML.KEY_MATERIAL_BY_PORT.get( p8443 );
+		tm = (TrustMaterial) TomcatServerXML.TRUST_MATERIAL_BY_PORT.get( p8443 );
 
-		// If "javax.net.ssl.keyStore" is set, then we won't bother with this
-		// silly SSLServer default behaviour.
-		if ( !ksSet )
+		// If 8443 isn't set, let's take lowest secure port.
+		km = km == null ? TomcatServerXML.KEY_MATERIAL : km;
+		tm = tm == null ? TomcatServerXML.TRUST_MATERIAL : tm;
+		if ( km != null )
 		{
-			String userHome = System.getProperty( "user.home" );
-			String path = userHome + "/.keystore";
-			File f = new File( path );
-			if ( f.exists() )
+			setKeyMaterial( km );
+			if ( tm != null && !TrustMaterial.DEFAULT.equals( tm ) )
 			{
-				try
+				setTrustMaterial( tm );
+			}
+		}
+		else
+		{
+			// If we're not able to re-use Tomcat's SSLServerSocket configuration,
+			// commons-ssl default KeyMaterial will be ~/.keystore with a password
+			// of "changeit".
+			Properties props = System.getProperties();
+			boolean pwdSet = props.containsKey( "javax.net.ssl.keyStorePassword" );
+			String pwd = props.getProperty( "javax.net.ssl.keyStorePassword" );
+			pwd = pwdSet ? pwd : "changeit";
+
+			// If "javax.net.ssl.keyStore" is set, then we won't bother with this
+			// silly SSLServer default behaviour.
+			if ( !ssl.usingSystemProperties )
+			{
+				String userHome = System.getProperty( "user.home" );
+				String path = userHome + "/.keystore";
+				File f = new File( path );
+				if ( f.exists() )
 				{
-					KeyMaterial km = new KeyMaterial( path, pwd.toCharArray() );
-					setKeyMaterial( km );
-				}
-				catch ( Exception e )
-				{
-					// Don't want to blowup just because this silly default
-					// behaviour didn't work out.
-					if ( pwdSet )
+					try
 					{
-						// Buf if the user has specified a non-standard password for
-						// "javax.net.ssl.keyStorePassword", then we will warn them
-						// that things didn't work out.
-						System.out.println( "commons-ssl automatic loading of [" + path + "] failed. " );
-						System.out.println( e );
+						km = new KeyMaterial( path, pwd.toCharArray() );
+						setKeyMaterial( km );
+					}
+					catch ( Exception e )
+					{
+						// Don't want to blowup just because this silly default
+						// behaviour didn't work out.
+						if ( pwdSet )
+						{
+							// Buf if the user has specified a non-standard password for
+							// "javax.net.ssl.keyStorePassword", then we will warn them
+							// that things didn't work out.
+							System.out.println( "commons-ssl automatic loading of [" + path + "] failed. " );
+							System.out.println( e );
+						}
 					}
 				}
 			}

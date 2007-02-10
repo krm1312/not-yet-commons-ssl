@@ -50,6 +50,18 @@ public class Util
 	public final static int SIZE_KEY = 0;
 	public final static int LAST_READ_KEY = 1;
 
+	public static boolean isYes( String yesString )
+	{
+		if ( yesString == null )
+		{
+			return false;
+		}
+		String s = yesString.trim().toUpperCase();
+		return "1".equals( s ) || "YES".equals( s ) || "TRUE".equals( s ) ||
+		       "ENABLE".equals( s ) || "ENABLED".equals( s ) || "Y".equals( s ) ||
+		       "ON".equals( s );
+	}
+
 	public static String trim( final String s )
 	{
 		if ( s == null || "".equals( s ) )
@@ -95,7 +107,7 @@ public class Util
 	                               boolean autoClose )
 			throws IOException
 	{
-		byte[] buf = new byte[ 4096 ];
+		byte[] buf = new byte[4096];
 		IOException ioe = null;
 		try
 		{
@@ -128,12 +140,12 @@ public class Util
 	public static byte[] streamToBytes( final ByteArrayInputStream in,
 	                                    int maxLength )
 	{
-		byte[] buf = new byte[ maxLength ];
+		byte[] buf = new byte[maxLength];
 		int[] status = fill( buf, 0, in );
 		int size = status[ SIZE_KEY ];
 		if ( buf.length != size )
 		{
-			byte[] smallerBuf = new byte[ size ];
+			byte[] smallerBuf = new byte[size];
 			System.arraycopy( buf, 0, smallerBuf, 0, size );
 			buf = smallerBuf;
 		}
@@ -143,12 +155,12 @@ public class Util
 	public static byte[] streamToBytes( final InputStream in, int maxLength )
 			throws IOException
 	{
-		byte[] buf = new byte[ maxLength ];
+		byte[] buf = new byte[maxLength];
 		int[] status = fill( buf, 0, in );
 		int size = status[ SIZE_KEY ];
 		if ( buf.length != size )
 		{
-			byte[] smallerBuf = new byte[ size ];
+			byte[] smallerBuf = new byte[size];
 			System.arraycopy( buf, 0, smallerBuf, 0, size );
 			buf = smallerBuf;
 		}
@@ -157,7 +169,7 @@ public class Util
 
 	public static byte[] streamToBytes( final InputStream in ) throws IOException
 	{
-		byte[] buf = new byte[ 4096 ];
+		byte[] buf = new byte[4096];
 		try
 		{
 			int[] status = fill( buf, 0, in );
@@ -172,7 +184,7 @@ public class Util
 			}
 			if ( buf.length != size )
 			{
-				byte[] smallerBuf = new byte[ size ];
+				byte[] smallerBuf = new byte[size];
 				System.arraycopy( buf, 0, smallerBuf, 0, size );
 				buf = smallerBuf;
 			}
@@ -186,7 +198,7 @@ public class Util
 
 	public static byte[] streamToBytes( final ByteArrayInputStream in )
 	{
-		byte[] buf = new byte[ 4096 ];
+		byte[] buf = new byte[4096];
 		int[] status = fill( buf, 0, in );
 		int size = status[ SIZE_KEY ];
 		int lastRead = status[ LAST_READ_KEY ];
@@ -199,7 +211,7 @@ public class Util
 		}
 		if ( buf.length != size )
 		{
-			byte[] smallerBuf = new byte[ size ];
+			byte[] smallerBuf = new byte[size];
 			System.arraycopy( buf, 0, smallerBuf, 0, size );
 			buf = smallerBuf;
 		}
@@ -225,7 +237,7 @@ public class Util
 				read += lastRead;
 			}
 		}
-		return new int[] { offset + read, lastRead }; 
+		return new int[] { offset + read, lastRead };
 	}
 
 	public static int[] fill( final byte[] buf, final int offset,
@@ -409,12 +421,12 @@ public class Util
 
 	public static String cipherToAuthType( String cipher )
 	{
-        if ( cipher == null )
-        {
-            return null;
-        }
-        
-        // SSL_DHE_DSS_EXPORT_WITH_DES40_CBC_SHA  ==> "DHE_DSS_EXPORT"
+		if ( cipher == null )
+		{
+			return null;
+		}
+
+		// SSL_DHE_DSS_EXPORT_WITH_DES40_CBC_SHA  ==> "DHE_DSS_EXPORT"
 		// SSL_DHE_DSS_WITH_3DES_EDE_CBC_SHA      ==> "DHE_DSS"
 		// SSL_RSA_WITH_3DES_EDE_CBC_SHA          ==> "RSA"
 

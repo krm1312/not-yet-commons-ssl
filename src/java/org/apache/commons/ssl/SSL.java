@@ -106,9 +106,12 @@ public class SSL
 	private boolean needClientAuth = false;
 	private SSLWrapperFactory sslWrapperFactory = SSLWrapperFactory.NO_WRAP;
 
+	protected final boolean usingSystemProperties;
+
 	public SSL()
 			throws GeneralSecurityException, IOException
 	{
+		boolean usingSysProps = false;
 		Properties props = System.getProperties();
 		boolean ksSet = props.containsKey( "javax.net.ssl.keyStore" );
 		boolean tsSet = props.containsKey( "javax.net.ssl.trustStore" );
@@ -122,6 +125,7 @@ public class SSL
 			{
 				KeyMaterial km = new KeyMaterial( path, pwd.toCharArray() );
 				setKeyMaterial( km );
+				usingSysProps = true;
 			}
 		}
 		boolean trustMaterialSet = false;
@@ -154,6 +158,7 @@ public class SSL
 				}
 
 				setTrustMaterial( tm );
+				usingSysProps = true;
 				trustMaterialSet = true;
 			}
 		}
@@ -170,7 +175,7 @@ public class SSL
 		{
 			setTrustMaterial( TrustMaterial.DEFAULT );
 		}
-		
+		this.usingSystemProperties = usingSysProps;
 		dirtyAndReloadIfYoung();
 	}
 
