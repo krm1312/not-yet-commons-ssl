@@ -39,6 +39,7 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.net.ServerSocket;
 import java.security.GeneralSecurityException;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
@@ -468,32 +469,6 @@ public class SSL
 		return sslWrapperFactory.wrap( JavaImpl.createSocket( this ) );
 	}
 
-	public Socket createSocket( InetAddress host, int port )
-			throws IOException
-	{
-		return createSocket( host.getHostName(), port );
-	}
-
-	public Socket createSocket( String host, int port )
-			throws IOException
-	{
-		return createSocket( host, port, null, 0 );
-	}
-
-	public Socket createSocket( InetAddress host, int port,
-	                            InetAddress localHost, int localPort )
-			throws IOException
-	{
-		return createSocket( host.getHostName(), port, localHost, localPort );
-	}
-
-	public Socket createSocket( String remoteHost, int remotePort,
-	                            InetAddress localHost, int localPort )
-			throws IOException
-	{
-		return createSocket( remoteHost, remotePort, localHost, localPort, 0 );
-	}
-
 	/**
 	 * Attempts to get a new socket connection to the given host within the
 	 * given time limit.
@@ -532,6 +507,33 @@ public class SSL
 		doPreConnectSocketStuff( (SSLSocket) s );
 		doPostConnectSocketStuff( (SSLSocket) s, remoteHost );
 		return sslWrapperFactory.wrap( (SSLSocket) s );
+	}
+
+	public ServerSocket createServerSocket() throws IOException
+	{
+		SSLServerSocket ss = JavaImpl.createServerSocket( this );
+		return getSSLWrapperFactory().wrap( ss, this );
+	}
+
+	/**
+	 * Attempts to get a new socket connection to the given host within the
+	 * given time limit.
+	 *
+	 * @param localHost the local host name/IP to bind against (null == ANY)
+	 * @param port      the port to listen on
+	 * @param backlog   number of connections allowed to queue up for accept().
+	 * @return SSLServerSocket a new server socket
+	 * @throws IOException if an I/O error occurs while creating thesocket
+	 */
+	public ServerSocket createServerSocket( int port, int backlog,
+	                                        InetAddress localHost )
+			throws IOException
+	{
+		SSLServerSocketFactory f = getSSLServerSocketFactory();
+		ServerSocket ss = f.createServerSocket( port, backlog, localHost );
+		SSLServerSocket s = (SSLServerSocket) ss;
+		doPreConnectServerSocketStuff( s );
+		return getSSLWrapperFactory().wrap( s, this );
 	}
 
 	public void doPreConnectServerSocketStuff( SSLServerSocket s )

@@ -50,16 +50,16 @@ import java.nio.channels.ServerSocketChannel;
 public class SSLServerSocketWrapper extends SSLServerSocket
 {
 	protected SSLServerSocket s;
-	protected SSLServer server;
+	protected SSL ssl;
 	protected SSLWrapperFactory wf;
 
-	public SSLServerSocketWrapper( SSLServerSocket s, SSLServer server,
+	public SSLServerSocketWrapper( SSLServerSocket s, SSL ssl,
 	                               SSLWrapperFactory wf )
 			throws IOException
 	{
 		super();
 		this.s = s;
-		this.server = server;		
+		this.ssl = ssl;
 		this.wf = wf;
 	}
 
@@ -70,10 +70,10 @@ public class SSLServerSocketWrapper extends SSLServerSocket
 		SSLSocket secureSocket = (SSLSocket) s.accept();
 
 		// Do the commons-ssl usual housekeeping for every socket:
-		server.ssl.doPreConnectSocketStuff( secureSocket );
+		ssl.doPreConnectSocketStuff( secureSocket );
 		InetAddress addr = secureSocket.getInetAddress();
 		String hostName = addr.getHostName();
-		server.ssl.doPostConnectSocketStuff( secureSocket, hostName );
+		ssl.doPostConnectSocketStuff( secureSocket, hostName );
 
 		return wf.wrap( secureSocket );
 	}		

@@ -29,16 +29,16 @@
 
 package org.apache.commons.ssl;
 
-import javax.net.ssl.SSLServerSocket;
+import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLServerSocketFactory;
-import java.io.IOException;
 import java.io.File;
+import java.io.IOException;
 import java.net.InetAddress;
 import java.net.ServerSocket;
+import java.security.GeneralSecurityException;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
-import java.security.GeneralSecurityException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Properties;
@@ -150,7 +150,7 @@ public class SSLServer extends SSLServerSocketFactory
 	public boolean getCheckExpiry()
 	{
 		return ssl.getCheckExpiry();
-	}		
+	}
 
 	public void setCheckHostname( boolean checkHostname )
 	{
@@ -242,10 +242,15 @@ public class SSLServer extends SSLServerSocketFactory
 		ssl.setSSLWrapperFactory( wf );
 	}
 
+	public SSLContext getSSLContext()
+			throws GeneralSecurityException, IOException
+	{
+		return ssl.getSSLContext();
+	}
+
 	public ServerSocket createServerSocket() throws IOException
 	{
-		SSLServerSocket ss = JavaImpl.createServerSocket( ssl );
-		return ssl.getSSLWrapperFactory().wrap( ss, this );
+		return ssl.createServerSocket();
 	}
 
 	public ServerSocket createServerSocket( int port )
@@ -274,11 +279,7 @@ public class SSLServer extends SSLServerSocketFactory
 	                                        InetAddress localHost )
 			throws IOException
 	{
-		SSLServerSocketFactory f = ssl.getSSLServerSocketFactory();
-		ServerSocket ss = f.createServerSocket( port, backlog, localHost );
-		SSLServerSocket s = (SSLServerSocket) ss;
-		ssl.doPreConnectServerSocketStuff( s );
-		return ssl.getSSLWrapperFactory().wrap( s, this );
+		return ssl.createServerSocket( port, backlog, localHost );
 	}
 
 	public X509Certificate[] getCurrentClientChain()

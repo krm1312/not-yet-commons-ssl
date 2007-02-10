@@ -29,15 +29,16 @@
 
 package org.apache.commons.ssl;
 
+import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.security.GeneralSecurityException;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
-import java.security.GeneralSecurityException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 
@@ -180,6 +181,11 @@ public class SSLClient extends SSLSocketFactory
 		ssl.setSSLWrapperFactory( wf );
 	}
 
+	public SSLContext getSSLContext()
+			throws GeneralSecurityException, IOException
+	{
+		return ssl.getSSLContext();
+	}
 
 	public Socket createSocket() throws IOException
 	{
@@ -189,7 +195,7 @@ public class SSLClient extends SSLSocketFactory
 	public Socket createSocket( String host, int port )
 			throws IOException
 	{
-		return ssl.createSocket( host, port );
+		return createSocket( host, port, null, 0 );
 	}
 
 	public Socket createSocket( InetAddress host, int port )
@@ -205,10 +211,8 @@ public class SSLClient extends SSLSocketFactory
 		return createSocket( host.getHostName(), port, localHost, localPort );
 	}
 
-	public Socket createSocket( String host,
-	                            int port,
-	                            InetAddress localHost,
-	                            int localPort )
+	public Socket createSocket( String host, int port,
+	                            InetAddress localHost, int localPort )
 			throws IOException
 	{
 		return createSocket( host, port, localHost, localPort, 0 );
