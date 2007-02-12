@@ -87,7 +87,7 @@ public class SSL
 	private int initCount = 0;
 	private SSLSocketFactory socketFactory = null;
 	private SSLServerSocketFactory serverSocketFactory = null;
-	private final HostnameVerifier hostnameVerifier = HostnameVerifier.DEFAULT;
+	private HostnameVerifier hostnameVerifier = HostnameVerifier.DEFAULT;
 	private boolean checkHostname = true;
 	private boolean checkCRL = true;
 	private boolean checkExpiry = true;
@@ -329,15 +329,29 @@ public class SSL
 		dirty();
 	}
 
-	boolean getCheckHostname()
+	public synchronized boolean getCheckHostname()
 	{
 		return checkHostname;
 	}
 
-	synchronized void setCheckHostname( boolean checkHostname )
+	public synchronized void setCheckHostname( boolean checkHostname )
 	{
 		this.checkHostname = checkHostname;
 	}
+
+	public synchronized void setHostnameVerifier( HostnameVerifier verifier )
+	{
+		if ( verifier == null )
+		{
+			verifier = HostnameVerifier.DEFAULT;
+		}
+		this.hostnameVerifier = verifier;
+	}
+
+	public synchronized HostnameVerifier getHostnameVerifier()
+	{
+		return hostnameVerifier;
+	}	
 
 	public boolean getCheckCRL()
 	{
@@ -368,6 +382,11 @@ public class SSL
 		this.soTimeout = soTimeout;
 	}
 
+	public int getSoTimeout()
+	{
+		return soTimeout;
+	}
+
 	public void setConnectTimeout( int connectTimeout )
 	{
 		if ( connectTimeout < 0 )
@@ -381,6 +400,16 @@ public class SSL
 	{
 		this.useClientModeDefault = false;
 		this.useClientMode = useClientMode;
+	}
+
+	public boolean getUseClientModeDefault()
+	{
+		return useClientModeDefault;
+	}
+
+	public boolean getUseClientMode()
+	{
+		return useClientMode;
 	}
 
 	public void setWantClientAuth( boolean wantClientAuth )

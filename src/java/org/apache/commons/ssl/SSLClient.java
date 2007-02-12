@@ -50,7 +50,6 @@ import java.security.cert.X509Certificate;
  */
 public class SSLClient extends SSLSocketFactory
 {
-
 	private final SSL ssl;
 
 	public SSLClient()
@@ -80,20 +79,19 @@ public class SSLClient extends SSLSocketFactory
 		ssl.setKeyMaterial( keyMaterial );
 	}
 
-	public String[] getEnabledCiphers()
-	{
-		return ssl.getEnabledCiphers();
-	}
+	public void setCheckCRL( boolean b ) { ssl.setCheckCRL( b ); }
+
+	public void setCheckExpiry( boolean b ) { ssl.setCheckExpiry( b ); }
+
+	public void setCheckHostname( boolean b ) { ssl.setCheckHostname( b ); }
+
+	public void setConnectTimeout( int i ) { ssl.setConnectTimeout( i ); }
+
+	public void setDefaultProtocol( String s ) { ssl.setDefaultProtocol( s ); }
 
 	public void setEnabledCiphers( String[] ciphers )
-			throws IllegalArgumentException
 	{
 		ssl.setEnabledCiphers( ciphers );
-	}
-
-	public String[] getEnabledProtocols()
-	{
-		return ssl.getEnabledProtocols();
 	}
 
 	public void setEnabledProtocols( String[] protocols )
@@ -101,59 +99,74 @@ public class SSLClient extends SSLSocketFactory
 		ssl.setEnabledProtocols( protocols );
 	}
 
-	public void setCheckExpiry( boolean checkExpiry )
+	public void setHostnameVerifier( HostnameVerifier verifier )
 	{
-		ssl.setCheckExpiry( checkExpiry );
+		ssl.setHostnameVerifier( verifier );
 	}
 
-	public boolean getCheckExpiry()
+	public void setSoTimeout( int soTimeout ) { ssl.setSoTimeout( soTimeout ); }
+
+	public void setSSLWrapperFactory( SSLWrapperFactory wf )
 	{
-		return ssl.getCheckExpiry();
+		ssl.setSSLWrapperFactory( wf );
 	}
 
-	public void setCheckHostname( boolean checkHostname )
-	{
-		ssl.setCheckHostname( checkHostname );
-	}
+	public void setNeedClientAuth( boolean b ) { ssl.setNeedClientAuth( b ); }
 
-	public boolean getCheckHostname()
-	{
-		return ssl.getCheckHostname();
-	}
+	public void setWantClientAuth( boolean b ) { ssl.setWantClientAuth( b ); }
+
+	public void setUseClientMode( boolean b ) { ssl.setUseClientMode( b ); }
 
 	public X509Certificate[] getAssociatedCertificateChain()
 	{
 		return ssl.getAssociatedCertificateChain();
 	}
 
-	public void setCheckCRL( boolean checkCRL )
+	public boolean getCheckCRL() { return ssl.getCheckCRL(); }
+
+	public boolean getCheckExpiry() { return ssl.getCheckExpiry(); }
+
+	public boolean getCheckHostname() { return ssl.getCheckHostname(); }
+
+	public int getConnectTimeout() { return ssl.getConnectTimeout(); }
+
+	public String getDefaultProtocol() { return ssl.getDefaultProtocol(); }
+
+	public String[] getEnabledCiphers() { return ssl.getEnabledCiphers(); }
+
+	public String[] getEnabledProtocols() { return ssl.getEnabledProtocols(); }
+
+	public HostnameVerifier getHostnameVerifier()
 	{
-		ssl.setCheckCRL( checkCRL );
+		return ssl.getHostnameVerifier();
 	}
 
-	public boolean getCheckCRL()
+	public int getSoTimeout() { return ssl.getSoTimeout(); }
+
+	public SSLWrapperFactory getSSLWrapperFactory()
 	{
-		return ssl.getCheckCRL();
+		return ssl.getSSLWrapperFactory();
 	}
 
-	public void setSoTimeout( int soTimeout )
-	{
-		ssl.setSoTimeout( soTimeout );
+	public boolean getNeedClientAuth() { return ssl.getNeedClientAuth(); }
+
+	public boolean getWantClientAuth() { return ssl.getWantClientAuth(); }
+
+	public boolean getUseClientMode()
+	{ /* SSLClient's default is true. */
+		return ssl.getUseClientModeDefault() || ssl.getUseClientMode();
 	}
 
-	public void setUseClientMode( boolean useClientMode )
+	public SSLContext getSSLContext() throws GeneralSecurityException, IOException
 	{
-		ssl.setUseClientMode( useClientMode );
+		return ssl.getSSLContext();
 	}
 
-	public void setConnectTimeout( int connectTimeout )
-	{
-		ssl.setConnectTimeout( connectTimeout );
-	}
+	public TrustChain getTrustChain() { return ssl.getTrustChain(); }
 
-	public void setDefaultProtocol( String protocol )
+	public X509Certificate[] getCurrentServerChain()
 	{
-		ssl.setDefaultProtocol( protocol );
+		return ssl.getCurrentServerChain();
 	}
 
 	public String[] getDefaultCipherSuites()
@@ -166,26 +179,6 @@ public class SSLClient extends SSLSocketFactory
 		return ssl.getSupportedCipherSuites();
 	}
 
-	public TrustChain getTrustChain()
-	{
-		return ssl.getTrustChain();
-	}
-
-	public SSLWrapperFactory getSSLWrapperFactory()
-	{
-		return ssl.getSSLWrapperFactory();
-	}
-
-	public void setSSLWrapperFactory( SSLWrapperFactory wf )
-	{
-		ssl.setSSLWrapperFactory( wf );
-	}
-
-	public SSLContext getSSLContext()
-			throws GeneralSecurityException, IOException
-	{
-		return ssl.getSSLContext();
-	}
 
 	public Socket createSocket() throws IOException
 	{
@@ -244,11 +237,6 @@ public class SSLClient extends SSLSocketFactory
 			throws IOException
 	{
 		return ssl.createSocket( s, remoteHost, remotePort, autoClose );
-	}
-
-	public X509Certificate[] getCurrentServerChain()
-	{
-		return ssl.getCurrentServerChain();
 	}
 
 }

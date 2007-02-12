@@ -107,8 +107,20 @@ public class RMISocketFactoryImpl extends RMISocketFactory
 
 	public RMISocketFactoryImpl() throws GeneralSecurityException, IOException
 	{
-		setServer( new SSLServer() );
-		setDefaultClient( new SSLClient() );
+		SSLServer defaultServer = new SSLServer();
+		SSLClient defaultClient = new SSLClient();
+
+		// RMI calls to localhost will not check that host matches CN in
+		// certificate.  Hopefully this is acceptable.
+		HostnameVerifier verifier = HostnameVerifier.DEFAULT_AND_LOCALHOST;
+		defaultClient.setHostnameVerifier( verifier );
+		defaultServer.setHostnameVerifier( verifier );
+
+		// The RMI server will try to re-use Tomcat's "port 8443" SSL Certificate.
+		defaultServer.useTomcatSSLMaterial();
+
+		setServer( defaultServer );
+		setDefaultClient( defaultClient );
 	}
 
 	public void setLocalBindingAddress( String ip )

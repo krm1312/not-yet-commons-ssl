@@ -109,6 +109,27 @@ public interface HostnameVerifier extends javax.net.ssl.HostnameVerifier {
               public final String toString() { return "DEFAULT"; }
           };
 
+
+    /**
+     * The DEFAULT_AND_LOCALHOST HostnameVerifier works like the DEFAULT
+     * one with one additional relaxation:  a host of "localhost",
+     * "localhost.localdomain", "127.0.0.1", "::1" will always pass, no matter
+     * what is in the server's certificate.
+     */
+    public final static HostnameVerifier DEFAULT_AND_LOCALHOST =
+          new AbstractVerifier() {
+
+              public final void verify(final String host, final String[] cns,
+                                       final String[] subjectAlts)
+                    throws SSLException {
+                  if ( !isLocalhost( host ) ) {
+                      verify(host, cns, subjectAlts, false);
+                  }
+              }
+
+              public final String toString() { return "DEFAULT_AND_LOCALHOST"; }
+          };
+
     /**
      * The Strict HostnameVerifier works the same way as Sun Java 1.4, Sun
      * Java 5, Sun Java 6-rc.  It's also pretty close to IE6.  This
@@ -167,9 +188,15 @@ public interface HostnameVerifier extends javax.net.ssl.HostnameVerifier {
               { "ac", "co", "com", "ed", "edu", "go", "gouv", "gov", "info",
                 "lg", "ne", "net", "or", "org" };
 
+        private final static String[] LOCALHOSTS = { "::1", "127.0.0.1",
+                                                     "localhost",
+                                                     "localhost.localdomain" };
+
+
         static {
             // Just in case developer forgot to manually sort the array.  :-)
             Arrays.sort(BAD_COUNTRY_2LDS);
+            Arrays.sort(LOCALHOSTS);
         }
 
         AbstractVerifier() {}
@@ -314,21 +341,21 @@ public interface HostnameVerifier extends javax.net.ssl.HostnameVerifier {
             }
         }
 
-	     public static boolean isIP4Address(String cn) {
-		     boolean isIP4 = true;
-		     String tld = cn;
-		     int x = cn.lastIndexOf( '.' );
-		     if ( x >= 0 && x + 1 < cn.length() ) {
-			     tld = cn.substring( x + 1 );
-		     }
-		     for ( int i = 0; i < tld.length(); i++ ) {
-			     if ( !Character.isDigit( tld.charAt( 0 ) ) ) {
-				     isIP4 = false;
-				     break;
-			     }
-		     }
-		     return isIP4;
-	     }
+        public static boolean isIP4Address(String cn) {
+            boolean isIP4 = true;
+            String tld = cn;
+            int x = cn.lastIndexOf( '.' );
+            if ( x >= 0 && x + 1 < cn.length() ) {
+                tld = cn.substring( x + 1 );
+            }
+            for ( int i = 0; i < tld.length(); i++ ) {
+                if ( !Character.isDigit( tld.charAt( 0 ) ) ) {
+                    isIP4 = false;
+                    break;
+                }
+            }
+            return isIP4;
+        }
 
         public static boolean acceptableCountryWildcard(String cn) {
             int cnLen = cn.length();
@@ -343,6 +370,19 @@ public interface HostnameVerifier extends javax.net.ssl.HostnameVerifier {
                 }
             }
             return true;
+        }
+
+        public static boolean isLocalhost( String host )
+        {
+            host = host != null ? host.trim().toLowerCase() : "";
+            if ( host.startsWith( "::1" ) ) {
+                int x = host.lastIndexOf( '%' );
+                if ( x >= 0 ) {
+                    host = host.substring( 0, x );
+                }
+            }
+            int x = Arrays.binarySearch( LOCALHOSTS, host );
+            return x >= 0;
         }
 
         public static String[] getCNs(X509Certificate cert) {

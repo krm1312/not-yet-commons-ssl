@@ -192,6 +192,9 @@ public class KeyMaterial extends TrustMaterial
 
 	public String toString()
 	{
+		FileInputStream in;
+
+
 		X509Certificate[] certs = getAssociatedCertificateChain();
 		StringBuffer buf = new StringBuffer( 1024 );
 		buf.append( "Alias: " );
