@@ -50,9 +50,9 @@ import java.util.Enumeration;
  */
 public class KeyMaterial extends TrustMaterial
 {
-	private Object keyManagerFactory;
-	private String alias;
-	private X509Certificate[] associatedChain;
+	private final Object keyManagerFactory;
+	private final String alias;
+	private final X509Certificate[] associatedChain;
 
 	public KeyMaterial( InputStream jks, char[] password )
 			throws GeneralSecurityException, IOException
@@ -123,37 +123,44 @@ public class KeyMaterial extends TrustMaterial
 		super( KeyStoreBuilder.build( jksOrCerts, key, password ), 0 );
 		KeyStore ks = getKeyStore();
 		Enumeration en = ks.aliases();
-		int privateKeyCount = 0;
+		String myAlias = null;
+		X509Certificate[] myChain;
 		while ( en.hasMoreElements() )
 		{
 			String alias = (String) en.nextElement();
 			if ( ks.isKeyEntry( alias ) )
 			{
-				privateKeyCount++;
-				if ( privateKeyCount > 1 )
+				if ( myAlias != null )
 				{
 					throw new KeyStoreException( "commons-ssl KeyMaterial only supports keystores with a single private key." );
 				}
-				this.alias = alias;
+				myAlias = alias;
 			}
 		}
-		if ( alias != null )
+		if ( myAlias != null )
 		{
-			Certificate[] chain = ks.getCertificateChain( alias );
+			Certificate[] chain = ks.getCertificateChain( myAlias );
 			if ( chain != null )
 			{
-				X509Certificate[] x509Chain = new X509Certificate[chain.length];
-				for ( int i = 0; i < chain.length; i++ )
-				{
-					x509Chain[ i ] = (X509Certificate) chain[ i ];
-				}
-				this.associatedChain = x509Chain;
+				myChain = Certificates.x509ifyChain( chain );
 			}
 			else
 			{
-				// is password wrong?
+				// is password wrong?				
+				throw new KeyStoreException( "Could not find KeyMaterial's associated certificate chain!" );
 			}
 		}
+		else
+		{
+			throw new KeyStoreException( "KeyMaterial provided does not contain any keys!" );			
+		}
+		this.alias = myAlias;
+		// Cleanup chain to remove any spurious entries.
+		if ( myChain != null )
+		{
+			myChain = X509CertificateChainBuilder.buildPath( myChain[0], myChain );
+		}
+		this.associatedChain = myChain;
 		this.keyManagerFactory = JavaImpl.newKeyManagerFactory( ks, password );
 	}
 
@@ -181,20 +188,24 @@ public class KeyMaterial extends TrustMaterial
 	{
 		if ( args.length < 2 )
 		{
-			System.out.println( "Usage:  java org.apache.commons.ssl.KeyMaterial [client-cert] [password]" );
+			System.out.println( "Usage1:  java org.apache.commons.ssl.KeyMaterial [password] [pkcs12 or jks]" );
+			System.out.println( "Usage2:  java org.apache.commons.ssl.KeyMaterial [password] [private-key] [cert-chain]" );
 			System.exit( 1 );
 		}
-		String keypath = args[ 0 ];
-		char[] password = args[ 1 ].toCharArray();
-		KeyMaterial km = new KeyMaterial( keypath, password );
+		char[] password = args[ 0 ].toCharArray();
+		String path1 = args[ 1 ];
+		String path2 = null;
+		if ( args.length >= 3 )
+		{
+			path2 = args[ 2 ];
+		}
+
+		KeyMaterial km = new KeyMaterial( path1, path2, password );
 		System.out.println( km );
 	}
 
 	public String toString()
 	{
-		FileInputStream in;
-
-
 		X509Certificate[] certs = getAssociatedCertificateChain();
 		StringBuffer buf = new StringBuffer( 1024 );
 		buf.append( "Alias: " );

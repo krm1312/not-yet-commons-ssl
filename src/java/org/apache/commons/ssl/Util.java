@@ -34,6 +34,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.UnknownHostException;
+import java.net.InetAddress;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.StringTokenizer;
@@ -49,6 +50,38 @@ public class Util
 {
 	public final static int SIZE_KEY = 0;
 	public final static int LAST_READ_KEY = 1;
+
+	public static String reverseLookup( String ip )
+	{
+		if ( ip == null )
+		{
+			return null;
+		}
+		try
+		{
+			InetAddress defaultAddress = InetAddress.getByName( ip );
+			String host = defaultAddress.getHostName();
+			InetAddress[] addresses = InetAddress.getAllByName( ip );
+			for ( int i = 0; i < addresses.length; i++ )
+			{
+				String s = addresses[ i ].getHostName();
+				if ( !s.equals( "localhost.localdomain" ) )
+				{
+					// We prefer hostnames with at least one dot.
+					int x = s.indexOf( '.' );
+					if ( x > 0 )
+					{
+						return s;
+					}
+				}
+			}
+			return host;
+		}
+		catch ( UnknownHostException uhe )
+		{
+			return ip;
+		}
+	}
 
 	public static boolean isYes( String yesString )
 	{

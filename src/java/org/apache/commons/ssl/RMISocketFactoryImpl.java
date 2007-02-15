@@ -52,6 +52,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.List;
 
 
 /**
@@ -94,6 +95,7 @@ public class RMISocketFactoryImpl extends RMISocketFactory
 		}
 		finally
 		{
+			ip = Util.reverseLookup( ip );
 			LOCAL_INTERNET_FACING_ADDRESS = ip;
 		}
 	}
@@ -118,14 +120,13 @@ public class RMISocketFactoryImpl extends RMISocketFactory
 
 		// The RMI server will try to re-use Tomcat's "port 8443" SSL Certificate.
 		defaultServer.useTomcatSSLMaterial();
-
 		setServer( defaultServer );
 		setDefaultClient( defaultClient );
 	}
 
 	public void setLocalBindingAddress( String ip )
 	{
-		this.localBindingAddress = ip;
+		this.localBindingAddress = Util.reverseLookup( ip );
 	}
 
 	public String getLocalBindingAddress() { return localBindingAddress; }
@@ -134,6 +135,15 @@ public class RMISocketFactoryImpl extends RMISocketFactory
 			throws GeneralSecurityException, IOException
 	{
 		this.sslServer = f;
+		if ( f instanceof SSLServer )
+		{
+			SSLServer ssl = (SSLServer) f;
+			X509Certificate[] chain = ssl.getAssociatedCertificateChain();
+			List names = Certificates.extractNames( chain[ 0 ] );
+
+			// go through the names, see which one works!
+
+		}
 		trustOurself();
 	}
 
@@ -221,6 +231,7 @@ public class RMISocketFactoryImpl extends RMISocketFactory
 		}
 		catch ( UnknownHostException uhe )
 		{
+			/* oh well, nothing found, nothing to add for this client */
 		}
 
 		try
@@ -243,6 +254,7 @@ public class RMISocketFactoryImpl extends RMISocketFactory
 		}
 		catch ( UnknownHostException uhe )
 		{
+			/* oh well, nothing found, nothing to add for this client */			
 		}
 		return names;
 	}
@@ -300,6 +312,16 @@ public class RMISocketFactoryImpl extends RMISocketFactory
 	private void initLocalBindingAddress()
 	{
 		String systemRMIHostname = System.getProperty( RMI_HOSTNAME_KEY );
+		if ( systemRMIHostname != null )
+		{
+			String reverse = Util.reverseLookup( systemRMIHostname );
+			if ( !systemRMIHostname.equals( reverse ) )
+			{
+				log.debug( "commons-ssL: changing 'java.rmi.server.hostname' from " + systemRMIHostname + " to " + reverse );
+				systemRMIHostname = reverse;
+				System.setProperty( RMI_HOSTNAME_KEY, reverse );
+			}
+		}
 		if ( localBindingAddress == null )
 		{
 			localBindingAddress = systemRMIHostname;
@@ -312,6 +334,7 @@ public class RMISocketFactoryImpl extends RMISocketFactory
 		}
 		if ( systemRMIHostname == null && localBindingAddress != null )
 		{
+			log.debug( "commons-ssl: setting 'java.rmi.server.hostname' to " + localBindingAddress );			
 			System.setProperty( RMI_HOSTNAME_KEY, localBindingAddress );
 		}
 	}
@@ -354,7 +377,7 @@ public class RMISocketFactoryImpl extends RMISocketFactory
 			sf = defaultClient;
 		}
 
-		Socket s;
+		Socket s = null;
 		SSLSocket ssl = null;
 		int soTimeout = Integer.MIN_VALUE;
 		IOException reasonForPlainSocket = null;
@@ -398,7 +421,10 @@ public class RMISocketFactoryImpl extends RMISocketFactory
 			{
 				try
 				{
-					ssl.startHandshake();
+					if ( ssl != null )
+					{
+						ssl.startHandshake();
+					}
 				}
 				catch ( IOException ioe2 )
 				{
@@ -417,6 +443,7 @@ public class RMISocketFactoryImpl extends RMISocketFactory
 			}
 			if ( !tryPlain )
 			{
+				log.debug( "commons-ssl RMI-SSL failed: " + ioe );				
 				throw ioe;
 			}
 			else
@@ -427,7 +454,7 @@ public class RMISocketFactoryImpl extends RMISocketFactory
 		finally
 		{
 			// Some debug logging:
-			boolean isPlain = tryPlain || ssl == null;
+			boolean isPlain = tryPlain || (s != null && ssl == null);
 			String socket = isPlain ? "RMI plain-socket " : "RMI ssl-socket ";
 			String localIP = local != null ? local.getHostAddress() : "ANY";
 			StringBuffer buf = new StringBuffer( 64 );

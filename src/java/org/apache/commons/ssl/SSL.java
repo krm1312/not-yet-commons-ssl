@@ -29,17 +29,17 @@
 
 package org.apache.commons.ssl;
 
+import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLServerSocketFactory;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
-import javax.net.ssl.SSLContext;
 import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
+import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.UnknownHostException;
-import java.net.ServerSocket;
 import java.security.GeneralSecurityException;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
@@ -75,8 +75,7 @@ public class SSL
 		TreeSet ts = new TreeSet( Collections.reverseOrder() );
 		ts.addAll( Arrays.asList( KNOWN_PROTOCOLS ) );
 		KNOWN_PROTOCOLS_SET = Collections.unmodifiableSortedSet( ts );
-
-		SSLSocketFactory s = (SSLSocketFactory) SSLSocketFactory.getDefault();
+		SSLSocketFactory s = (SSLSocketFactory) SSLSocketFactory.getDefault();		
 		ts = new TreeSet();
 		SUPPORTED_CIPHERS = s.getSupportedCipherSuites();
 		ts.addAll( Arrays.asList( SUPPORTED_CIPHERS ) );
@@ -494,7 +493,7 @@ public class SSL
 	{
 		if ( checkHostname )
 		{
-			hostnameVerifier.verify( host, s );
+			hostnameVerifier.verify( new String[] { host }, s );
 		}
 	}
 

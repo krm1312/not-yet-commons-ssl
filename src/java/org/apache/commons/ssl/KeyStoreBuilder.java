@@ -38,15 +38,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.math.BigInteger;
-import java.security.GeneralSecurityException;
-import java.security.InvalidKeyException;
-import java.security.Key;
-import java.security.KeyStore;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
-import java.security.PrivateKey;
-import java.security.PublicKey;
+import java.security.*;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
@@ -55,6 +47,7 @@ import java.security.interfaces.DSAParams;
 import java.security.interfaces.DSAPrivateKey;
 import java.security.interfaces.RSAPrivateCrtKey;
 import java.security.interfaces.RSAPublicKey;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Enumeration;
@@ -79,7 +72,8 @@ public class KeyStoreBuilder
 	public static KeyStore build( byte[] jksOrCerts, char[] password )
 			throws IOException, CertificateException, KeyStoreException,
 			       NoSuchAlgorithmException, InvalidKeyException,
-			       NoSuchProviderException, ProbablyBadPasswordException
+			       NoSuchProviderException, ProbablyBadPasswordException,
+			       UnrecoverableKeyException
 	{
 		return build( jksOrCerts, null, password );
 	}
@@ -88,24 +82,33 @@ public class KeyStoreBuilder
 	                              char[] password )
 			throws IOException, CertificateException, KeyStoreException,
 			       NoSuchAlgorithmException, InvalidKeyException,
-			       NoSuchProviderException, ProbablyBadPasswordException
+			       NoSuchProviderException, ProbablyBadPasswordException,
+			       UnrecoverableKeyException
 	{
 		BuildResult br1 = parse( jksOrCerts, password );
 		BuildResult br2 = null;
-
-		// If we happened to find a JKS file, let's just return that.
-		// JKS files get priority.		
+		KeyStore jks = null;
 		if ( br1.jks != null )
 		{
-			return br1.jks;
+			jks = br1.jks;
 		}
-		if ( privateKey != null && privateKey.length > 0 )
+		else if ( privateKey != null && privateKey.length > 0 )
 		{
 			br2 = parse( privateKey, password );
 			if ( br2.jks != null )
 			{
-				return br2.jks;
+				jks = br2.jks;
 			}
+		}
+
+		// If we happened to find a JKS file, let's just return that.
+		// JKS files get priority (in case some weirdo specifies both a PKCS12
+		// and a JKS file!).
+		if ( jks != null )
+		{
+			// Make sure the keystore we found is not corrupt.
+			validate( jks, password );
+			return jks;
 		}
 
 		Key key = br1.key;
@@ -141,37 +144,15 @@ public class KeyStoreBuilder
 		}
 		else
 		{
-			X509Certificate theOne = null;
-			if ( key instanceof RSAPrivateCrtKey )
-			{
-				final RSAPrivateCrtKey rsa = (RSAPrivateCrtKey) key;
-				BigInteger publicExponent = rsa.getPublicExponent();
-				BigInteger modulus = rsa.getModulus();
-				for ( int i = 0; i < chain.length; i++ )
-				{
-					X509Certificate c = chain[ i ];
-					PublicKey pub = c.getPublicKey();
-					if ( pub instanceof RSAPublicKey )
-					{
-						RSAPublicKey certKey = (RSAPublicKey) pub;
-						BigInteger pe = certKey.getPublicExponent();
-						BigInteger mod = certKey.getModulus();
-						if ( publicExponent.equals( pe ) && modulus.equals( mod ) )
-						{
-							theOne = c;
-						}
-					}
-				}
-				if ( theOne == null )
-				{
-					throw new KeyStoreException( "Can't build keystore: [No certificates belong to the private-key]" );
-				}
-				chain = X509CertificateChainBuilder.buildPath( theOne, chain );
-			}
 
+			X509Certificate theOne = buildChain( key, chain );
 			String alias = "alias";
+			// The theOne is not null, then our chain was probably altered.
+			// Need to trim out the newly introduced null entries at the end of
+			// our chain.
 			if ( theOne != null )
 			{
+				chain = Certificates.trimChain( chain );
 				alias = Certificates.getCN( theOne );
 				alias = alias.replace( ' ', '_' );
 			}
@@ -180,6 +161,95 @@ public class KeyStoreBuilder
 			ks.load( null, password );
 			ks.setKeyEntry( alias, key, password, chain );
 			return ks;
+		}
+	}
+
+	/**
+	 * Builds the chain up such that chain[ 0 ] contains the public key
+	 * corresponding to the supplied private key.
+	 *
+	 * @param key private key
+	 * @param chain array of certificates to build chain from
+	 * @return theOne!
+	 * @throws KeyStoreException       no certificates correspond to private key 
+	 * @throws CertificateException      java libraries complaining
+	 * @throws NoSuchAlgorithmException  java libraries complaining
+	 * @throws InvalidKeyException       java libraries complaining
+	 * @throws NoSuchProviderException   java libraries complaining
+	 */
+	public static X509Certificate buildChain( Key key, Certificate[] chain )
+			throws CertificateException, KeyStoreException,
+			       NoSuchAlgorithmException, InvalidKeyException,
+			       NoSuchProviderException
+	{
+		X509Certificate theOne = null;
+		if ( key instanceof RSAPrivateCrtKey )
+		{
+			final RSAPrivateCrtKey rsa = (RSAPrivateCrtKey) key;
+			BigInteger publicExponent = rsa.getPublicExponent();
+			BigInteger modulus = rsa.getModulus();
+			for ( int i = 0; i < chain.length; i++ )
+			{
+				X509Certificate c = (X509Certificate) chain[ i ];
+				PublicKey pub = c.getPublicKey();
+				if ( pub instanceof RSAPublicKey )
+				{
+					RSAPublicKey certKey = (RSAPublicKey) pub;
+					BigInteger pe = certKey.getPublicExponent();
+					BigInteger mod = certKey.getModulus();
+					if ( publicExponent.equals( pe ) && modulus.equals( mod ) )
+					{
+						theOne = c;
+					}
+				}
+			}
+			if ( theOne == null )
+			{
+				throw new KeyStoreException( "Can't build keystore: [No certificates belong to the private-key]" );
+			}
+			X509Certificate[] newChain;
+			newChain = X509CertificateChainBuilder.buildPath( theOne, chain );
+			Arrays.fill( chain, null );
+			System.arraycopy( newChain, 0, chain, 0, newChain.length );
+		}
+		return theOne;
+	}
+
+	public static void validate( KeyStore jks, char[] password )
+			throws CertificateException, KeyStoreException,
+			       NoSuchAlgorithmException, InvalidKeyException,
+			       NoSuchProviderException, UnrecoverableKeyException
+	{
+		Enumeration en = jks.aliases();
+		String privateKeyAlias = null;
+		while ( en.hasMoreElements() )
+		{
+			String alias = (String) en.nextElement();
+			boolean isKey = jks.isKeyEntry( alias );
+			if ( isKey )
+			{
+				if ( privateKeyAlias != null )
+				{
+					throw new KeyStoreException( "Only 1 private key per keystore allowed for Commons-SSL" );
+				}
+				else
+				{
+					privateKeyAlias = alias;
+				}
+			}
+		}
+		PrivateKey key = (PrivateKey) jks.getKey( privateKeyAlias, password );
+		Certificate[] chain = jks.getCertificateChain( privateKeyAlias );
+		X509Certificate[] x509Chain = Certificates.x509ifyChain( chain );
+		X509Certificate theOne = buildChain( key, x509Chain );
+		// The theOne is not null, then our chain was probably altered.
+		// Need to trim out the newly introduced null entries at the end of
+		// our chain.		
+		if ( theOne != null )
+		{
+			x509Chain = Certificates.trimChain( x509Chain );
+			jks.deleteEntry( privateKeyAlias );
+			jks.setKeyEntry( privateKeyAlias, key, password, x509Chain );
 		}
 	}
 
@@ -632,7 +702,7 @@ public class KeyStoreBuilder
 			{
 				PEMItem item = new PEMItem( pkcs8DerBytes, "PRIVATE KEY" );
 				pemItems.add( item );
-			}			
+			}
 			byte[] pem = PEMUtil.encode( pemItems );
 			jks.write( pem );
 		}

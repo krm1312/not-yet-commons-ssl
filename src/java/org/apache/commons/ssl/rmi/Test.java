@@ -182,6 +182,7 @@ public class Test
 		try
 		{
 			LocateRegistry.createRegistry( PORT );
+			log.debug( "registry on " + PORT + " started!" );
 		}
 		catch ( Exception problem )
 		{
@@ -194,6 +195,7 @@ public class Test
 
 	public static void main( String[] args ) throws Exception
 	{
+
 		if ( args.length > 0 && "ssl".equalsIgnoreCase( args[ 0 ] ) )
 		{
 			RMISocketFactoryImpl impl = new RMISocketFactoryImpl();
@@ -214,10 +216,7 @@ public class Test
 		else
 		{
 			RMISocketFactoryImpl impl = new RMISocketFactoryImpl();
-			SSLClient client = (SSLClient) impl.getDefaultClient();
-			client.setCheckHostname( false );
-			client.addTrustMaterial( TrustMaterial.CACERTS );
-			RMISocketFactory.setSocketFactory( impl ); /* */
+			RMISocketFactory.setSocketFactory( impl );
 
 			Test.requireNameServer();
 			Test.rebindTest();
