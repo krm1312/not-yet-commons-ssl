@@ -39,18 +39,24 @@ import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.Iterator;
-import java.util.LinkedList;
+import java.util.TreeSet;
 
 /**
  * Interface for checking if a hostname matches the names stored inside the
- * server's X.509 certificate.  Implements javax.net.ssl.HostnameVerifier, but
- * we don't actually use that interface.  Instead we added some methods that
- * take String parameters (instead of javax.net.ssl.HostnameVerifier's
- * SSLSession).  JUnit is a lot easier this way!  :-)
+ * server's X.509 certificate.  Correctly implements
+ * javax.net.ssl.HostnameVerifier, but that interface is not recommended.
+ * Instead we added several check() methods that take SSLSocket,
+ * or X509Certificate, or ultimately (they all end up calling this one),
+ * String.  (It's easier to supply JUnit with Strings instead of mock
+ * SSLSession objects!)
+ * </p><p>Our check() methods throw exceptions if the name is
+ * invalid, whereas javax.net.ssl.HostnameVerifier just returns true/false.
  * <p/>
  * We provide the HostnameVerifier.DEFAULT, HostnameVerifier.STRICT, and
- * HostnameVerifier.ALLOW_ALL implementations.  But feel free to define
- * your own implementation!
+ * HostnameVerifier.ALLOW_ALL implementations.  We also provide the more
+ * specialized HostnameVerifier.DEFAULT_AND_LOCALHOST, as well as
+ * HostnameVerifier.STRICT_IE6.  But feel free to define your own
+ * implementations!
  * <p/>
  * Inspired by Sebastian Hauer's original StrictSSLProtocolSocketFactory in the
  * HttpClient "contrib" repository.
@@ -63,9 +69,17 @@ public interface HostnameVerifier extends javax.net.ssl.HostnameVerifier {
 
     boolean verify(String host, SSLSession session);
 
-    void verify(String[] hosts, SSLSocket ssl) throws IOException;
+    void check(String host, SSLSocket ssl) throws IOException;
 
-    void verify(String[] hosts, X509Certificate cert) throws SSLException;
+    void check(String host, X509Certificate cert) throws SSLException;
+
+    void check(String host, String[] cns, String[] subjectAlts)
+          throws SSLException;
+
+    void check(String[] hosts, SSLSocket ssl) throws IOException;
+
+    void check(String[] hosts, X509Certificate cert) throws SSLException;
+
 
     /**
      * Checks to see if the supplied hostname matches any of the supplied CNs
@@ -81,7 +95,7 @@ public interface HostnameVerifier extends javax.net.ssl.HostnameVerifier {
      * @param hosts       The array of hostnames to verify.
      * @throws SSLException If verification failed.
      */
-    void verify(String[] hosts, String[] cns, String[] subjectAlts)
+    void check(String[] hosts, String[] cns, String[] subjectAlts)
           throws SSLException;
 
 
@@ -97,10 +111,10 @@ public interface HostnameVerifier extends javax.net.ssl.HostnameVerifier {
      */
     public final static HostnameVerifier DEFAULT =
           new AbstractVerifier() {
-              public final void verify(final String[] hosts, final String[] cns,
-                                       final String[] subjectAlts)
+              public final void check(final String[] hosts, final String[] cns,
+                                      final String[] subjectAlts)
                     throws SSLException {
-                  verify(hosts, cns, subjectAlts, false);
+                  check(hosts, cns, subjectAlts, false, false);
               }
 
               public final String toString() { return "DEFAULT"; }
@@ -115,31 +129,29 @@ public interface HostnameVerifier extends javax.net.ssl.HostnameVerifier {
      */
     public final static HostnameVerifier DEFAULT_AND_LOCALHOST =
           new AbstractVerifier() {
-
-              public final void verify(final String[] hosts, final String[] cns,
-                                       final String[] subjectAlts)
+              public final void check(final String[] hosts, final String[] cns,
+                                      final String[] subjectAlts)
                     throws SSLException {
                   if (isLocalhost(hosts[0])) {
                       return;
                   }
-                  verify(hosts, cns, subjectAlts, false);
+                  check(hosts, cns, subjectAlts, false, false);
               }
 
               public final String toString() { return "DEFAULT_AND_LOCALHOST"; }
           };
 
     /**
-     * The Strict HostnameVerifier works the same way as Sun Java 1.4, Sun
-     * Java 5, Sun Java 6-rc.  It's also pretty close to IE6.  This
-     * implementation appears to be compliant with RFC 2818 for dealing with
-     * wildcards.
+     * The STRICT HostnameVerifier works the same way as java.net.URL in Sun
+     * Java 1.4, Sun Java 5, Sun Java 6.  It's also pretty close to IE6.
+     * This implementation appears to be compliant with RFC 2818 for dealing
+     * with wildcards.
      * <p/>
      * The hostname must match either the first CN, or any of the subject-alts.
      * A wildcard can occur in the CN, and in any of the subject-alts.  The
      * one divergence from IE6 is how we only check the first CN.  IE6 allows
      * a match against any of the CNs present.  We decided to follow in
-     * Sun Java 1.4's footsteps and only check the first CN.  (If you need
-     * to check all the CN's, feel free to write your own implementation!).
+     * Sun Java 1.4's footsteps and only check the first CN.
      * <p/>
      * A wildcard such as "*.foo.com" matches only subdomains in the same
      * level, for example "a.foo.com".  It does not match deeper subdomains
@@ -147,14 +159,31 @@ public interface HostnameVerifier extends javax.net.ssl.HostnameVerifier {
      */
     public final static HostnameVerifier STRICT =
           new AbstractVerifier() {
-              public final void verify(final String[] host, final String[] cns,
-                                       final String[] subjectAlts)
+              public final void check(final String[] host, final String[] cns,
+                                      final String[] subjectAlts)
                     throws SSLException {
-                  verify(host, cns, subjectAlts, true);
+                  check(host, cns, subjectAlts, false, true);
               }
 
               public final String toString() { return "STRICT"; }
           };
+
+    /**
+     * The STRICT_IE6 HostnameVerifier works just like the STRICT one with one
+     * minor variation:  the hostname can match against any of the CN's in the
+     * server's certificate, not just the first one.  This behaviour is
+     * identical to IE6's behaviour.
+     */
+    public final static HostnameVerifier STRICT_IE6 =
+        new AbstractVerifier() {
+            public final void check(final String[] host, final String[] cns,
+                                    final String[] subjectAlts)
+                  throws SSLException {
+                check(host, cns, subjectAlts, true, true);
+            }
+
+            public final String toString() { return "STRICT_IE6"; }
+        };
 
     /**
      * The ALLOW_ALL HostnameVerifier essentially turns hostname verification
@@ -162,8 +191,8 @@ public interface HostnameVerifier extends javax.net.ssl.HostnameVerifier {
      */
     public final static HostnameVerifier ALLOW_ALL =
           new AbstractVerifier() {
-              public final void verify(final String[] host, final String[] cns,
-                                       final String[] subjectAlts) {
+              public final void check(final String[] host, final String[] cns,
+                                      final String[] subjectAlts) {
                   // Allow everything - so never blowup.
               }
 
@@ -199,7 +228,39 @@ public interface HostnameVerifier extends javax.net.ssl.HostnameVerifier {
 
         protected AbstractVerifier() {}
 
-        public final void verify(String host[], SSLSocket ssl)
+        /**
+         * The javax.net.ssl.HostnameVerifier contract.
+         * @param host 'hostname' we used to create our socket
+         * @param session SSLSession with the remote server
+         * @return true if the host matched the one in the certificate.
+         */
+        public boolean verify(String host, SSLSession session) {
+            try {
+                Certificate[] certs = session.getPeerCertificates();
+                X509Certificate x509 = (X509Certificate) certs[0];
+                check(new String[] { host }, x509);
+                return true;
+            }
+            catch(SSLException e) {
+                return false;
+            }
+        }
+
+        public void check(String host, SSLSocket ssl) throws IOException {
+            check(new String[] {host}, ssl);
+        }
+
+        public void check(String host, X509Certificate cert)
+              throws SSLException {
+            check(new String[] {host}, cert);
+        }
+
+        public void check(String host, String[] cns, String[] subjectAlts)
+              throws SSLException {
+            check(new String[] {host}, cns, subjectAlts);
+        }
+
+        public void check(String host[], SSLSocket ssl)
               throws IOException {
             if(host == null) {
                 throw new NullPointerException("host to verify is null");
@@ -252,31 +313,19 @@ public interface HostnameVerifier extends javax.net.ssl.HostnameVerifier {
                 throw spue;
             }
             X509Certificate x509 = (X509Certificate) certs[0];
-            verify(host, x509);
+            check(host, x509);
         }
 
-        public final boolean verify(String host, SSLSession session) {
-            try {
-                Certificate[] certs = session.getPeerCertificates();
-                X509Certificate x509 = (X509Certificate) certs[0];
-                verify(new String[] { host }, x509);
-                return true;
-            }
-            catch(SSLException e) {
-                return false;
-            }
-        }
-
-        public final void verify(String[] host, X509Certificate cert)
+        public void check(String[] host, X509Certificate cert)
               throws SSLException {
             String[] cns = Certificates.getCNs(cert);
             String[] subjectAlts = Certificates.getDNSSubjectAlts(cert);
-            verify(host, cns, subjectAlts);
+            check(host, cns, subjectAlts);
         }
 
-        public final void verify(final String[] hosts, final String[] cns,
-                                 final String[] subjectAlts,
-                                 final boolean strictWithSubDomains)
+        public void check(final String[] hosts, final String[] cns,
+                          final String[] subjectAlts, final boolean ie6,
+                          final boolean strictWithSubDomains )
               throws SSLException {
             // Build up lists of allowed hosts For logging/debugging purposes.
             StringBuffer buf = new StringBuffer(32);
@@ -296,9 +345,14 @@ public interface HostnameVerifier extends javax.net.ssl.HostnameVerifier {
             // STRICT implementations of the HostnameVerifier only use the
             // first CN provided.  All other CNs are ignored.
             // (Firefox, wget, curl, Sun Java 1.4, 5, 6 all work this way).
-            LinkedList names = new LinkedList();
+            TreeSet names = new TreeSet();
             if(cns != null && cns.length > 0 && cns[0] != null) {
                 names.add(cns[0]);
+                if (ie6) {
+                    for (int i = 1; i < cns.length; i++) {
+                        names.add(cns[i]);
+                    }
+                }
             }
             if(subjectAlts != null) {
                 for(int i = 0; i < subjectAlts.length; i++) {
@@ -337,7 +391,7 @@ public interface HostnameVerifier extends javax.net.ssl.HostnameVerifier {
                                      !isIP4Address(cn) &&
                                      acceptableCountryWildcard(cn);
 
-                for ( int i = 0; i < hosts.length; i++ )
+                for (int i = 0; i < hosts.length; i++)
                 {
                     final String hostName = hosts[i].trim().toLowerCase();
                     if(doWildcard) {
@@ -358,13 +412,15 @@ public interface HostnameVerifier extends javax.net.ssl.HostnameVerifier {
             if(!match) {
                 throw new SSLException("hostname in certificate didn't match: " + hostnames + " !=" + buf);
             }
-        }	    	     
+        }
 
-        public static boolean isIP4Address(String cn) {
+        public static boolean isIP4Address(final String cn) {
             boolean isIP4 = true;
             String tld = cn;
             int x = cn.lastIndexOf('.');
-            if ( x >= 0 && x + 1 < cn.length() ) {
+            // We only bother analyzing the characters after the final dot
+            // in the name.
+            if (x >= 0 && x + 1 < cn.length()) {
                 tld = cn.substring(x + 1);
             }
             for (int i = 0; i < tld.length(); i++) {
@@ -376,7 +432,7 @@ public interface HostnameVerifier extends javax.net.ssl.HostnameVerifier {
             return isIP4;
         }
 
-        public static boolean acceptableCountryWildcard(String cn) {
+        public static boolean acceptableCountryWildcard(final String cn) {
             int cnLen = cn.length();
             if(cnLen >= 7 && cnLen <= 9) {
                 // Look for the '.' in the 3rd-last position:

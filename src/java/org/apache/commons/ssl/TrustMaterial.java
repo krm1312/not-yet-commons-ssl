@@ -42,6 +42,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.Enumeration;
 
 /**
  * @author Credit Union Central of British Columbia
@@ -237,10 +238,12 @@ public class TrustMaterial extends TrustChain
 		KeyStoreBuilder.BuildResult br = KeyStoreBuilder.parse( jks, password );
 		if ( br.jks != null )
 		{
+			// If we've been given a keystore, just use that.
 			this.jks = br.jks;
 		}
 		else
 		{
+			// Otherwise we need to build a keystore from what we were given.
 			KeyStore ks = KeyStore.getInstance( "jks" );
 			if ( br.chain != null && br.chain.length > 0 )
 			{
@@ -249,6 +252,25 @@ public class TrustMaterial extends TrustChain
 			}
 			this.jks = ks;
 		}
+
+		// Should validate our keystore to make sure it has at least ONE
+		// certificate entry:
+		KeyStore ks = this.jks;
+		boolean hasCertificates = false;
+		Enumeration en = ks.aliases();
+		while ( en.hasMoreElements() )
+		{
+			String alias = (String) en.nextElement();
+			if ( ks.isCertificateEntry( alias ) )
+			{
+				hasCertificates = true;
+				break;
+			}
+		}
+		if ( !hasCertificates )
+		{
+			throw new KeyStoreException( "TrustMaterial couldn't load any certificates to trust!" );
+		}	
 
 		// overwrite password
 		if ( password != null && !( this instanceof KeyMaterial ) )

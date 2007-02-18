@@ -61,7 +61,7 @@ public class Test
 	static
 	{
 		int port = 1099;
-		String host = RMISocketFactoryImpl.LOCAL_INTERNET_FACING_ADDRESS;
+		String host = RMISocketFactoryImpl.getMyDefaultIP();
 		if ( host == null )
 		{
 			host = "127.0.0.1";

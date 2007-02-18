@@ -54,6 +54,9 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 
 /**
+ * Not thread-safe.  (But who would ever share this thing across multiple
+ * threads???)
+ *
  * @author Credit Union Central of British Columbia
  * @author <a href="http://www.cucbc.com/">www.cucbc.com</a>
  * @author <a href="mailto:juliusdavies@cucbc.com">juliusdavies@cucbc.com</a>
@@ -75,7 +78,11 @@ public class SSL
 		TreeSet ts = new TreeSet( Collections.reverseOrder() );
 		ts.addAll( Arrays.asList( KNOWN_PROTOCOLS ) );
 		KNOWN_PROTOCOLS_SET = Collections.unmodifiableSortedSet( ts );
-		SSLSocketFactory s = (SSLSocketFactory) SSLSocketFactory.getDefault();		
+
+		// SSLSocketFactory.getDefault() sometimes blocks on FileInputStream
+		// reads of "/dev/random" (Linux only?).  You might find you system
+		// stuck here.  Move the mouse around a little!
+		SSLSocketFactory s = (SSLSocketFactory) SSLSocketFactory.getDefault();
 		ts = new TreeSet();
 		SUPPORTED_CIPHERS = s.getSupportedCipherSuites();
 		ts.addAll( Arrays.asList( SUPPORTED_CIPHERS ) );
@@ -88,6 +95,7 @@ public class SSL
 	private SSLServerSocketFactory serverSocketFactory = null;
 	private HostnameVerifier hostnameVerifier = HostnameVerifier.DEFAULT;
 	private boolean checkHostname = true;
+	private String[] allowedNames = null;
 	private boolean checkCRL = true;
 	private boolean checkExpiry = true;
 	private boolean useClientMode = false;
@@ -178,14 +186,14 @@ public class SSL
 		dirtyAndReloadIfYoung();
 	}
 
-	private synchronized void dirty()
+	private void dirty()
 	{
 		this.sslContext = null;
 		this.socketFactory = null;
 		this.serverSocketFactory = null;
 	}
 
-	private synchronized void dirtyAndReloadIfYoung()
+	private void dirtyAndReloadIfYoung()
 			throws NoSuchAlgorithmException, KeyStoreException,
 			       KeyManagementException, IOException, CertificateException
 	{
@@ -204,7 +212,7 @@ public class SSL
 		}
 	}
 
-	public synchronized SSLContext getSSLContext()
+	public SSLContext getSSLContext()
 			throws GeneralSecurityException, IOException
 
 	{
@@ -217,7 +225,7 @@ public class SSL
 			}
 			catch ( ClassCastException cce )
 			{
-				throw new ClassCastException( "When using Java13 SSL, you must call SSL.getSSLContextAsObject() - " + cce );				
+				throw new ClassCastException( "When using Java13 SSL, you must call SSL.getSSLContextAsObject() - " + cce );
 			}
 		}
 		return (SSLContext) obj;
@@ -226,13 +234,13 @@ public class SSL
 	/**
 	 * @return com.sun.net.ssl.SSLContext or javax.net.ssl.SSLContext depending
 	 *         on the JSSE implementation we're using.
-	 * @throws GeneralSecurityException  problem creating SSLContext
-	 * @throws IOException  problem creating SSLContext
+	 * @throws GeneralSecurityException problem creating SSLContext
+	 * @throws IOException              problem creating SSLContext
 	 */
-	public synchronized Object getSSLContextAsObject()
+	public Object getSSLContextAsObject()
 			throws GeneralSecurityException, IOException
 
-	{		
+	{
 		if ( sslContext == null )
 		{
 			init();
@@ -240,7 +248,7 @@ public class SSL
 		return sslContext;
 	}
 
-	public synchronized void addTrustMaterial( TrustChain trustChain )
+	public void addTrustMaterial( TrustChain trustChain )
 			throws NoSuchAlgorithmException, KeyStoreException,
 			       KeyManagementException, IOException, CertificateException
 	{
@@ -255,7 +263,7 @@ public class SSL
 		dirtyAndReloadIfYoung();
 	}
 
-	public synchronized void setTrustMaterial( TrustChain trustChain )
+	public void setTrustMaterial( TrustChain trustChain )
 			throws NoSuchAlgorithmException, KeyStoreException,
 			       KeyManagementException, IOException, CertificateException
 	{
@@ -263,7 +271,7 @@ public class SSL
 		dirtyAndReloadIfYoung();
 	}
 
-	public synchronized void setKeyMaterial( KeyMaterial keyMaterial )
+	public void setKeyMaterial( KeyMaterial keyMaterial )
 			throws NoSuchAlgorithmException, KeyStoreException,
 			       KeyManagementException, IOException, CertificateException
 	{
@@ -271,7 +279,7 @@ public class SSL
 		dirtyAndReloadIfYoung();
 	}
 
-	public synchronized X509Certificate[] getAssociatedCertificateChain()
+	public X509Certificate[] getAssociatedCertificateChain()
 	{
 		if ( keyMaterial != null )
 		{
@@ -283,12 +291,12 @@ public class SSL
 		}
 	}
 
-	public synchronized String[] getEnabledCiphers()
+	public String[] getEnabledCiphers()
 	{
 		return enabledCiphers != null ? enabledCiphers : getDefaultCipherSuites();
 	}
 
-	public synchronized void setEnabledCiphers( String[] ciphers )
+	public void setEnabledCiphers( String[] ciphers )
 	{
 		HashSet desired = new HashSet( Arrays.asList( ciphers ) );
 		desired.removeAll( SUPPORTED_CIPHERS_SET );
@@ -300,12 +308,12 @@ public class SSL
 		dirty();
 	}
 
-	public synchronized String[] getEnabledProtocols()
+	public String[] getEnabledProtocols()
 	{
 		return enabledProtocols != null ? enabledProtocols : KNOWN_PROTOCOLS;
 	}
 
-	public synchronized void setEnabledProtocols( String[] protocols )
+	public void setEnabledProtocols( String[] protocols )
 	{
 		HashSet desired = new HashSet( Arrays.asList( protocols ) );
 		desired.removeAll( KNOWN_PROTOCOLS_SET );
@@ -317,28 +325,70 @@ public class SSL
 		dirty();
 	}
 
-	public synchronized String getDefaultProtocol()
+	public String getDefaultProtocol()
 	{
 		return defaultProtocol;
 	}
 
-	public synchronized void setDefaultProtocol( String protocol )
+	public void setDefaultProtocol( String protocol )
 	{
 		this.defaultProtocol = protocol;
 		dirty();
 	}
 
-	public synchronized boolean getCheckHostname()
+	public boolean getCheckHostname()
 	{
 		return checkHostname;
 	}
 
-	public synchronized void setCheckHostname( boolean checkHostname )
+	/**
+	 * @return String[] array of alternate "allowed names" to try against a
+	 *         server's x509 CN field if the host/ip we used didn't match.
+	 *         Returns null if there are no "allowedNames" currently set.
+	 *         Null is the default value.
+	 */
+	public String[] getAllowedNames()
+	{
+		return allowedNames;
+	}
+
+	/**
+	 * Offers a secure way to use virtual-hosting and SSL in some situations:
+	 * for example you want to connect to "bar.com" but you know in advance
+	 * that the SSL Certificate on that server only contains "CN=foo.com".  If
+	 * you setAllowedNames( new String[] { "foo.com" } ) on your SSLClient in
+	 * advance, you can connect securely, while still using "bar.com" as the
+	 * host.
+	 * <p/>
+	 * Here's a code example using "cucbc.com" to connect, but anticipating
+	 * "www.cucbc.com" in the server's certificate:
+	 * <pre>
+	 * SSLClient client = new SSLClient();
+	 * client.setAllowedNames( new String[] { "www.cucbc.com" } );
+	 * Socket s = client.createSocket( "cucbc.com", 443 );
+	 * </pre>
+	 * <p/>
+	 * This technique is also useful if you don't want to use DNS, and want to
+	 * connect using the IP address.
+	 *
+	 * @param allowedNames array of alternate "allowed names" to try against a
+	 *                     server's x509 CN field if the host/ip we used didn't
+	 *                     match.  Set to null to force strict matching against
+	 *                     host/ip passed into createSocket().  Null is the
+	 *                     default value.  Must be set in advance, before
+	 *                     createSocket() is called.
+	 */
+	public void setAllowedNames( String[] allowedNames )
+	{
+		this.allowedNames = allowedNames;
+	}
+
+	public void setCheckHostname( boolean checkHostname )
 	{
 		this.checkHostname = checkHostname;
 	}
 
-	public synchronized void setHostnameVerifier( HostnameVerifier verifier )
+	public void setHostnameVerifier( HostnameVerifier verifier )
 	{
 		if ( verifier == null )
 		{
@@ -347,10 +397,10 @@ public class SSL
 		this.hostnameVerifier = verifier;
 	}
 
-	public synchronized HostnameVerifier getHostnameVerifier()
+	public HostnameVerifier getHostnameVerifier()
 	{
 		return hostnameVerifier;
-	}	
+	}
 
 	public boolean getCheckCRL()
 	{
@@ -441,7 +491,7 @@ public class SSL
 		this.sslWrapperFactory = wf;
 	}
 
-	private synchronized void initThrowRuntime()
+	private void initThrowRuntime()
 	{
 		try
 		{
@@ -457,7 +507,7 @@ public class SSL
 		}
 	}
 
-	private synchronized void init()
+	private void init()
 			throws NoSuchAlgorithmException, KeyStoreException,
 			       KeyManagementException, IOException, CertificateException
 	{
@@ -493,7 +543,16 @@ public class SSL
 	{
 		if ( checkHostname )
 		{
-			hostnameVerifier.verify( new String[] { host }, s );
+			boolean useAlts = allowedNames != null && allowedNames.length > 0;
+			int size = useAlts ? allowedNames.length + 1 : 1;
+			String[] hosts = new String[ size ];
+			// hosts[ 0 ] MUST ALWAYS be the host given to createSocket().			
+			hosts[ 0 ] = host;
+			if ( useAlts )
+			{
+				System.arraycopy( allowedNames, 0, hosts, 1, allowedNames.length );
+			}
+			hostnameVerifier.check( hosts, s );
 		}
 	}
 
@@ -609,7 +668,7 @@ public class SSL
 		}
 	}
 
-	public synchronized SSLSocketFactory getSSLSocketFactory()
+	public SSLSocketFactory getSSLSocketFactory()
 	{
 		if ( sslContext == null )
 		{
@@ -622,7 +681,7 @@ public class SSL
 		return socketFactory;
 	}
 
-	public synchronized SSLServerSocketFactory getSSLServerSocketFactory()
+	public SSLServerSocketFactory getSSLServerSocketFactory()
 	{
 		if ( sslContext == null )
 		{

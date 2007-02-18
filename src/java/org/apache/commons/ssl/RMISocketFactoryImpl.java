@@ -31,6 +31,7 @@ package org.apache.commons.ssl;
 
 import javax.net.ServerSocketFactory;
 import javax.net.SocketFactory;
+import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLProtocolException;
 import javax.net.ssl.SSLSocket;
@@ -39,20 +40,15 @@ import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.net.NetworkInterface;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.rmi.server.RMISocketFactory;
 import java.security.GeneralSecurityException;
 import java.security.cert.X509Certificate;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
-import java.util.TreeSet;
-import java.util.List;
+import java.util.*;
 
 
 /**
@@ -63,73 +59,51 @@ import java.util.List;
  */
 public class RMISocketFactoryImpl extends RMISocketFactory
 {
-	public final static String LOCAL_INTERNET_FACING_ADDRESS;
 	public final static String RMI_HOSTNAME_KEY = "java.rmi.server.hostname";
 	private final static LogWrapper log = LogWrapper.getLogger( RMISocketFactoryImpl.class );
 
-	static
-	{
-		String google = "216.239.39.99";
-		String ip = null;
-		try
-		{
-			DatagramSocket dg = new DatagramSocket();
-			dg.setSoTimeout( 250 );
-			// 216.239.39.99 is google.com
-			// This code doesn't actually send any packets (so no firewalls can
-			// get in the way).  It's just a neat trick for getting our
-			// internet-facing interface card.
-			InetAddress addr = InetAddress.getByName( google );
-			dg.connect( addr, 12345 );
-			ip = dg.getLocalAddress().getHostAddress();
-			log.debug( "Using bogus UDP socket (" + google + ":12345), I think my IP address is: " + ip );
-			dg.close();
-			if ( "0.0.0.0".equals( ip ) )
-			{
-				ip = null;
-			}
-		}
-		catch ( IOException ioe )
-		{
-			log.debug( "Bogus UDP didn't work: " + ioe );
-		}
-		finally
-		{
-			ip = Util.reverseLookup( ip );
-			LOCAL_INTERNET_FACING_ADDRESS = ip;
-		}
-	}
-
-	private volatile String localBindingAddress;
 	private volatile SocketFactory defaultClient;
 	private volatile ServerSocketFactory sslServer;
+	private volatile String defaultLocalAddressForClient = getMyDefaultIP();
 	private Map clientMap = new TreeMap();
 	private Map serverSockets = new HashMap();
 	private final SocketFactory plainClient = SocketFactory.getDefault();
 
 	public RMISocketFactoryImpl() throws GeneralSecurityException, IOException
 	{
-		SSLServer defaultServer = new SSLServer();
+		this( true );
+	}
+
+	/**
+	 * 
+	 * @param createDefaultServer If false, then we only set the default
+	 *                            client, and the default server is set to null.
+	 *                            If true, then a default server is also created.
+	 * @throws GeneralSecurityException  bad things
+	 * @throws IOException               bad things
+	 */
+	public RMISocketFactoryImpl( boolean createDefaultServer )
+			throws GeneralSecurityException, IOException
+	{
+		SSLServer defaultServer = createDefaultServer ? new SSLServer() : null;
 		SSLClient defaultClient = new SSLClient();
 
 		// RMI calls to localhost will not check that host matches CN in
-		// certificate.  Hopefully this is acceptable.
+		// certificate.  Hopefully this is acceptable.  (The registry server
+		// will tell the client to use the proper DNS name to actual get
+		// the remote object, anyway).
 		HostnameVerifier verifier = HostnameVerifier.DEFAULT_AND_LOCALHOST;
 		defaultClient.setHostnameVerifier( verifier );
-		defaultServer.setHostnameVerifier( verifier );
-
-		// The RMI server will try to re-use Tomcat's "port 8443" SSL Certificate.
-		defaultServer.useTomcatSSLMaterial();
-		setServer( defaultServer );
+		if ( defaultServer != null )
+		{
+			defaultServer.setHostnameVerifier( verifier );
+			// The RMI server will try to re-use Tomcat's "port 8443" SSL
+			// Certificate if possible.
+			defaultServer.useTomcatSSLMaterial();
+			setServer( defaultServer );
+		}
 		setDefaultClient( defaultClient );
 	}
-
-	public void setLocalBindingAddress( String ip )
-	{
-		this.localBindingAddress = Util.reverseLookup( ip );
-	}
-
-	public String getLocalBindingAddress() { return localBindingAddress; }
 
 	public void setServer( ServerSocketFactory f )
 			throws GeneralSecurityException, IOException
@@ -137,12 +111,84 @@ public class RMISocketFactoryImpl extends RMISocketFactory
 		this.sslServer = f;
 		if ( f instanceof SSLServer )
 		{
-			SSLServer ssl = (SSLServer) f;
-			X509Certificate[] chain = ssl.getAssociatedCertificateChain();
-			List names = Certificates.extractNames( chain[ 0 ] );
+			final HostnameVerifier VERIFIER = HostnameVerifier.DEFAULT;
+			final SSLServer ssl = (SSLServer) f;
+			final X509Certificate[] chain = ssl.getAssociatedCertificateChain();
+			String[] cns = Certificates.getCNs( chain[ 0 ] );
+			String[] subjectAlts = Certificates.getDNSSubjectAlts( chain[ 0 ] );
+			boolean exactlyOneCN = cns != null && cns.length == 1;
+			boolean noSubjectAlts = subjectAlts == null || subjectAlts.length == 0;
 
-			// go through the names, see which one works!
-
+			String rmiHostName = System.getProperty( RMI_HOSTNAME_KEY );
+			// If "java.rmi.server.hostname" is already set, don't mess with it.
+			// But blowup if it's not going to work with our SSL Server
+			// Certificate!
+			if ( rmiHostName != null )
+			{
+				try
+				{
+					VERIFIER.check( rmiHostName, cns, subjectAlts );
+				}
+				catch ( SSLException ssle )
+				{
+					String s = ssle.toString();
+					throw new SSLException( RMI_HOSTNAME_KEY + " of " + rmiHostName + " conflicts with SSL Server Certificate: " + s );
+				}
+			}
+			else
+			{
+				// If SSL Cert only contains one non-wild name, just use that and
+				// hope for the best.
+				boolean hopingForBest = false;
+				if ( exactlyOneCN && noSubjectAlts )
+				{
+					String name = cns[ 0 ] != null ? cns[ 0 ].trim() : "";
+					if ( !name.startsWith( "*" ) )
+					{
+						System.setProperty( RMI_HOSTNAME_KEY, name );
+						log.warn( "commons-ssl '" + RMI_HOSTNAME_KEY + "' set to '" + name + "' as found in my SSL Server Certificate." );
+						hopingForBest = true;
+					}
+				}
+				if ( !hopingForBest )
+				{
+					// Help me, Obi-Wan Kenobi; you're my only hope.  All we can
+					// do now is grab our internet-facing addresses, reverse-lookup
+					// on them, and hope that one of them validates against our
+					// server cert.
+					Set s = getMyInternetFacingIPs();
+					Iterator it = s.iterator();
+					while ( it.hasNext() )
+					{
+						String name = (String) it.next();
+						try
+						{
+							VERIFIER.check( name, cns, subjectAlts );
+							System.setProperty( RMI_HOSTNAME_KEY, name );
+							log.warn( "commons-ssl '" + RMI_HOSTNAME_KEY + "' set to '" + name + "' as found by reverse-dns against my own IP." );
+							hopingForBest = true;
+							break;
+						}
+						catch ( SSLException ssle )
+						{
+							// next!
+						}
+					}
+				}
+				if ( !hopingForBest )
+				{
+					LinkedList names = new LinkedList();
+					if ( cns != null && cns.length > 0 )
+					{
+						names.addAll( Arrays.asList( cns ) );
+					}
+					if ( !noSubjectAlts )
+					{
+						names.addAll( Arrays.asList( subjectAlts ) );
+					}
+					throw new SSLException( "'" + RMI_HOSTNAME_KEY + "' not present.  Must work with my SSL Server Certificate's CN field: " + names );
+				}
+			}
 		}
 		trustOurself();
 	}
@@ -254,7 +300,7 @@ public class RMISocketFactoryImpl extends RMISocketFactory
 		}
 		catch ( UnknownHostException uhe )
 		{
-			/* oh well, nothing found, nothing to add for this client */			
+			/* oh well, nothing found, nothing to add for this client */
 		}
 		return names;
 	}
@@ -309,46 +355,18 @@ public class RMISocketFactoryImpl extends RMISocketFactory
 		return (SocketFactory) clientMap.get( host );
 	}
 
-	private void initLocalBindingAddress()
-	{
-		String systemRMIHostname = System.getProperty( RMI_HOSTNAME_KEY );
-		if ( systemRMIHostname != null )
-		{
-			String reverse = Util.reverseLookup( systemRMIHostname );
-			if ( !systemRMIHostname.equals( reverse ) )
-			{
-				log.debug( "commons-ssL: changing 'java.rmi.server.hostname' from " + systemRMIHostname + " to " + reverse );
-				systemRMIHostname = reverse;
-				System.setProperty( RMI_HOSTNAME_KEY, reverse );
-			}
-		}
-		if ( localBindingAddress == null )
-		{
-			localBindingAddress = systemRMIHostname;
-			if ( localBindingAddress == null )
-			{
-				localBindingAddress = LOCAL_INTERNET_FACING_ADDRESS;
-				// LOCAL_INTERNET_FACING_ADDRESS itself might be null.  In that
-				// case we're going to bind client sockets to ANY.
-			}
-		}
-		if ( systemRMIHostname == null && localBindingAddress != null )
-		{
-			log.debug( "commons-ssl: setting 'java.rmi.server.hostname' to " + localBindingAddress );			
-			System.setProperty( RMI_HOSTNAME_KEY, localBindingAddress );
-		}
-	}
-
 	public synchronized ServerSocket createServerSocket( int port )
 			throws IOException
 	{
-		initLocalBindingAddress();
-
 		// Re-use existing ServerSocket if possible.
 		Integer key = new Integer( port );
 		ServerSocket ss = (ServerSocket) serverSockets.get( key );
-		if ( ss == null )
+		if ( ss == null || ss.isClosed() )
 		{
+			if ( ss != null && ss.isClosed() )
+			{
+				System.out.println( "found closed server on port: " + port );
+			}
 			log.debug( "commons-ssl RMI server-socket: listening on port " + port );
 			ss = sslServer.createServerSocket( port );
 			serverSockets.put( key, ss );
@@ -360,11 +378,16 @@ public class RMISocketFactoryImpl extends RMISocketFactory
 			throws IOException
 	{
 		host = host != null ? host.trim().toLowerCase() : "";
-		initLocalBindingAddress();
-		InetAddress local = null;
-		if ( localBindingAddress != null )
+		String rmiHost = System.getProperty( RMI_HOSTNAME_KEY );
+		if ( rmiHost == null )
 		{
-			local = InetAddress.getByName( localBindingAddress );
+			// Only use this if "java.rmi.server.hostname" is null.
+			rmiHost = defaultLocalAddressForClient;
+		}
+		InetAddress local = null;
+		if ( rmiHost != null )
+		{
+			local = InetAddress.getByName( rmiHost );
 		}
 
 		SocketFactory sf;
@@ -443,7 +466,7 @@ public class RMISocketFactoryImpl extends RMISocketFactory
 			}
 			if ( !tryPlain )
 			{
-				log.debug( "commons-ssl RMI-SSL failed: " + ioe );				
+				log.debug( "commons-ssl RMI-SSL failed: " + ioe );
 				throw ioe;
 			}
 			else
@@ -454,7 +477,7 @@ public class RMISocketFactoryImpl extends RMISocketFactory
 		finally
 		{
 			// Some debug logging:
-			boolean isPlain = tryPlain || (s != null && ssl == null);
+			boolean isPlain = tryPlain || ( s != null && ssl == null );
 			String socket = isPlain ? "RMI plain-socket " : "RMI ssl-socket ";
 			String localIP = local != null ? local.getHostAddress() : "ANY";
 			StringBuffer buf = new StringBuffer( 64 );
@@ -492,6 +515,63 @@ public class RMISocketFactoryImpl extends RMISocketFactory
 		}
 
 		return s;
+	}
+
+
+	public static String getMyDefaultIP()
+	{
+		String google = "216.239.39.99";
+		String ip = null;
+		try
+		{
+			DatagramSocket dg = new DatagramSocket();
+			dg.setSoTimeout( 250 );
+			// 216.239.39.99 is google.com
+			// This code doesn't actually send any packets (so no firewalls can
+			// get in the way).  It's just a neat trick for getting our
+			// internet-facing interface card.
+			InetAddress addr = InetAddress.getByName( google );
+			dg.connect( addr, 12345 );
+			InetAddress localAddr = dg.getLocalAddress();
+			ip = localAddr.getHostAddress();
+			// log.debug( "Using bogus UDP socket (" + google + ":12345), I think my IP address is: " + ip );
+			dg.close();
+			if ( localAddr.isLoopbackAddress() || "0.0.0.0".equals( ip ) )
+			{
+				ip = null;
+			}
+		}
+		catch ( IOException ioe )
+		{
+			log.debug( "Bogus UDP didn't work: " + ioe );
+		}
+		return ip;
+	}
+
+	public static SortedSet getMyInternetFacingIPs() throws SocketException
+	{
+		TreeSet set = new TreeSet();
+		Enumeration en = NetworkInterface.getNetworkInterfaces();
+		while ( en.hasMoreElements() )
+		{
+			NetworkInterface ni = (NetworkInterface) en.nextElement();
+			Enumeration en2 = ni.getInetAddresses();
+			while ( en2.hasMoreElements() )
+			{
+				InetAddress addr = (InetAddress) en2.nextElement();
+				if ( !addr.isLoopbackAddress() )
+				{
+					String ip = addr.getHostAddress();
+					String reverse = addr.getHostName();
+					// IP:
+					set.add( ip );
+					// Reverse-Lookup:
+					set.add( reverse );
+
+				}
+			}
+		}
+		return set;
 	}
 
 }

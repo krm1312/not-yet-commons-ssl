@@ -77,8 +77,7 @@ public class SSLServer extends SSLServerSocketFactory
 	 * the extraction is successful, the TrustMaterial and KeyMaterial are
 	 * applied to this SSLServer.
 	 *
-	 * @return the Tomcat KeyMaterial we've just set.  Null if the operation was
-	 *         unsuccessful.
+	 * @return true if the operation was successful.
 	 * @throws GeneralSecurityException setKeyMaterial() failed
 	 * @throws IOException              setKeyMaterial() failed
 	 */
@@ -174,6 +173,8 @@ public class SSLServer extends SSLServerSocketFactory
 		ssl.setKeyMaterial( keyMaterial );
 	}
 
+	public void setAllowedNames( String[] s ) { ssl.setAllowedNames( s ); }
+
 	public void setCheckCRL( boolean b ) { ssl.setCheckCRL( b ); }
 
 	public void setCheckExpiry( boolean b ) { ssl.setCheckExpiry( b ); }
@@ -211,6 +212,8 @@ public class SSLServer extends SSLServerSocketFactory
 	public void setWantClientAuth( boolean b ) { ssl.setWantClientAuth( b ); }
 
 	public void setUseClientMode( boolean b ) { ssl.setUseClientMode( b ); }
+
+	public String[] getAllowedNames() { return ssl.getAllowedNames(); }
 
 	public X509Certificate[] getAssociatedCertificateChain()
 	{
@@ -301,7 +304,8 @@ public class SSLServer extends SSLServerSocketFactory
 	 * @return SSLServerSocket a new server socket
 	 * @throws IOException if an I/O error occurs while creating thesocket
 	 */
-	public ServerSocket createServerSocket( int port, int backlog, InetAddress localHost )
+	public ServerSocket createServerSocket( int port, int backlog,
+	                                        InetAddress localHost )
 			throws IOException
 	{
 		return ssl.createServerSocket( port, backlog, localHost );

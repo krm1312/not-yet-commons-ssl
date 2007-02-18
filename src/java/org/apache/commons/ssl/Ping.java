@@ -376,8 +376,7 @@ public class Ping
 			if ( chain != null )
 			{
 				String hostName = targetAddress.getHostName();
-				String[] hostNames = { hostName };
-				HostnameVerifier.DEFAULT.verify( hostNames, chain[ 0 ] );
+				HostnameVerifier.DEFAULT.check( hostName, chain[ 0 ] );
 			}
 		}
 		catch ( Exception e )

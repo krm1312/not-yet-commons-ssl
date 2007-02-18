@@ -79,6 +79,8 @@ public class SSLClient extends SSLSocketFactory
 		ssl.setKeyMaterial( keyMaterial );
 	}
 
+	public void setAllowedNames( String[] s ) { ssl.setAllowedNames( s ); }
+
 	public void setCheckCRL( boolean b ) { ssl.setCheckCRL( b ); }
 
 	public void setCheckExpiry( boolean b ) { ssl.setCheckExpiry( b ); }
@@ -116,6 +118,8 @@ public class SSLClient extends SSLSocketFactory
 	public void setWantClientAuth( boolean b ) { ssl.setWantClientAuth( b ); }
 
 	public void setUseClientMode( boolean b ) { ssl.setUseClientMode( b ); }
+
+	public String[] getAllowedNames() { return ssl.getAllowedNames(); }
 
 	public X509Certificate[] getAssociatedCertificateChain()
 	{
@@ -178,7 +182,6 @@ public class SSLClient extends SSLSocketFactory
 	{
 		return ssl.getSupportedCipherSuites();
 	}
-
 
 	public Socket createSocket() throws IOException
 	{

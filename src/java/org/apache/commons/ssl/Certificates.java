@@ -187,7 +187,7 @@ public class Certificates
 			buf.append( LINE_ENDING );
 		}
 		buf.append( "-----END CERTIFICATE-----" );
-		buf.append( LINE_ENDING );		
+		buf.append( LINE_ENDING );
 		return buf.toString();
 	}
 
@@ -392,7 +392,7 @@ public class Certificates
 		private File tempCRLFile;
 		private long creationTime;
 		private Set passedTest = new HashSet();
-		private Set failedTest = new HashSet();		
+		private Set failedTest = new HashSet();
 
 		CRLHolder( String urlString )
 		{
@@ -515,48 +515,54 @@ public class Certificates
 		String[] cns = getCNs( cert );
 		boolean foundSomeCNs = cns != null && cns.length >= 1;
 		return foundSomeCNs ? cns[ 0 ] : null;
-	}	
+	}
 
-	public static String[] getCNs(X509Certificate cert) {
-	    LinkedList cnList = new LinkedList();
-	    /*
-	      Sebastian Hauer's original StrictSSLProtocolSocketFactory used
-	      getName() and had the following comment:
+	public static String[] getCNs( X509Certificate cert )
+	{
+		LinkedList cnList = new LinkedList();
+		/*
+        Sebastian Hauer's original StrictSSLProtocolSocketFactory used
+        getName() and had the following comment:
 
-	            Parses a X.500 distinguished name for the value of the
-	            "Common Name" field.  This is done a bit sloppy right
-	             now and should probably be done a bit more according to
-	            <code>RFC 2253</code>.
+           Parses a X.500 distinguished name for the value of the
+           "Common Name" field.  This is done a bit sloppy right
+           now and should probably be done a bit more according to
+           <code>RFC 2253</code>.
 
-	       I've noticed that toString() seems to do a better job than
-	       getName() on these X500Principal objects, so I'm hoping that
-	       addresses Sebastian's concern.
+         I've noticed that toString() seems to do a better job than
+         getName() on these X500Principal objects, so I'm hoping that
+         addresses Sebastian's concern.
 
-	       For example, getName() gives me this:
-	       1.2.840.113549.1.9.1=#16166a756c6975736461766965734063756362632e636f6d
+         For example, getName() gives me this:
+         1.2.840.113549.1.9.1=#16166a756c6975736461766965734063756362632e636f6d
 
-	       whereas toString() gives me this:
-	       EMAILADDRESS=juliusdavies@cucbc.com
+         whereas toString() gives me this:
+         EMAILADDRESS=juliusdavies@cucbc.com
 
-	       Looks like toString() even works with non-ascii domain names!
-	       I tested it with "&#x82b1;&#x5b50;.co.jp" and it worked fine.
-	    */
-	    String subjectPrincipal = cert.getSubjectX500Principal().toString();
-	    StringTokenizer st = new StringTokenizer(subjectPrincipal, ",");
-	    while(st.hasMoreTokens()) {
-	        String tok = st.nextToken();
-	        int x = tok.indexOf("CN=");
-	        if(x >= 0) {
-	            cnList.add(tok.substring(x + 3));
-	        }
-	    }
-	    if(!cnList.isEmpty()) {
-	        String[] cns = new String[cnList.size()];
-	        cnList.toArray(cns);
-	        return cns;
-	    } else {
-	        return null;
-	    }
+         Looks like toString() even works with non-ascii domain names!
+         I tested it with "&#x82b1;&#x5b50;.co.jp" and it worked fine.
+		*/
+		String subjectPrincipal = cert.getSubjectX500Principal().toString();
+		StringTokenizer st = new StringTokenizer( subjectPrincipal, "," );
+		while ( st.hasMoreTokens() )
+		{
+			String tok = st.nextToken();
+			int x = tok.indexOf( "CN=" );
+			if ( x >= 0 )
+			{
+				cnList.add( tok.substring( x + 3 ) );
+			}
+		}
+		if ( !cnList.isEmpty() )
+		{
+			String[] cns = new String[cnList.size()];
+			cnList.toArray( cns );
+			return cns;
+		}
+		else
+		{
+			return null;
+		}
 	}
 
 
@@ -574,57 +580,44 @@ public class Certificates
 	 * @param cert X509Certificate
 	 * @return Array of SubjectALT DNS names stored in the certificate.
 	 */
-	public static String[] getDNSSubjectAlts(X509Certificate cert) {
-	    LinkedList subjectAltList = new LinkedList();
-	    Collection c = null;
-	    try {
-	        c = cert.getSubjectAlternativeNames();
-	    }
-	    catch( CertificateParsingException cpe) {
-	        // Should probably log.debug() this?
-	        cpe.printStackTrace();
-	    }
-	    if(c != null) {
-	        Iterator it = c.iterator();
-	        while(it.hasNext()) {
-	            List list = (List) it.next();
-	            int type = ((Integer) list.get(0)).intValue();
-	            // If type is 2, then we've got a dNSName
-	            if(type == 2) {
-	                String s = (String) list.get(1);
-	                subjectAltList.add(s);
-	            }
-	        }
-	    }
-	    if(!subjectAltList.isEmpty()) {
-	        String[] subjectAlts = new String[subjectAltList.size()];
-	        subjectAltList.toArray(subjectAlts);
-	        return subjectAlts;
-	    } else {
-	        return null;
-	    }
-	}
-
-	public static List extractNames( X509Certificate cert )
+	public static String[] getDNSSubjectAlts( X509Certificate cert )
 	{
-		String[] cns = getCNs( cert );
-		String[] subjectAlts = getDNSSubjectAlts( cert );
-		// Build the list of names we're going to check.  Our DEFAULT and
-		// STRICT implementations of the HostnameVerifier only use the
-		// first CN provided.  All other CNs are ignored.
-		// (Firefox, wget, curl, Sun Java 1.4, 5, 6 all work this way).
-		LinkedList names = new LinkedList();
-		if(cns != null && cns.length > 0 && cns[0] != null) {
-		    names.add(cns[0]);
+		LinkedList subjectAltList = new LinkedList();
+		Collection c = null;
+		try
+		{
+			c = cert.getSubjectAlternativeNames();
 		}
-		if(subjectAlts != null) {
-		    for(int i = 0; i < subjectAlts.length; i++) {
-		        if(subjectAlts[i] != null) {
-		            names.add(subjectAlts[i]);
-		        }
-		    }
+		catch ( CertificateParsingException cpe )
+		{
+			// Should probably log.debug() this?
+			cpe.printStackTrace();
 		}
-		return names;
+		if ( c != null )
+		{
+			Iterator it = c.iterator();
+			while ( it.hasNext() )
+			{
+				List list = (List) it.next();
+				int type = ( (Integer) list.get( 0 ) ).intValue();
+				// If type is 2, then we've got a dNSName
+				if ( type == 2 )
+				{
+					String s = (String) list.get( 1 );
+					subjectAltList.add( s );
+				}
+			}
+		}
+		if ( !subjectAltList.isEmpty() )
+		{
+			String[] subjectAlts = new String[subjectAltList.size()];
+			subjectAltList.toArray( subjectAlts );
+			return subjectAlts;
+		}
+		else
+		{
+			return null;
+		}
 	}
 
 	/**
@@ -665,7 +658,7 @@ public class Certificates
 			System.arraycopy( chain, 0, x509Chain, 0, chain.length );
 			return x509Chain;
 		}
-	}	
+	}
 
 	public static void main( String[] args ) throws Exception
 	{
