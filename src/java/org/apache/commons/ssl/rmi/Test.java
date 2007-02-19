@@ -52,7 +52,8 @@ import java.rmi.server.RMISocketFactory;
 public class Test
 {
 	private final static LogWrapper log = LogWrapper.getLogger( Test.class );
-	private final static String TEST_NAME = "/org.apache.commons.ssl.rmi.testname";
+	private final static String TEST_DATE_NAME = "/org.apache.commons.ssl.rmi.testdate";
+	private final static String TEST_INT_NAME = "/org.apache.commons.ssl.rmi.testint";	
 	protected final static int PORT;
 	protected final static String URL;
 
@@ -61,12 +62,7 @@ public class Test
 	static
 	{
 		int port = 1099;
-		String host = RMISocketFactoryImpl.getMyDefaultIP();
-		if ( host == null )
-		{
-			host = "127.0.0.1";
-		}
-
+		String host = "127.0.0.1";
 		PORT = port;
 		// e.g. "rmi://localhost:1099/"
 		URL = "rmi://" + host + ":" + port;
@@ -124,8 +120,8 @@ public class Test
 	private static void rebindTest() throws Exception
 	{
 		Remote remoteTest = new DateRMI();
-		Naming.rebind( URL + TEST_NAME, remoteTest );
-		Object o = Naming.lookup( URL + TEST_NAME );
+		Naming.rebind( URL + TEST_DATE_NAME, remoteTest );
+		Object o = Naming.lookup( URL + TEST_DATE_NAME );
 		if ( !remoteTest.equals( o ) )
 		{
 			throw new RuntimeException( "rmi: Test failed. Lookup != Rebind" );
@@ -220,11 +216,19 @@ public class Test
 
 			Test.requireNameServer();
 			Test.rebindTest();
+
+			IntegerRMI remoteInt = new IntegerRMI();
+			Test.rebind( TEST_INT_NAME, remoteInt );
 		}
 
-		Object o = Test.lookup( TEST_NAME );
+		Object o = Test.lookup( TEST_DATE_NAME );
 		RemoteDate rd = (RemoteDate) o;
-		System.out.println( rd.getDate() );
+		System.out.println( "The remote-date is: " + rd.getDate() );
+
+		o = Test.lookup( TEST_INT_NAME );
+		RemoteInteger ri = (RemoteInteger) o;
+		System.out.println( "The remote-int  is: " + ri.getInt() );
+
 	}
 
 

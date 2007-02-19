@@ -44,8 +44,6 @@ import java.util.Date;
 public class DateRMI extends UnicastRemoteObject
 		implements Remote, Serializable, RemoteDate
 {
-	// private final static Logger log = Logger.getLogger( DateRMI.class );
-
 	private Date d;
 
 	public DateRMI() throws RemoteException
@@ -68,7 +66,6 @@ public class DateRMI extends UnicastRemoteObject
 		}
 		catch ( RemoteException re )
 		{
-//			log.warn( re.toString(), re );
 			return false;
 		}
 	}
