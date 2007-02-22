@@ -71,14 +71,17 @@ import java.util.List;
  * javax.crypto.EncryptedPrivateKeyInfo since all you need is the byte[] array
  * and the password.  You don't need to know anything else about the PKCS8
  * key you pass in.
- * <p/>
+ * </p><p>
  * Can handle base64 PEM, or raw DER.
  * Can handle PKCS8 Version 1.5 and 2.0.
  * Can also handle OpenSSL encrypted or unencrypted private keys (DSA or RSA).
- *
+ * </p><p>
+ * The PKCS12 key derivation (the "pkcs12()" method) comes from BouncyCastle.
+ * </p>
  * @author Credit Union Central of British Columbia
  * @author <a href="http://www.cucbc.com/">www.cucbc.com</a>
  * @author <a href="mailto:juliusdavies@cucbc.com">juliusdavies@cucbc.com</a>
+ * @author <a href="bouncycastle.org">bouncycastle.org</a>
  * @since 7-Nov-2006
  */
 public class PKCS8Key
@@ -893,6 +896,9 @@ public class PKCS8Key
 		return new DerivedKey( key, iv );
 	}
 
+	/**
+	 * This PKCS12 key derivation code comes from BouncyCastle.
+	 */
 	private static byte[] pkcs12( int idByte, int n, byte[] salt,
 	                              byte[] password, int iterationCount,
 	                              MessageDigest md )
