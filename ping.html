@@ -41,15 +41,15 @@ certificate even if your client certificate is bad (so even though the SSL
 handshake fails).  And unlike "openssl s_client", this utility can bind
 against any IP address available.
 
-$Name$ compiled=[EST:2006-11-20/17:42:26.000]
-Usage:  java -jar commons-ssl.jar [options]
+$Name$ compiled=[EST:2007-02-22/10:12:26.000]
+Usage:  java -jar not-yet-commons-ssl-0.3.7.jar [options]
 Options:   (*=required)
-*  -t  --target           [hostname[:port]]                 default port=443
-   -b  --bind             [hostname[:port]]                 default port=0 "ANY"
-   -r  --proxy            [hostname[:port]]                 default port=80
-   -tm --trust-cert       [path to trust material]        *.{pem, der, crt, jks}
+*  -t  --target           [hostname[:port]]             default port=443
+   -b  --bind             [hostname[:port]]             default port=0 "ANY"
+   -r  --proxy            [hostname[:port]]             default port=80
+   -tm --trust-cert       [path to trust material]  *.{pem, der, crt, jks}
    -km --client-cert      [path to client's private key]  *.{jks, pkcs12, pkcs8}
-   -cc --cert-chain       [path to cert chain if using pkcs8/OpenSSL key]
+   -cc --cert-chain       [path to client's cert chain if using pkcs8/OpenSSL key]
    -p  --password         [client cert password]
 
 Example:
@@ -62,20 +62,29 @@ available, instead of requiring the password to be specified as a command-line a
 
 <hr/>
 <h2>KeyStoreBuilder</em></h2>
-<p><code>java -cp commons-ssl-0.3.2.jar org.apache.commons.ssl.KeyStoreBuilder</code></p>
+<p><code>java -cp commons-ssl-0.3.7.jar org.apache.commons.ssl.KeyStoreBuilder</code></p>
 
-<pre style="border: 1px solid red; padding: 10px; float: left;"><u><b>KeyStoreBuilder converts PKCS12 and PKCS8 to Java "Keystore"</b></u>
+<pre style="border: 1px solid red; padding: 10px; float: left;"><u><b>KeyStoreBuilder converts PKCS12 and PKCS8 to Java "Keystore", and vice versa.</b></u>
 
-KeyStoreBuilder:  outputs JKS file (java keystore) as ./[alias].jks
+KeyStoreBuilder:  creates '[alias].jks' (Java Key Store)
+    -topk8 mode:  creates '[alias].pem' (x509 chain + unencrypted pkcs8)
 [alias] will be set to the first CN value of the X509 certificate.
 -------------------------------------------------------------------
-Usage1:  [password] [file:pkcs12]
-Usage2:  [password] [file:private-key] [file:certificate-chain]
+Usage1: [password] [file:pkcs12]
+Usage2: [password] [file:private-key] [file:certificate-chain]
+Usage3: -topk8 [password] [file:jks]
 -------------------------------------------------------------------
 [private-key] can be openssl format, or pkcs8.
 [password] decrypts [private-key], and also encrypts outputted JKS file.
 All files can be PEM or DER.
 </pre><br clear="all"/>
+
+<br/><b>Warning:</b>
+&nbsp;<span style="color: red; font-weight: bold;">-topk8 outputs the private key UNENCRYPTED!
+Cut and paste the private key into a separate file, and then use "openssl rsa" or "openssl dsa"
+to encrypt it with a password.</span>
+<br/>&nbsp;
+<br/>&nbsp;
 
 
 </body>

@@ -1,6 +1,6 @@
 <html>
 <head>
-<title>Commons-SSL - RMI over SSL Java Example</title>
+<title>Not-Yet-Commons-SSL - RMI over SSL Java Example</title>
 <style type="text/css">
 h1, h2, h3 { margin: 0; border: 0; padding: 0; font-size: 100%; }
 h1 { float: left; color: red; }
@@ -16,7 +16,7 @@ ol.points li { margin-top: 8px; }
 </style>
 </head>
 <body>
-<h1>commons-ssl</h1>
+<h1>not-yet-commons-ssl</h1>
 <div class="nav">
 <a href="index.html">main</a> |
 <a href="ssl.html">ssl</a> |
@@ -34,12 +34,16 @@ ol.points li { margin-top: 8px; }
 <ol class="points">
 <li>To run the RMI-SSL server, you must invoke <code>LocateRegistry.createRegistry( 1099 )</code>
 from within your own application.  You must do this AFTER calling <code>RMISocketFactory.setSocketFactory( impl )</code>.
+RMISocketFactoryImpl will open the registry on 1099, and will open anonymous RMI servers (where port 0 is
+specified) on port 31099.
 RMI-SSL, as shown here, doesn't work with <code>$JAVA_HOME/bin/rmiregistry</code>.
 <br/>See the example code below for help with <code>RMISocketFactory.setSocketFactory( impl )</code>.
 </li>
 <li>To run the RMI-SSL client, you need to find an RMI-SSL server to connect to.  See #1, above. &nbsp;;-)</li>
 <li>If you don't manage to find an RMI-SSL server, then the RMI-SSL client will automatically downgrade itself
-to plain-socket.</li>
+to plain-socket.  There is an important security consideration to consider regarding this:  RMISocketFactoryImpl
+at this time only guarantees the security of the registry and the server sockets it opens.  Client sockets
+it creates might be plain-socket.</li>
 </ol>
 
 <pre style="border: 1px solid red; padding: 10px; float: left;"><u><b>RMI over SSL Example</b></u>
@@ -59,7 +63,7 @@ client.setCheckExpiry( false );
 
 <em style="color: green;">// By default we trust Java's "cacerts", as well as whatever cert is on localhost:1099,</em>
 <em style="color: green;">// so this is redundant:   (Trusting localhost:1099 is some commons-ssl magic).</em>
-client.addTrustMaterial( TrustMaterial.CACERTS );
+client.addTrustMaterial( TrustMaterial.DEFAULT );
 
 <em style="color: green;">// But if we had used setTrustMaterial() instead of addTrustMaterial(), we would (probably)</em>
 <em style="color: green;">// no longer trust localhost:1099!  Using set instead of add causes all previous "adds" to</em>
@@ -90,7 +94,7 @@ server.setNeedClientAuth( true );
 RMISocketFactory.setSocketFactory( impl );</pre>
 <br clear="all">
 <pre>
-
+<!-- make the page scroll a little more -->
 
 </pre>
 </body>

@@ -1,6 +1,6 @@
 <html>
 <head>
-<title>Commons-SSL - Downloads, Features, Future Directions</title>
+<title>Not-Yet-Commons-SSL - Downloads, Features, Future Directions</title>
 <style type="text/css">
 dl, h1, h2, h3, h4 { margin: 0; border: 0; padding: 0; font-size: 100%; }
 h1 { float: left; color: red; }
@@ -16,7 +16,7 @@ li { padding-bottom: 6px; }
 </style>
 </head>
 <body>
-<h1>commons-ssl</h1>
+<h1>not-yet-commons-ssl</h1>
 <div class="nav">
 <a href="index.html">main</a> |
 <a href="ssl.html">ssl</a> |
@@ -29,20 +29,75 @@ li { padding-bottom: 6px; }
 </div>
 <br clear="all"/>
 <hr/>
-<h2>Download Commons-SSL!</em></h2>
-<p>Commons-SSL currently has no affiliation with the <a href="http://apache.org/">Apache Software Foundation</a> (apache.org), but we're hoping
+<h2>Download Not-Yet-Commons-SSL!</em></h2>
+<p>Not-Yet-Commons-SSL currently has NO affiliation with the <a href="http://apache.org/">Apache Software Foundation</a> (apache.org), but we're hoping
 to start <a href="http://incubator.apache.org/incubation/Incubation_Policy.html">Incubation</a> soon!
 <table cellpadding="6" cellspacing="0" border="0" style="margin-top: 9px;">
-<tr><td>Full source:</td><td><a href="commons-ssl-0.3.4.zip">commons-ssl-0.3.4.zip</a></td><td>2.0MB</td><td><span style="color: red;">Alpha</span></td></tr>
-<tr><td>Binary only:</td><td><a href="commons-ssl-0.3.4.jar">commons-ssl-0.3.4.jar</a></td><td>153KB</td><td><span style="color: red;">Alpha</span></td></tr>
+<tr><th colspan="2">Current Version (February 22nd, 2007):</th></tr>
+<tr><td>Full source:</td><td><a href="not-yet-commons-ssl-0.3.7.zip">not-yet-commons-ssl-0.3.7.zip</a></td><td>2.0MB</td><td><span style="color: red;">Alpha</span></td></tr>
+<tr><td>Binary only:</td><td><a href="not-yet-commons-ssl-0.3.7.jar">not-yet-commons-ssl-0.3.7.jar</a></td><td>153KB</td><td><span style="color: red;">Alpha</span></td></tr>
+<tr><th colspan="2">Previous Version (December 24th, 2006):</th></tr>
+<tr><td>Full source:</td><td><a href="../commons-ssl-0.3.5/not-yet-commons-ssl-0.3.5.zip">not-yet-commons-ssl-0.3.5.zip</a></td><td>2.1MB</td><td><span style="color: red;">Alpha</span></td></tr>
+<tr><td>Binary only:</td><td><a href="../commons-ssl-0.3.5/not-yet-commons-ssl-0.3.5.jar">not-yet-commons-ssl-0.3.5.jar</a></td><td>166KB</td><td><span style="color: red;">Alpha</span></td></tr>
 </table>
 <br/><b>Warning:</b>
-&nbsp;<span style="color: red; font-weight: bold;">commons-ssl-0.3.4 should be considered to be of "Alpha" quality!
+&nbsp;<span style="color: red; font-weight: bold;">not-yet-commons-ssl-0.3.7 should be considered to be of "Alpha" quality!
 This code probably contains bugs.  This code may have security issues.</span>
 <p>Future versions will definitely break the current API in a non-reverse compatible way.  After commons-ssl-0.5.0, though, we
 plan on always being reverse compatible with ourselves.
 <hr/>
-<h3>Features as of commons-ssl-0.3.4:</h3>
+<h3>Features as of not-yet-commons-ssl-0.3.7:</h3>
+<dl>
+<dt>1. useStrongCiphers() used by default.</dt>
+<dd>40 bit and 56 bit ciphers are now disabled by default.  To turn them back on call useDefaultJavaCiphers().</dd>
+<dt>2. addAllowedName() adds some flexibility to the CN verification.</dt>
+<dd>
+Here's a code example using "cucbc.com" to connect, but anticipating "www.cucbc.com" in the server's certificate:
+<pre>
+SSLClient client = new SSLClient();
+client.addAllowedName( "www.cucbc.com" );
+Socket s = client.createSocket( "cucbc.com", 443 );
+</pre>
+This technique is also useful if you don't want to use DNS, and want to
+connect using the IP address.
+</dd>
+<dt>3. SSLServer can re-use a Tomcat-8443 private key if running from inside Tomcat.</dt>
+<dd>
+<pre>
+SSLClient server = new SSLServer();
+server.useTomcatSSLMaterial();
+</pre>
+</dd>
+<dt>4. RMI-SSL support improved.</dt>
+<dd>Attempts to re-use the Tomcat-8443 private key for all RMI SSL Server sockets.
+Anonymous server-sockets (port 0) will always be set to port 31099.  Analyzes the
+server certificate CN field and tries to set "java.rmi.server.hostname" to something
+compatible with that.  Probably the only free implementation around that does a good
+job on the hostname verification!
+</dd>
+<dt>5. KeyMaterial constructor blows up earlier.</dt>
+<dd>If a JKS or PKCS12 file is provided that isn't going to work (e.g. no private keys),
+the KeyMaterial constructor throws an exception right away.</dd>
+<dt>6. getSSLContext() now available to help inter-op with Java 5 SSL-NIO libraries.</dt>
+<dd>Oleg has been working hard on SSL-NIO for the Apache httpcomponents library.  Go
+check it out!</dd>
+<dt>7. Fixed bug where SSLClient couldn't be used with javax.net.ssl.HttpsURLConnection
+on Java 1.4.x</dt>
+<dd>I was wrapping the SSLSocket, but Java 1.4.x guards against that inside HttpsURLConnection
+and throws this exciting exception:
+<pre>
+java.lang.RuntimeException: Export restriction: this JSSE implementation is non-pluggable.
+  at com.sun.net.ssl.internal.ssl.SSLSocketFactoryImpl.checkCreate(DashoA6275)
+  at sun.net.www.protocol.https.HttpsClient.afterConnect(DashoA6275)
+  at sun.net.www.protocol.https.AbstractDelegateHttpsURLConnection.connect(DashoA6275)
+  at sun.net.www.protocol.http.HttpURLConnection.getOutputStream(HttpURLConnection.java:560)
+  at sun.net.www.protocol.https.HttpsURLConnectionImpl.getOutputStream(DashoA6275)
+</pre>
+Silly Java - I'm still using <em>your</em> JSSE implementation, I'm just wrapping it!
+</dd>
+</dl>
+<br/>
+<h3>Features as of not-yet-commons-ssl-0.3.4:</h3>
 <dl>
 <dt>1. &nbsp;<code>"javax.net.ssl.keyStore"</code> and <code>"javax.net.ssl.trustStore"</code></dt>
 <dd>SSLClient and SSLServer now set their default TrustMaterial and KeyMaterial from these
@@ -97,20 +152,30 @@ java -cp commons-ssl-0.3.4.jar org.apache.commons.ssl.KeyStoreBuilder
 
 <hr/>
 <h3><a name="roadmap">Road Map For Future Versions</a></h3>
-<p>0.3.5 - 0.3.8 are just some feature ideas.  They might not be feasible.</p>
+<p>0.3.8 - 0.3.9 are just some feature ideas.  They might not be feasible.</p>
 <table cellspacing="0" cellpadding="4" border="1">
 <tr><th>Version</th><th>Release&nbsp;Date?</th><th>Description</th></tr>
 <tr><td class="v">0.3.4</td><td class="v">Nov&nbsp;2006</td><td>90% feature complete.  Probably contains some bugs.</td></tr>
-<tr><td class="v">0.3.5</td><td class="v">Jan&nbsp;2007</td><td><a href="http://en.wikipedia.org/wiki/Online_Certificate_Status_Protocol">OCSP</a> - Online Certificate Status Protocol</td></tr>
-<tr><td class="v">0.3.6</td><td class="v">Feb&nbsp;2007</td><td>Socket monitoring.  Make it easier for long-running server applications to warn
-about impending certificate expiries. </td></tr>
-<tr><td class="v">0.3.7</td><td class="v">Mar&nbsp;2007</td><td>
+<tr><td class="v">0.3.5</td><td class="v">Dec&nbsp;2006</td><td>PKCS8Key constructor is public now.  Whoops.  Hostname verification
+knows about more than just CN's now - also checks subjectAlts in the server's certificate.</td></tr>
+<tr><td class="v">0.3.6</td><td class="v">Jan&nbsp;2007</td><td>Fixed Java 1.4 bug with HttpsURLConnection.</td></tr>
+<tr><td class="v">0.3.7</td><td class="v">Feb&nbsp;2007</td><td>40 bit and 56 bit ciphers disabled by default.  RMI-SSL improved.  getSSLContext() added.  Various other improvements.</td></tr>
+<tr><td class="v">0.3.8</td><td class="v">May&nbsp;2007</td><td>
+<p>
+Socket monitoring.  Make it easier for long-running server applications to warn
+about impending certificate expiries.
+</p>
+<p>
+<a href="http://en.wikipedia.org/wiki/Online_Certificate_Status_Protocol">OCSP</a> - Online Certificate Status Protocol
+</p>
+<p>
 NotQuiteSoEasySSLProtocolSocketFactory will trust any server The First Time, and store that server's cert on disk for future accesses.
+</p>
 </td></tr>
-<tr><td class="v">0.3.8</td><td class="v">Apr&nbsp;2007</td><td><code>TrustMaterial.setAutoReload( true / false )</code>, and <code>KeyMaterial.setAutoReload( true / false )</code>,
+<tr><td class="v">0.3.9</td><td class="v">Jun&nbsp;2007</td><td><code>TrustMaterial.setAutoReload( true / false )</code>, and <code>KeyMaterial.setAutoReload( true / false )</code>,
 but only if no password, or "changeit" was provided.  (Question:  should this "reload" tear down all open sockets?).
 </td></tr>
-<tr><td class="v">0.4.0</td><td class="v">Jun&nbsp;2007</td><td>Non-public code (protected, private, etc) moved into a separate "impl" package where possible.</td></tr>
+<tr><td class="v">0.4.0</td><td class="v">Jul&nbsp;2007</td><td>Non-public code (protected, private, etc) moved into a separate "impl" package where possible.</td></tr>
 <tr><td class="v">0.5.0</td><td class="v">Aug&nbsp;2007</td><td>API froven.  All future versions must be reverse-compatible with 0.5.0 (except for any parts of 0.5.0 later found to be insecure).</td></tr>
 <tr><td class="v">0.7.0</td><td class="v">Nov&nbsp;2007</td><td>JavaDocs written for all public methods and classes.</td></tr>
 <tr><td class="v">0.7.5</td><td class="v">Mar&nbsp;2008</td><td>JUnit tests written for all classes.</td></tr>
