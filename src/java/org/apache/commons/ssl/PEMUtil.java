@@ -37,6 +37,7 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.security.interfaces.RSAPrivateCrtKey;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -53,11 +54,11 @@ public class PEMUtil
 {
 	final static String LINE_SEPARATOR = System.getProperty( "line.separator" );
 
-	public static byte[] encode( List list ) throws IOException
+	public static byte[] encode( Collection items ) throws IOException
 	{
 		final byte[] LINE_SEPARATOR_BYTES = LINE_SEPARATOR.getBytes( "UTF-8" );
 		ByteArrayOutputStream out = new ByteArrayOutputStream( 4096 );
-		Iterator it = list.iterator();
+		Iterator it = items.iterator();
 		while ( it.hasNext() )
 		{
 			PEMItem item = (PEMItem) it.next();

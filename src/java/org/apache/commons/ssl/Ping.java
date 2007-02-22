@@ -106,7 +106,7 @@ public class Ping
 				System.out.println();
 			}
 			System.out.println( Version.versionString() );
-			System.out.println( "Usage:  java -jar commons-ssl.jar [options]" );
+			System.out.println( "Usage:  java -jar not-yet-commons-ssl-0.3.7.jar [options]" );
 			System.out.println( "Options:   (*=required)" );
 			Iterator it = ARGS.iterator();
 			while ( it.hasNext() )

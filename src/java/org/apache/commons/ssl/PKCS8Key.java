@@ -53,6 +53,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.File;
 import java.security.GeneralSecurityException;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
@@ -63,6 +64,7 @@ import java.security.PrivateKey;
 import java.security.spec.KeySpec;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
@@ -78,6 +80,7 @@ import java.util.List;
  * </p><p>
  * The PKCS12 key derivation (the "pkcs12()" method) comes from BouncyCastle.
  * </p>
+ *
  * @author Credit Union Central of British Columbia
  * @author <a href="http://www.cucbc.com/">www.cucbc.com</a>
  * @author <a href="mailto:juliusdavies@cucbc.com">juliusdavies@cucbc.com</a>
@@ -898,6 +901,14 @@ public class PKCS8Key
 
 	/**
 	 * This PKCS12 key derivation code comes from BouncyCastle.
+	 *
+	 * @param idByte         1 == key, 2 == iv
+	 * @param n              keysize or ivsize
+	 * @param salt           8 byte salt
+	 * @param password       password
+	 * @param iterationCount iteration-count
+	 * @param md             The message digest to use
+	 * @return byte[] the derived key
 	 */
 	private static byte[] pkcs12( int idByte, int n, byte[] salt,
 	                              byte[] password, int iterationCount,
@@ -1117,58 +1128,88 @@ public class PKCS8Key
 
 	public static void main( String[] args ) throws Exception
 	{
-		byte[] original = null;
-		for ( int i = 0; i < args.length; i++ )
+		String password = "changeit";
+		if ( args.length == 0 )
 		{
-			FileInputStream in = new FileInputStream( args[ i ] );
+			System.out.println( "Usage1:  [password] [file:private-key]      Prints decrypted PKCS8 key (base64)." );
+			System.out.println( "Usage2:  [password] [file1] [file2] etc...  Checks that all private keys are equal." );
+			System.out.println( "Usage2 assumes that all files can be decrypted with the same password." );
+		}
+		else if ( args.length == 1 || args.length == 2 )
+		{
+			FileInputStream in = new FileInputStream( args[ args.length - 1 ] );
+			if ( args.length == 2 )
+			{
+				password = args[ 0 ];
+			}
 			byte[] bytes = Util.streamToBytes( in );
-			PKCS8Key key = null;
-			try
+			PKCS8Key key = new PKCS8Key( bytes, password.toCharArray() );
+			PEMItem item = new PEMItem( key.getDecryptedBytes(), "PRIVATE KEY" );
+			byte[] pem = PEMUtil.encode( Collections.singleton( item ) );
+			System.out.write( pem );
+		}
+		else
+		{			
+			byte[] original = null;
+			File f = new File( args[ 0 ] );
+			int i = 0;
+			if ( !f.exists() )
 			{
-				key = new PKCS8Key( bytes, "changeit".toCharArray() );
+				// File0 doesn't exist, so it must be a password!
+				password = args[ 0 ];
+				i++;
 			}
-			catch ( Exception e )
+			for ( ; i < args.length; i++ )
 			{
-				System.out.println( " FAILED! " + args[ i ] );
-				e.printStackTrace( System.out );
-			}
-			if ( key != null )
-			{
-				byte[] decrypted = key.getDecryptedBytes();
-				int keySize = key.getKeySize();
-				String keySizeStr = "" + keySize;
-				if ( keySize < 10 )
+				FileInputStream in = new FileInputStream( args[ i ] );
+				byte[] bytes = Util.streamToBytes( in );
+				PKCS8Key key = null;
+				try
 				{
-					keySizeStr = "  " + keySizeStr;
+					key = new PKCS8Key( bytes, password.toCharArray() );
 				}
-				else if ( keySize < 100 )
+				catch ( Exception e )
 				{
-					keySizeStr = " " + keySizeStr;
+					System.out.println( " FAILED! " + args[ i ] + " " + e );
 				}
-				StringBuffer buf = new StringBuffer( key.getTransformation() );
-				int maxLen = "Blowfish/CBC/PKCS5Padding".length();
-				for ( int j = buf.length(); j < maxLen; j++ )
+				if ( key != null )
 				{
-					buf.append( ' ' );
-				}
-				String transform = buf.toString();
-				String type = key.isDSA() ? "DSA" : "RSA";
-
-				if ( original == null )
-				{
-					original = decrypted;
-					System.out.println( "   SUCCESS    \t" + type + "\t" + transform + "\t" + keySizeStr + "\t" + args[ i ] );
-				}
-				else
-				{
-					boolean identical = Arrays.equals( original, decrypted );
-					if ( !identical )
+					byte[] decrypted = key.getDecryptedBytes();
+					int keySize = key.getKeySize();
+					String keySizeStr = "" + keySize;
+					if ( keySize < 10 )
 					{
-						System.out.println( "***FAILURE*** \t" + type + "\t" + transform + "\t" + keySizeStr + "\t" + args[ i ] );
+						keySizeStr = "  " + keySizeStr;
+					}
+					else if ( keySize < 100 )
+					{
+						keySizeStr = " " + keySizeStr;
+					}
+					StringBuffer buf = new StringBuffer( key.getTransformation() );
+					int maxLen = "Blowfish/CBC/PKCS5Padding".length();
+					for ( int j = buf.length(); j < maxLen; j++ )
+					{
+						buf.append( ' ' );
+					}
+					String transform = buf.toString();
+					String type = key.isDSA() ? "DSA" : "RSA";
+
+					if ( original == null )
+					{
+						original = decrypted;
+						System.out.println( "   SUCCESS    \t" + type + "\t" + transform + "\t" + keySizeStr + "\t" + args[ i ] );
 					}
 					else
 					{
-						System.out.println( "   SUCCESS    \t" + type + "\t" + transform + "\t" + keySizeStr + "\t" + args[ i ] );
+						boolean identical = Arrays.equals( original, decrypted );
+						if ( !identical )
+						{
+							System.out.println( "***FAILURE*** \t" + type + "\t" + transform + "\t" + keySizeStr + "\t" + args[ i ] );
+						}
+						else
+						{
+							System.out.println( "   SUCCESS    \t" + type + "\t" + transform + "\t" + keySizeStr + "\t" + args[ i ] );
+						}
 					}
 				}
 			}
