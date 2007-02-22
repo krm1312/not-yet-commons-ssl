@@ -240,6 +240,10 @@ public class KeyStoreBuilder
 				}
 			}
 		}
+		if ( privateKeyAlias == null )
+		{
+			throw new KeyStoreException( "No private keys found in keystore!" );
+		}
 		PrivateKey key = (PrivateKey) jks.getKey( privateKeyAlias, password );
 		Certificate[] chain = jks.getCertificateChain( privateKeyAlias );
 		X509Certificate[] x509Chain = Certificates.x509ifyChain( chain );
