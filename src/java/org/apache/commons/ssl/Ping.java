@@ -379,7 +379,7 @@ public class Ping
 			X509Certificate[] chain = ssl.getCurrentServerChain();
 			if ( chain != null )
 			{
-				String hostName = targetAddress.getHostName();
+				String hostName = target.host;
 				HostnameVerifier.DEFAULT.check( hostName, chain[ 0 ] );
 			}
 		}
