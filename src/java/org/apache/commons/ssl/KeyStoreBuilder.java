@@ -641,11 +641,12 @@ public class KeyStoreBuilder
 			}
 		}
 
-		File f = new File( alias + ( toPKCS8 ? ".pem" : ".jks" ) );
+		String suffix = toPKCS8 ? ".pem" : ".jks";
+		File f = new File( alias + suffix );
 		int count = 1;
 		while ( f.exists() )
 		{
-			f = new File( alias + "_" + count + ".jks" );
+			f = new File( alias + "_" + count + suffix );
 			count++;
 		}
 
