@@ -46,12 +46,7 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Properties;
-import java.util.SortedSet;
-import java.util.TreeSet;
+import java.util.*;
 
 /**
  * Not thread-safe.  (But who would ever share this thing across multiple
@@ -69,9 +64,28 @@ public class SSL
 
 	// SUPPORTED_CIPHERS_ARRAY is initialized in the static constructor.
 	private final static String[] SUPPORTED_CIPHERS;
+	private final static String[] DEFAULT_CIPHERS;
 
 	public final static SortedSet KNOWN_PROTOCOLS_SET;
 	public final static SortedSet SUPPORTED_CIPHERS_SET;
+
+	// RC4
+	public final static String SSL_RSA_WITH_RC4_128_SHA = "SSL_RSA_WITH_RC4_128_SHA";
+
+	// 3DES
+	public final static String SSL_RSA_WITH_3DES_EDE_CBC_SHA = "SSL_RSA_WITH_3DES_EDE_CBC_SHA";
+	public final static String SSL_DHE_RSA_WITH_3DES_EDE_CBC_SHA = "SSL_DHE_RSA_WITH_3DES_EDE_CBC_SHA";
+	public final static String SSL_DHE_DSS_WITH_3DES_EDE_CBC_SHA = "SSL_DHE_DSS_WITH_3DES_EDE_CBC_SHA";
+
+	// AES-128
+	public final static String TLS_RSA_WITH_AES_128_CBC_SHA = "TLS_RSA_WITH_AES_128_CBC_SHA";
+	public final static String TLS_DHE_RSA_WITH_AES_128_CBC_SHA = "TLS_DHE_RSA_WITH_AES_128_CBC_SHA";
+	public final static String TLS_DHE_DSS_WITH_AES_128_CBC_SHA = "TLS_DHE_DSS_WITH_AES_128_CBC_SHA";
+
+	// AES-256
+	public final static String TLS_RSA_WITH_AES_256_CBC_SHA = "TLS_RSA_WITH_AES_256_CBC_SHA";
+	public final static String TLS_DHE_RSA_WITH_AES_256_CBC_SHA = "TLS_DHE_RSA_WITH_AES_256_CBC_SHA";
+	public final static String TLS_DHE_DSS_WITH_AES_256_CBC_SHA = "TLS_DHE_DSS_WITH_AES_256_CBC_SHA";
 
 	static
 	{
@@ -85,6 +99,9 @@ public class SSL
 		SSLSocketFactory s = (SSLSocketFactory) SSLSocketFactory.getDefault();
 		ts = new TreeSet();
 		SUPPORTED_CIPHERS = s.getSupportedCipherSuites();
+		DEFAULT_CIPHERS = s.getDefaultCipherSuites();
+		Arrays.sort( SUPPORTED_CIPHERS );
+		Arrays.sort( DEFAULT_CIPHERS );
 		ts.addAll( Arrays.asList( SUPPORTED_CIPHERS ) );
 		SUPPORTED_CIPHERS_SET = Collections.unmodifiableSortedSet( ts );
 	}
@@ -95,7 +112,7 @@ public class SSL
 	private SSLServerSocketFactory serverSocketFactory = null;
 	private HostnameVerifier hostnameVerifier = HostnameVerifier.DEFAULT;
 	private boolean checkHostname = true;
-	private String[] allowedNames = null;
+	private final ArrayList allowedNames = new ArrayList();
 	private boolean checkCRL = true;
 	private boolean checkExpiry = true;
 	private boolean useClientMode = false;
@@ -183,6 +200,11 @@ public class SSL
 			setTrustMaterial( TrustMaterial.DEFAULT );
 		}
 		this.usingSystemProperties = usingSysProps;
+
+		// By default we only use the strong ciphers (128 bit and higher).
+		// Consumers can call "useDefaultJavaCiphers()" to get the 40 and 56 bit
+		// ciphers back that Java normally has turned on.
+		useStrongCiphers();
 		dirtyAndReloadIfYoung();
 	}
 
@@ -296,6 +318,50 @@ public class SSL
 		return enabledCiphers != null ? enabledCiphers : getDefaultCipherSuites();
 	}
 
+	public void useDefaultJavaCiphers()
+	{
+		String[] enabled = getEnabledCiphers();
+		Arrays.sort( enabled );
+		Arrays.sort( DEFAULT_CIPHERS );
+		if ( !Arrays.equals( DEFAULT_CIPHERS, enabled ) )
+		{
+			setEnabledCiphers( DEFAULT_CIPHERS );
+		}
+	}
+
+	public void useStrongCiphers()
+	{
+		LinkedList list = new LinkedList();
+		addCipher( list, SSL_DHE_DSS_WITH_3DES_EDE_CBC_SHA, false );
+		addCipher( list, SSL_DHE_RSA_WITH_3DES_EDE_CBC_SHA, false );
+		addCipher( list, SSL_RSA_WITH_3DES_EDE_CBC_SHA, false );
+		addCipher( list, SSL_RSA_WITH_RC4_128_SHA, false );
+		addCipher( list, TLS_DHE_DSS_WITH_AES_128_CBC_SHA, false );
+		addCipher( list, TLS_DHE_DSS_WITH_AES_256_CBC_SHA, false );
+		addCipher( list, TLS_DHE_RSA_WITH_AES_128_CBC_SHA, false );
+		addCipher( list, TLS_DHE_RSA_WITH_AES_256_CBC_SHA, false );
+		addCipher( list, TLS_RSA_WITH_AES_128_CBC_SHA, false );
+		addCipher( list, TLS_RSA_WITH_AES_256_CBC_SHA, false );
+		String[] strongCiphers = new String[list.size()];
+		list.toArray( strongCiphers );
+		String[] currentCiphers = getEnabledCiphers();
+		// Current ciphers must be default or something.  Odd that it's null,
+		// though.
+		if ( currentCiphers == null )
+		{
+			setEnabledCiphers( strongCiphers );
+		}
+
+		Arrays.sort( strongCiphers );
+		Arrays.sort( currentCiphers );
+		// Let's only call "setEnabledCiphers" if our array is actually different
+		// than what's already set.
+		if ( !Arrays.equals( strongCiphers, currentCiphers ) )
+		{
+			setEnabledCiphers( strongCiphers );
+		}
+	}
+
 	public void setEnabledCiphers( String[] ciphers )
 	{
 		HashSet desired = new HashSet( Arrays.asList( ciphers ) );
@@ -305,7 +371,6 @@ public class SSL
 			throw new IllegalArgumentException( "following ciphers not supported: " + desired );
 		}
 		this.enabledCiphers = ciphers;
-		dirty();
 	}
 
 	public String[] getEnabledProtocols()
@@ -322,7 +387,6 @@ public class SSL
 			throw new IllegalArgumentException( "following protocols not supported: " + desired );
 		}
 		this.enabledProtocols = protocols;
-		dirty();
 	}
 
 	public String getDefaultProtocol()
@@ -344,12 +408,12 @@ public class SSL
 	/**
 	 * @return String[] array of alternate "allowed names" to try against a
 	 *         server's x509 CN field if the host/ip we used didn't match.
-	 *         Returns null if there are no "allowedNames" currently set.
-	 *         Null is the default value.
+	 *         Returns an empty list if there are no "allowedNames" currently
+	 *         set.
 	 */
-	public String[] getAllowedNames()
+	public List getAllowedNames()
 	{
-		return allowedNames;
+		return Collections.unmodifiableList( allowedNames );
 	}
 
 	/**
@@ -371,16 +435,26 @@ public class SSL
 	 * This technique is also useful if you don't want to use DNS, and want to
 	 * connect using the IP address.
 	 *
-	 * @param allowedNames array of alternate "allowed names" to try against a
-	 *                     server's x509 CN field if the host/ip we used didn't
+	 * @param allowedNames Collection of alternate "allowed names" to try against
+	 *                     a server's x509 CN field if the host/ip we used didn't
 	 *                     match.  Set to null to force strict matching against
 	 *                     host/ip passed into createSocket().  Null is the
 	 *                     default value.  Must be set in advance, before
 	 *                     createSocket() is called.
 	 */
-	public void setAllowedNames( String[] allowedNames )
+	public void addAllowedNames( Collection allowedNames )
 	{
-		this.allowedNames = allowedNames;
+		this.allowedNames.addAll( allowedNames );
+	}
+
+	public void addAllowedName( String allowedName )
+	{
+		this.allowedNames.add( allowedName );
+	}
+
+	public void clearAllowedNames()
+	{
+		this.allowedNames.clear();
 	}
 
 	public void setCheckHostname( boolean checkHostname )
@@ -543,14 +617,14 @@ public class SSL
 	{
 		if ( checkHostname )
 		{
-			boolean useAlts = allowedNames != null && allowedNames.length > 0;
-			int size = useAlts ? allowedNames.length + 1 : 1;
-			String[] hosts = new String[ size ];
+			int size = allowedNames.size() + 1;
+			String[] hosts = new String[size];
 			// hosts[ 0 ] MUST ALWAYS be the host given to createSocket().			
 			hosts[ 0 ] = host;
-			if ( useAlts )
+			int i = 1;
+			for ( Iterator it = allowedNames.iterator(); it.hasNext(); i++ )
 			{
-				System.arraycopy( allowedNames, 0, hosts, 1, allowedNames.length );
+				hosts[ i ] = (String) it.next();
 			}
 			hostnameVerifier.check( hosts, s );
 		}
@@ -734,6 +808,43 @@ public class SSL
 	public X509Certificate[] getCurrentClientChain()
 	{
 		return currentClientChain;
+	}
+
+	public static void main( String[] args )
+	{
+		for ( int i = 0; i < SUPPORTED_CIPHERS.length; i++ )
+		{
+			System.out.println( SUPPORTED_CIPHERS[ i ] );
+		}
+		System.out.println();
+		System.out.println( "----------------------------------------------" );
+		addCipher( null, SSL_DHE_DSS_WITH_3DES_EDE_CBC_SHA, true );
+		addCipher( null, SSL_DHE_RSA_WITH_3DES_EDE_CBC_SHA, true );
+		addCipher( null, SSL_RSA_WITH_3DES_EDE_CBC_SHA, true );
+		addCipher( null, SSL_RSA_WITH_RC4_128_SHA, true );
+		addCipher( null, TLS_DHE_DSS_WITH_AES_128_CBC_SHA, true );
+		addCipher( null, TLS_DHE_DSS_WITH_AES_256_CBC_SHA, true );
+		addCipher( null, TLS_DHE_RSA_WITH_AES_128_CBC_SHA, true );
+		addCipher( null, TLS_DHE_RSA_WITH_AES_256_CBC_SHA, true );
+		addCipher( null, TLS_RSA_WITH_AES_128_CBC_SHA, true );
+		addCipher( null, TLS_RSA_WITH_AES_256_CBC_SHA, true );
+	}
+
+	private static void addCipher( List l, String c, boolean printOnStandardOut )
+	{
+		boolean supported = false;
+		if ( c != null && SUPPORTED_CIPHERS_SET.contains( c ) )
+		{
+			if ( l != null )
+			{
+				l.add( c );
+			}
+			supported = true;
+		}
+		if ( printOnStandardOut )
+		{
+			System.out.println( c + ":\t" + supported );
+		}
 	}
 
 

@@ -228,6 +228,10 @@ public class Ping
 					                      localAddress, localPort );
 				}
 
+				sslCipher = ( (SSLSocket) s ).getSession().getCipherSuite();
+				System.out.println( "Cipher: " + sslCipher );
+				System.out.println( "================================================================================" );				
+
 				String line1 = "HEAD / HTTP/1.1";
 				String line2 = "Host: " + targetAddress.getHostName();
 				byte[] crlf = { '\r', '\n' };
@@ -247,8 +251,6 @@ public class Ping
 				out.flush();
 
 				in = s.getInputStream();
-
-				sslCipher = ( (SSLSocket) s ).getSession().getCipherSuite();
 
 				int c = in.read();
 				StringBuffer buf = new StringBuffer();

@@ -41,6 +41,8 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.util.Collection;
+import java.util.List;
 import java.util.Properties;
 
 /**
@@ -173,7 +175,11 @@ public class SSLServer extends SSLServerSocketFactory
 		ssl.setKeyMaterial( keyMaterial );
 	}
 
-	public void setAllowedNames( String[] s ) { ssl.setAllowedNames( s ); }
+	public void addAllowedName( String s ) { ssl.addAllowedName( s ); }
+
+	public void addAllowedNames( Collection c ) { ssl.addAllowedNames( c ); }
+
+	public void clearAllowedNames() { ssl.clearAllowedNames(); }
 
 	public void setCheckCRL( boolean b ) { ssl.setCheckCRL( b ); }
 
@@ -184,6 +190,10 @@ public class SSLServer extends SSLServerSocketFactory
 	public void setConnectTimeout( int i ) { ssl.setConnectTimeout( i ); }
 
 	public void setDefaultProtocol( String s ) { ssl.setDefaultProtocol( s ); }
+
+	public void useDefaultJavaCiphers() { ssl.useDefaultJavaCiphers(); }
+
+	public void useStrongCiphers() { ssl.useStrongCiphers(); }
 
 	public void setEnabledCiphers( String[] ciphers )
 	{
@@ -213,7 +223,7 @@ public class SSLServer extends SSLServerSocketFactory
 
 	public void setUseClientMode( boolean b ) { ssl.setUseClientMode( b ); }
 
-	public String[] getAllowedNames() { return ssl.getAllowedNames(); }
+	public List getAllowedNames() { return ssl.getAllowedNames(); }
 
 	public X509Certificate[] getAssociatedCertificateChain()
 	{
