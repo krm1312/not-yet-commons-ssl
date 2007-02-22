@@ -1,124 +1,36 @@
 <html>
-<head><title>Commons-SSL - Decrypting RSA Private Keys in Java</title></head>
+<head>
+<title>Not-Yet-Commons-SSL - Decrypting RSA Private Keys in Java</title>
+<style type="text/css">
+h1, h2, h3 { margin: 0; border: 0; padding: 0; font-size: 100%; }
+h1 { float: left; color: red; }
+b.n { font-family: arial; font-weight: bold; }
+span.hl { color: white; background-color: green; }
+div.nav { float: left; margin-left: 20px; font-weight: bold; }
+.nav a, .nav span { padding: 0 5px; }
+.nav a { color: blue; }
+li.top { margin-top: 10px; }
+ul.openssl { float: left; width: 100px; margin-top: 8px; }
+ul.pkcs8 { float: left; width: 200px; margin-top: 8px; }
+</style>
+</head>
 <body>
-<p>Output from:
-<br/>
-<br/>java -cp <a href="../download.html">commons-ssl-0.3.3.jar</a> org.apache.commons.ssl.PKCS8Key samples/rsa/*.*
-<br/>
-<br/>Don't forget to install your JVM's <a href="http://java.sun.com/javase/downloads/">Unlimited Strength Jurisdiction Policy Files</a>
-if you want the AES-192 and AES-256 tests to pass.
-</p>
-<pre>
-java version "1.5.0_07"
-Java(TM) 2 Runtime Environment, Standard Edition (build 1.5.0_07-b03)
-Java HotSpot(TM) Client VM (build 1.5.0_07-b03, mixed mode, sharing)
-
-   SUCCESS    	RSA	AES/CBC/PKCS5Padding     	128	<a href="rsa/openssl_rsa_aes128_cbc.pem">samples/rsa/openssl_rsa_aes128_cbc.pem</a>
-   SUCCESS    	RSA	AES/CFB/NoPadding        	128	<a href="rsa/openssl_rsa_aes128_cfb.pem">samples/rsa/openssl_rsa_aes128_cfb.pem</a>
-   SUCCESS    	RSA	AES/ECB/PKCS5Padding     	128	<a href="rsa/openssl_rsa_aes128_ecb.pem">samples/rsa/openssl_rsa_aes128_ecb.pem</a>
-   SUCCESS    	RSA	AES/OFB/NoPadding        	128	<a href="rsa/openssl_rsa_aes128_ofb.pem">samples/rsa/openssl_rsa_aes128_ofb.pem</a>
-   SUCCESS    	RSA	AES/CBC/PKCS5Padding     	192	<a href="rsa/openssl_rsa_aes192_cbc.pem">samples/rsa/openssl_rsa_aes192_cbc.pem</a>
-   SUCCESS    	RSA	AES/CFB/NoPadding        	192	<a href="rsa/openssl_rsa_aes192_cfb.pem">samples/rsa/openssl_rsa_aes192_cfb.pem</a>
-   SUCCESS    	RSA	AES/ECB/PKCS5Padding     	192	<a href="rsa/openssl_rsa_aes192_ecb.pem">samples/rsa/openssl_rsa_aes192_ecb.pem</a>
-   SUCCESS    	RSA	AES/OFB/NoPadding        	192	<a href="rsa/openssl_rsa_aes192_ofb.pem">samples/rsa/openssl_rsa_aes192_ofb.pem</a>
-   SUCCESS    	RSA	AES/CBC/PKCS5Padding     	256	<a href="rsa/openssl_rsa_aes256_cbc.pem">samples/rsa/openssl_rsa_aes256_cbc.pem</a>
-   SUCCESS    	RSA	AES/CFB/NoPadding        	256	<a href="rsa/openssl_rsa_aes256_cfb.pem">samples/rsa/openssl_rsa_aes256_cfb.pem</a>
-   SUCCESS    	RSA	AES/ECB/PKCS5Padding     	256	<a href="rsa/openssl_rsa_aes256_ecb.pem">samples/rsa/openssl_rsa_aes256_ecb.pem</a>
-   SUCCESS    	RSA	AES/OFB/NoPadding        	256	<a href="rsa/openssl_rsa_aes256_ofb.pem">samples/rsa/openssl_rsa_aes256_ofb.pem</a>
-   SUCCESS    	RSA	Blowfish/CBC/PKCS5Padding	128	<a href="rsa/openssl_rsa_blowfish_cbc.pem">samples/rsa/openssl_rsa_blowfish_cbc.pem</a>
-   SUCCESS    	RSA	Blowfish/CFB/NoPadding   	128	<a href="rsa/openssl_rsa_blowfish_cfb.pem">samples/rsa/openssl_rsa_blowfish_cfb.pem</a>
-   SUCCESS    	RSA	Blowfish/ECB/PKCS5Padding	128	<a href="rsa/openssl_rsa_blowfish_ecb.pem">samples/rsa/openssl_rsa_blowfish_ecb.pem</a>
-   SUCCESS    	RSA	Blowfish/OFB/NoPadding   	128	<a href="rsa/openssl_rsa_blowfish_ofb.pem">samples/rsa/openssl_rsa_blowfish_ofb.pem</a>
-   SUCCESS    	RSA	DES/CBC/PKCS5Padding     	 64	<a href="rsa/openssl_rsa_des1_cbc.pem">samples/rsa/openssl_rsa_des1_cbc.pem</a>
-   SUCCESS    	RSA	DES/CFB/NoPadding        	 64	<a href="rsa/openssl_rsa_des1_cfb.pem">samples/rsa/openssl_rsa_des1_cfb.pem</a>
-   SUCCESS    	RSA	DES/ECB/PKCS5Padding     	 64	<a href="rsa/openssl_rsa_des1_ecb.pem">samples/rsa/openssl_rsa_des1_ecb.pem</a>
-   SUCCESS    	RSA	DES/OFB/NoPadding        	 64	<a href="rsa/openssl_rsa_des1_ofb.pem">samples/rsa/openssl_rsa_des1_ofb.pem</a>
-   SUCCESS    	RSA	DESede/CBC/PKCS5Padding  	192	<a href="rsa/openssl_rsa_des2_cbc.pem">samples/rsa/openssl_rsa_des2_cbc.pem</a>
-   SUCCESS    	RSA	DESede/CFB/NoPadding     	192	<a href="rsa/openssl_rsa_des2_cfb.pem">samples/rsa/openssl_rsa_des2_cfb.pem</a>
-   SUCCESS    	RSA	DESede/ECB/PKCS5Padding  	192	<a href="rsa/openssl_rsa_des2_ecb.pem">samples/rsa/openssl_rsa_des2_ecb.pem</a>
-   SUCCESS    	RSA	DESede/OFB/NoPadding     	192	<a href="rsa/openssl_rsa_des2_ofb.pem">samples/rsa/openssl_rsa_des2_ofb.pem</a>
-   SUCCESS    	RSA	DESede/CBC/PKCS5Padding  	192	<a href="rsa/openssl_rsa_des3_cbc.pem">samples/rsa/openssl_rsa_des3_cbc.pem</a>
-   SUCCESS    	RSA	DESede/CFB/NoPadding     	192	<a href="rsa/openssl_rsa_des3_cfb.pem">samples/rsa/openssl_rsa_des3_cfb.pem</a>
-   SUCCESS    	RSA	DESede/ECB/PKCS5Padding  	192	<a href="rsa/openssl_rsa_des3_ecb.pem">samples/rsa/openssl_rsa_des3_ecb.pem</a>
-   SUCCESS    	RSA	DESede/OFB/NoPadding     	192	<a href="rsa/openssl_rsa_des3_ofb.pem">samples/rsa/openssl_rsa_des3_ofb.pem</a>
-   SUCCESS    	RSA	RC2/CBC/PKCS5Padding     	128	<a href="rsa/openssl_rsa_rc2_128_cbc.pem">samples/rsa/openssl_rsa_rc2_128_cbc.pem</a>
-   SUCCESS    	RSA	RC2/CFB/NoPadding        	128	<a href="rsa/openssl_rsa_rc2_128_cfb.pem">samples/rsa/openssl_rsa_rc2_128_cfb.pem</a>
-   SUCCESS    	RSA	RC2/ECB/PKCS5Padding     	128	<a href="rsa/openssl_rsa_rc2_128_ecb.pem">samples/rsa/openssl_rsa_rc2_128_ecb.pem</a>
-   SUCCESS    	RSA	RC2/OFB/NoPadding        	128	<a href="rsa/openssl_rsa_rc2_128_ofb.pem">samples/rsa/openssl_rsa_rc2_128_ofb.pem</a>
-   SUCCESS    	RSA	RC2/CBC/PKCS5Padding     	 40	<a href="rsa/openssl_rsa_rc2_40.pem">samples/rsa/openssl_rsa_rc2_40.pem</a>
-   SUCCESS    	RSA	RC2/CBC/PKCS5Padding     	 64	<a href="rsa/openssl_rsa_rc2_64.pem">samples/rsa/openssl_rsa_rc2_64.pem</a>
-   SUCCESS    	RSA	UNENCRYPTED              	  0	<a href="rsa/openssl_rsa_unencrypted.der">samples/rsa/openssl_rsa_unencrypted.der</a>
-   SUCCESS    	RSA	UNENCRYPTED              	  0	<a href="rsa/openssl_rsa_unencrypted.pem">samples/rsa/openssl_rsa_unencrypted.pem</a>
-   SUCCESS    	RSA	UNENCRYPTED              	  0	<a href="rsa/pkcs8_rsa_unencrypted.der">samples/rsa/pkcs8_rsa_unencrypted.der</a>
-   SUCCESS    	RSA	UNENCRYPTED              	  0	<a href="rsa/pkcs8_rsa_unencrypted.pem">samples/rsa/pkcs8_rsa_unencrypted.pem</a>
-   SUCCESS    	RSA	DES/CBC/PKCS5Padding     	 64	<a href="rsa/pkcs8v1_rsa_md2_des1.der">samples/rsa/pkcs8v1_rsa_md2_des1.der</a>
-   SUCCESS    	RSA	DES/CBC/PKCS5Padding     	 64	<a href="rsa/pkcs8v1_rsa_md2_des1.pem">samples/rsa/pkcs8v1_rsa_md2_des1.pem</a>
-   SUCCESS    	RSA	RC2/CBC/PKCS5Padding     	 64	<a href="rsa/pkcs8v1_rsa_md2_rc2_64.der">samples/rsa/pkcs8v1_rsa_md2_rc2_64.der</a>
-   SUCCESS    	RSA	RC2/CBC/PKCS5Padding     	 64	<a href="rsa/pkcs8v1_rsa_md2_rc2_64.pem">samples/rsa/pkcs8v1_rsa_md2_rc2_64.pem</a>
-   SUCCESS    	RSA	DES/CBC/PKCS5Padding     	 64	<a href="rsa/pkcs8v1_rsa_md5_des1.der">samples/rsa/pkcs8v1_rsa_md5_des1.der</a>
-   SUCCESS    	RSA	DES/CBC/PKCS5Padding     	 64	<a href="rsa/pkcs8v1_rsa_md5_des1.pem">samples/rsa/pkcs8v1_rsa_md5_des1.pem</a>
-   SUCCESS    	RSA	RC2/CBC/PKCS5Padding     	 64	<a href="rsa/pkcs8v1_rsa_md5_rc2_64.der">samples/rsa/pkcs8v1_rsa_md5_rc2_64.der</a>
-   SUCCESS    	RSA	RC2/CBC/PKCS5Padding     	 64	<a href="rsa/pkcs8v1_rsa_md5_rc2_64.pem">samples/rsa/pkcs8v1_rsa_md5_rc2_64.pem</a>
-   SUCCESS    	RSA	DES/CBC/PKCS5Padding     	 64	<a href="rsa/pkcs8v1_rsa_sha1_des1.der">samples/rsa/pkcs8v1_rsa_sha1_des1.der</a>
-   SUCCESS    	RSA	DES/CBC/PKCS5Padding     	 64	<a href="rsa/pkcs8v1_rsa_sha1_des1.pem">samples/rsa/pkcs8v1_rsa_sha1_des1.pem</a>
-   SUCCESS    	RSA	DESede/CBC/PKCS5Padding  	192	<a href="rsa/pkcs8v1_rsa_sha1_des2.der">samples/rsa/pkcs8v1_rsa_sha1_des2.der</a>
-   SUCCESS    	RSA	DESede/CBC/PKCS5Padding  	192	<a href="rsa/pkcs8v1_rsa_sha1_des2.pem">samples/rsa/pkcs8v1_rsa_sha1_des2.pem</a>
-   SUCCESS    	RSA	DESede/CBC/PKCS5Padding  	192	<a href="rsa/pkcs8v1_rsa_sha1_des3.der">samples/rsa/pkcs8v1_rsa_sha1_des3.der</a>
-   SUCCESS    	RSA	DESede/CBC/PKCS5Padding  	192	<a href="rsa/pkcs8v1_rsa_sha1_des3.pem">samples/rsa/pkcs8v1_rsa_sha1_des3.pem</a>
-   SUCCESS    	RSA	RC2/CBC/PKCS5Padding     	128	<a href="rsa/pkcs8v1_rsa_sha1_rc2_128.der">samples/rsa/pkcs8v1_rsa_sha1_rc2_128.der</a>
-   SUCCESS    	RSA	RC2/CBC/PKCS5Padding     	128	<a href="rsa/pkcs8v1_rsa_sha1_rc2_128.pem">samples/rsa/pkcs8v1_rsa_sha1_rc2_128.pem</a>
-   SUCCESS    	RSA	RC2/CBC/PKCS5Padding     	 40	<a href="rsa/pkcs8v1_rsa_sha1_rc2_40.der">samples/rsa/pkcs8v1_rsa_sha1_rc2_40.der</a>
-   SUCCESS    	RSA	RC2/CBC/PKCS5Padding     	 40	<a href="rsa/pkcs8v1_rsa_sha1_rc2_40.pem">samples/rsa/pkcs8v1_rsa_sha1_rc2_40.pem</a>
-   SUCCESS    	RSA	RC2/CBC/PKCS5Padding     	 64	<a href="rsa/pkcs8v1_rsa_sha1_rc2_64.der">samples/rsa/pkcs8v1_rsa_sha1_rc2_64.der</a>
-   SUCCESS    	RSA	RC2/CBC/PKCS5Padding     	 64	<a href="rsa/pkcs8v1_rsa_sha1_rc2_64.pem">samples/rsa/pkcs8v1_rsa_sha1_rc2_64.pem</a>
-   SUCCESS    	RSA	RC4                      	128	<a href="rsa/pkcs8v1_rsa_sha1_rc4_128.der">samples/rsa/pkcs8v1_rsa_sha1_rc4_128.der</a>
-   SUCCESS    	RSA	RC4                      	128	<a href="rsa/pkcs8v1_rsa_sha1_rc4_128.pem">samples/rsa/pkcs8v1_rsa_sha1_rc4_128.pem</a>
-   SUCCESS    	RSA	RC4                      	 40	<a href="rsa/pkcs8v1_rsa_sha1_rc4_40.der">samples/rsa/pkcs8v1_rsa_sha1_rc4_40.der</a>
-   SUCCESS    	RSA	RC4                      	 40	<a href="rsa/pkcs8v1_rsa_sha1_rc4_40.pem">samples/rsa/pkcs8v1_rsa_sha1_rc4_40.pem</a>
-   SUCCESS    	RSA	AES/CBC/PKCS5Padding     	128	<a href="rsa/pkcs8v2_rsa_aes128_cbc.der">samples/rsa/pkcs8v2_rsa_aes128_cbc.der</a>
-   SUCCESS    	RSA	AES/CBC/PKCS5Padding     	128	<a href="rsa/pkcs8v2_rsa_aes128_cbc.pem">samples/rsa/pkcs8v2_rsa_aes128_cbc.pem</a>
-   SUCCESS    	RSA	AES/CFB/NoPadding        	128	<a href="rsa/pkcs8v2_rsa_aes128_cfb.der">samples/rsa/pkcs8v2_rsa_aes128_cfb.der</a>
-   SUCCESS    	RSA	AES/CFB/NoPadding        	128	<a href="rsa/pkcs8v2_rsa_aes128_cfb.pem">samples/rsa/pkcs8v2_rsa_aes128_cfb.pem</a>
-   SUCCESS    	RSA	AES/ECB/PKCS5Padding     	128	<a href="rsa/pkcs8v2_rsa_aes128_ecb.der">samples/rsa/pkcs8v2_rsa_aes128_ecb.der</a>
-   SUCCESS    	RSA	AES/ECB/PKCS5Padding     	128	<a href="rsa/pkcs8v2_rsa_aes128_ecb.pem">samples/rsa/pkcs8v2_rsa_aes128_ecb.pem</a>
-   SUCCESS    	RSA	AES/OFB/NoPadding        	128	<a href="rsa/pkcs8v2_rsa_aes128_ofb.der">samples/rsa/pkcs8v2_rsa_aes128_ofb.der</a>
-   SUCCESS    	RSA	AES/OFB/NoPadding        	128	<a href="rsa/pkcs8v2_rsa_aes128_ofb.pem">samples/rsa/pkcs8v2_rsa_aes128_ofb.pem</a>
-   SUCCESS    	RSA	AES/CBC/PKCS5Padding     	192	<a href="rsa/pkcs8v2_rsa_aes192_cbc.der">samples/rsa/pkcs8v2_rsa_aes192_cbc.der</a>
-   SUCCESS    	RSA	AES/CBC/PKCS5Padding     	192	<a href="rsa/pkcs8v2_rsa_aes192_cbc.pem">samples/rsa/pkcs8v2_rsa_aes192_cbc.pem</a>
-   SUCCESS    	RSA	AES/CFB/NoPadding        	192	<a href="rsa/pkcs8v2_rsa_aes192_cfb.der">samples/rsa/pkcs8v2_rsa_aes192_cfb.der</a>
-   SUCCESS    	RSA	AES/CFB/NoPadding        	192	<a href="rsa/pkcs8v2_rsa_aes192_cfb.pem">samples/rsa/pkcs8v2_rsa_aes192_cfb.pem</a>
-   SUCCESS    	RSA	AES/ECB/PKCS5Padding     	192	<a href="rsa/pkcs8v2_rsa_aes192_ecb.der">samples/rsa/pkcs8v2_rsa_aes192_ecb.der</a>
-   SUCCESS    	RSA	AES/ECB/PKCS5Padding     	192	<a href="rsa/pkcs8v2_rsa_aes192_ecb.pem">samples/rsa/pkcs8v2_rsa_aes192_ecb.pem</a>
-   SUCCESS    	RSA	AES/OFB/NoPadding        	192	<a href="rsa/pkcs8v2_rsa_aes192_ofb.der">samples/rsa/pkcs8v2_rsa_aes192_ofb.der</a>
-   SUCCESS    	RSA	AES/OFB/NoPadding        	192	<a href="rsa/pkcs8v2_rsa_aes192_ofb.pem">samples/rsa/pkcs8v2_rsa_aes192_ofb.pem</a>
-   SUCCESS    	RSA	AES/CBC/PKCS5Padding     	256	<a href="rsa/pkcs8v2_rsa_aes256_cbc.der">samples/rsa/pkcs8v2_rsa_aes256_cbc.der</a>
-   SUCCESS    	RSA	AES/CBC/PKCS5Padding     	256	<a href="rsa/pkcs8v2_rsa_aes256_cbc.pem">samples/rsa/pkcs8v2_rsa_aes256_cbc.pem</a>
-   SUCCESS    	RSA	AES/CFB/NoPadding        	256	<a href="rsa/pkcs8v2_rsa_aes256_cfb.der">samples/rsa/pkcs8v2_rsa_aes256_cfb.der</a>
-   SUCCESS    	RSA	AES/CFB/NoPadding        	256	<a href="rsa/pkcs8v2_rsa_aes256_cfb.pem">samples/rsa/pkcs8v2_rsa_aes256_cfb.pem</a>
-   SUCCESS    	RSA	AES/ECB/PKCS5Padding     	256	<a href="rsa/pkcs8v2_rsa_aes256_ecb.der">samples/rsa/pkcs8v2_rsa_aes256_ecb.der</a>
-   SUCCESS    	RSA	AES/ECB/PKCS5Padding     	256	<a href="rsa/pkcs8v2_rsa_aes256_ecb.pem">samples/rsa/pkcs8v2_rsa_aes256_ecb.pem</a>
-   SUCCESS    	RSA	AES/OFB/NoPadding        	256	<a href="rsa/pkcs8v2_rsa_aes256_ofb.der">samples/rsa/pkcs8v2_rsa_aes256_ofb.der</a>
-   SUCCESS    	RSA	AES/OFB/NoPadding        	256	<a href="rsa/pkcs8v2_rsa_aes256_ofb.pem">samples/rsa/pkcs8v2_rsa_aes256_ofb.pem</a>
-   SUCCESS    	RSA	Blowfish/CBC/PKCS5Padding	128	<a href="rsa/pkcs8v2_rsa_blowfish_cbc.der">samples/rsa/pkcs8v2_rsa_blowfish_cbc.der</a>
-   SUCCESS    	RSA	Blowfish/CBC/PKCS5Padding	128	<a href="rsa/pkcs8v2_rsa_blowfish_cbc.pem">samples/rsa/pkcs8v2_rsa_blowfish_cbc.pem</a>
-   SUCCESS    	RSA	DES/CBC/PKCS5Padding     	 64	<a href="rsa/pkcs8v2_rsa_des1_cbc.der">samples/rsa/pkcs8v2_rsa_des1_cbc.der</a>
-   SUCCESS    	RSA	DES/CBC/PKCS5Padding     	 64	<a href="rsa/pkcs8v2_rsa_des1_cbc.pem">samples/rsa/pkcs8v2_rsa_des1_cbc.pem</a>
-   SUCCESS    	RSA	DES/CFB/NoPadding        	 64	<a href="rsa/pkcs8v2_rsa_des1_cfb.der">samples/rsa/pkcs8v2_rsa_des1_cfb.der</a>
-   SUCCESS    	RSA	DES/CFB/NoPadding        	 64	<a href="rsa/pkcs8v2_rsa_des1_cfb.pem">samples/rsa/pkcs8v2_rsa_des1_cfb.pem</a>
-   SUCCESS    	RSA	DES/ECB/PKCS5Padding     	 64	<a href="rsa/pkcs8v2_rsa_des1_ecb.der">samples/rsa/pkcs8v2_rsa_des1_ecb.der</a>
-   SUCCESS    	RSA	DES/ECB/PKCS5Padding     	 64	<a href="rsa/pkcs8v2_rsa_des1_ecb.pem">samples/rsa/pkcs8v2_rsa_des1_ecb.pem</a>
-   SUCCESS    	RSA	DES/OFB/NoPadding        	 64	<a href="rsa/pkcs8v2_rsa_des1_ofb.der">samples/rsa/pkcs8v2_rsa_des1_ofb.der</a>
-   SUCCESS    	RSA	DES/OFB/NoPadding        	 64	<a href="rsa/pkcs8v2_rsa_des1_ofb.pem">samples/rsa/pkcs8v2_rsa_des1_ofb.pem</a>
-   SUCCESS    	RSA	DESede/ECB/PKCS5Padding  	192	<a href="rsa/pkcs8v2_rsa_des2_ecb_SEEMS_WRONG.der">samples/rsa/pkcs8v2_rsa_des2_ecb_SEEMS_WRONG.der</a>
-   SUCCESS    	RSA	DESede/ECB/PKCS5Padding  	192	<a href="rsa/pkcs8v2_rsa_des2_ecb_SEEMS_WRONG.pem">samples/rsa/pkcs8v2_rsa_des2_ecb_SEEMS_WRONG.pem</a>
-   SUCCESS    	RSA	DESede/CBC/PKCS5Padding  	192	<a href="rsa/pkcs8v2_rsa_des3.der">samples/rsa/pkcs8v2_rsa_des3.der</a>
-   SUCCESS    	RSA	DESede/CBC/PKCS5Padding  	192	<a href="rsa/pkcs8v2_rsa_des3.pem">samples/rsa/pkcs8v2_rsa_des3.pem</a>
-   SUCCESS    	RSA	RC2/CBC/PKCS5Padding     	128	<a href="rsa/pkcs8v2_rsa_rc2_128.der">samples/rsa/pkcs8v2_rsa_rc2_128.der</a>
-   SUCCESS    	RSA	RC2/CBC/PKCS5Padding     	128	<a href="rsa/pkcs8v2_rsa_rc2_128.pem">samples/rsa/pkcs8v2_rsa_rc2_128.pem</a>
-   SUCCESS    	RSA	RC2/CBC/PKCS5Padding     	 40	<a href="rsa/pkcs8v2_rsa_rc2_40.der">samples/rsa/pkcs8v2_rsa_rc2_40.der</a>
-   SUCCESS    	RSA	RC2/CBC/PKCS5Padding     	 40	<a href="rsa/pkcs8v2_rsa_rc2_40.pem">samples/rsa/pkcs8v2_rsa_rc2_40.pem</a>
-   SUCCESS    	RSA	RC2/CBC/PKCS5Padding     	 64	<a href="rsa/pkcs8v2_rsa_rc2_64.der">samples/rsa/pkcs8v2_rsa_rc2_64.der</a>
-   SUCCESS    	RSA	RC2/CBC/PKCS5Padding     	 64	<a href="rsa/pkcs8v2_rsa_rc2_64.pem">samples/rsa/pkcs8v2_rsa_rc2_64.pem</a>
-</pre>
+<h1>not-yet-commons-ssl</h1>
+<div class="nav">
+<a href="index.html">main</a> |
+<a href="ssl.html">ssl</a> |
+<span class="hl"><a href="pkcs8.html">pkcs8</a></span> |
+<a href="rmi.html">rmi</a> |
+<a href="utilities.html">utilities</a> |
+<a href="source.html">source</a> |
+<a href="javadocs/">javadocs</a> |
+<a href="download.html">download</a>
+</div>
+<br clear="all"/>
+<hr/>
+<h2>Decrypting RSA Private Keys in Java</h2>
+<p>Don't forget to install your JVM's <a href="http://java.sun.com/javase/downloads/">Unlimited Strength Jurisdiction Policy Files</a>
+if you want the AES-192 and AES-256 tests to pass.</p>
+<!--#include virtual="rsa.html" -->
 </body>
 </html>
