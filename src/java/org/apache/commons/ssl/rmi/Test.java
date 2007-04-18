@@ -33,10 +33,7 @@ package org.apache.commons.ssl.rmi;
 
 import org.apache.commons.ssl.LogWrapper;
 import org.apache.commons.ssl.RMISocketFactoryImpl;
-import org.apache.commons.ssl.SSLClient;
-import org.apache.commons.ssl.TrustMaterial;
 
-import javax.net.SocketFactory;
 import java.net.MalformedURLException;
 import java.rmi.Naming;
 import java.rmi.NotBoundException;
@@ -55,7 +52,7 @@ public class Test
 {
 	private final static LogWrapper log = LogWrapper.getLogger( Test.class );
 	private final static String TEST_DATE_NAME = "/org.apache.commons.ssl.rmi.testdate";
-	private final static String TEST_INT_NAME = "/org.apache.commons.ssl.rmi.testint";	
+	private final static String TEST_INT_NAME = "/org.apache.commons.ssl.rmi.testint";
 	protected final static int PORT;
 	protected final static String URL;
 
@@ -193,29 +190,16 @@ public class Test
 
 	public static void main( String[] args ) throws Exception
 	{
+		System.setProperty( RMISocketFactoryImpl.RMI_HOSTNAME_KEY, "localhost" );
+		RMISocketFactoryImpl impl = new RMISocketFactoryImpl();
+		RMISocketFactory.setSocketFactory( impl );
 
-		if ( args.length > 0 && "ssl".equalsIgnoreCase( args[ 0 ] ) )
+		if ( args.length > 0 )
 		{
-			RMISocketFactoryImpl impl = new RMISocketFactoryImpl();
-			// impl.setDefaultClient( SocketFactory.getDefault() );
 
-			SocketFactory sf = impl.getDefaultClient();
-			if ( sf instanceof SSLClient )
-			{
-				SSLClient client = (SSLClient) impl.getDefaultClient();
-				impl.setClient( "ryerson.ca", client );
-				impl.setClient( "neptune.cucbc.com", client );
-				client.setCheckHostname( false );
-				client.addTrustMaterial( TrustMaterial.CACERTS );
-			}
-
-			RMISocketFactory.setSocketFactory( impl );
 		}
 		else
 		{
-			RMISocketFactoryImpl impl = new RMISocketFactoryImpl();
-			RMISocketFactory.setSocketFactory( impl );
-
 			Test.requireNameServer();
 			Test.rebindTest();
 

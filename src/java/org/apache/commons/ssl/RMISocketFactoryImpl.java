@@ -59,7 +59,7 @@ import java.util.*;
  * the registry and the remote objects will use SSL, or both will use
  * plain-socket.  The client is able to auto detect plain-socket registries
  * and downgrades itself to accomodate those.
- * <p>
+ * <p/>
  * Unlike most existing RMI over SSL solutions in use (including Java 5's
  * javax.rmi.ssl.SslRMIClientSocketFactory), this one does proper SSL hostname
  * verification.  From the client perspective this is straighforward.  From
@@ -70,17 +70,17 @@ import java.util.*;
  * using the CN value we extract from our server certificate!  (Some
  * complications arise should a wildcard certificate show up, but we try our
  * best to deal with those).
- * <p>
+ * <p/>
  * An SSL server cannot be started without a private key.  We have defined some
  * default behaviour for trying to find a private key to use that we believe
  * is convenient and sensible:
- * <p>
+ * <p/>
  * If running from inside Tomcat, we try to re-use Tomcat's private key and
  * certificate chain (assuming Tomcat-SSL on port 8443 is enabled).  If this
  * isn't available, we look for the "javax.net.ssl.keyStore" System property.
  * Finally, if that isn't available, we look for "~/.keystore" and assume
  * a password of "changeit".
- * <p>
+ * <p/>
  * If after all these attempts we still failed to find a private key, the
  * RMISocketFactoryImpl() constructor will throw an SSLException.
  *
@@ -108,12 +108,11 @@ public class RMISocketFactoryImpl extends RMISocketFactory
 	}
 
 	/**
-	 * 
 	 * @param createDefaultServer If false, then we only set the default
 	 *                            client, and the default server is set to null.
 	 *                            If true, then a default server is also created.
-	 * @throws GeneralSecurityException  bad things
-	 * @throws IOException               bad things
+	 * @throws GeneralSecurityException bad things
+	 * @throws IOException              bad things
 	 */
 	public RMISocketFactoryImpl( boolean createDefaultServer )
 			throws GeneralSecurityException, IOException
@@ -149,7 +148,9 @@ public class RMISocketFactoryImpl extends RMISocketFactory
 		this.sslServer = f;
 		if ( f instanceof SSLServer )
 		{
-			final HostnameVerifier VERIFIER = HostnameVerifier.DEFAULT;
+			final HostnameVerifier VERIFIER;
+			VERIFIER = HostnameVerifier.DEFAULT_AND_LOCALHOST;
+
 			final SSLServer ssl = (SSLServer) f;
 			final X509Certificate[] chain = ssl.getAssociatedCertificateChain();
 			String[] cns = Certificates.getCNs( chain[ 0 ] );
@@ -430,10 +431,29 @@ public class RMISocketFactoryImpl extends RMISocketFactory
 			throws IOException
 	{
 		host = host != null ? host.trim().toLowerCase() : "";
+		InetAddress local = null;
 		String bindAddress = localBindAddress;
 		if ( bindAddress == null )
 		{
 			bindAddress = System.getProperty( RMI_HOSTNAME_KEY );
+			if ( bindAddress != null )
+			{
+				local = InetAddress.getByName( bindAddress );
+				if ( !local.isLoopbackAddress() )
+				{
+					String ip = local.getHostAddress();
+					Set myInternetIps = getMyInternetFacingIPs();
+					if ( !myInternetIps.contains( ip ) )
+					{
+						log.warn( "Cannot bind to " + ip + " since it doesn't exist on this machine." );
+						// Not going to be able to bind as this.  Our RMI_HOSTNAME_KEY
+						// must be set to some kind of proxy in front of us.  So we
+						// still want to use it, but we can't bind to it.
+						local = null;
+						bindAddress = null;
+					}
+				}
+			}
 		}
 		if ( bindAddress == null )
 		{
@@ -441,10 +461,10 @@ public class RMISocketFactoryImpl extends RMISocketFactory
 			// internet facing!
 			bindAddress = getMyDefaultIP();
 		}
-		InetAddress local = null;
-		if ( bindAddress != null )
+		if ( local == null && bindAddress != null )
 		{
 			local = InetAddress.getByName( bindAddress );
+			localBindAddress = local.getHostName();
 		}
 
 		SocketFactory sf;
