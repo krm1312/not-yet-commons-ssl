@@ -66,7 +66,6 @@ public class SSL
 
 	// SUPPORTED_CIPHERS_ARRAY is initialized in the static constructor.
 	private final static String[] SUPPORTED_CIPHERS;
-	private final static String[] DEFAULT_CIPHERS;
 
 	public final static SortedSet KNOWN_PROTOCOLS_SET;
 	public final static SortedSet SUPPORTED_CIPHERS_SET;
@@ -101,9 +100,7 @@ public class SSL
 		SSLSocketFactory s = (SSLSocketFactory) SSLSocketFactory.getDefault();
 		ts = new TreeSet();
 		SUPPORTED_CIPHERS = s.getSupportedCipherSuites();
-		DEFAULT_CIPHERS = s.getDefaultCipherSuites();
 		Arrays.sort( SUPPORTED_CIPHERS );
-		Arrays.sort( DEFAULT_CIPHERS );
 		ts.addAll( Arrays.asList( SUPPORTED_CIPHERS ) );
 		SUPPORTED_CIPHERS_SET = Collections.unmodifiableSortedSet( ts );
 	}
@@ -322,13 +319,7 @@ public class SSL
 
 	public void useDefaultJavaCiphers()
 	{
-		String[] enabled = getEnabledCiphers();
-		Arrays.sort( enabled );
-		Arrays.sort( DEFAULT_CIPHERS );
-		if ( !Arrays.equals( DEFAULT_CIPHERS, enabled ) )
-		{
-			setEnabledCiphers( DEFAULT_CIPHERS );
-		}
+		this.enabledCiphers = null;
 	}
 
 	public void useStrongCiphers()

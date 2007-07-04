@@ -48,6 +48,7 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.RC2ParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
+import javax.crypto.spec.RC5ParameterSpec;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
@@ -377,13 +378,7 @@ public class PKCS8Key
 		String mode = item.mode;
 		int keySize = item.keySizeInBits;
 		byte[] salt = item.iv;
-		byte[] pwd = new byte[password.length];
-		for ( int i = 0; i < password.length; i++ )
-		{
-			pwd[ i ] = (byte) password[ i ];
-		}
-		MessageDigest md = MessageDigest.getInstance( "MD5" );
-		DerivedKey dk = OpenSSL.deriveKey( pwd, salt, keySize, md );
+		DerivedKey dk = OpenSSL.deriveKey( password, salt, keySize );
 		return decrypt( cipher, mode, dk, item.des2, null, item.getDerBytes() );
 	}
 
@@ -403,17 +398,18 @@ public class PKCS8Key
 
 		final int keySize = dk.key.length * 8;
 		cipher = cipher.trim();
+		String cipherUpper = cipher.toUpperCase();
 		mode = mode.trim().toUpperCase();
 		// Is the cipher even available?
 		Cipher.getInstance( cipher );
 		String padding = "PKCS5Padding";
-		if ( "CFB".equals( mode ) || "OFB".equals( mode ) )
+		if ( mode.startsWith( "CFB" ) || mode.startsWith( "OFB" ) )
 		{
 			padding = "NoPadding";
 		}
 
 		String transformation = cipher + "/" + mode + "/" + padding;
-		if ( "RC4".equals( cipher ) )
+		if ( cipherUpper.startsWith( "RC4" ) )
 		{
 			// RC4 does not take mode or padding.
 			transformation = cipher;
@@ -429,7 +425,6 @@ public class PKCS8Key
 		{
 			ivParams = dk.iv != null ? new IvParameterSpec( dk.iv ) : null;
 		}
-
 		Cipher c = Cipher.getInstance( transformation );
 		int cipherMode = Cipher.ENCRYPT_MODE;
 		if ( decryptMode )
@@ -438,10 +433,10 @@ public class PKCS8Key
 		}
 
 		// RC2 requires special params to inform engine of keysize.
-		if ( "RC2".equalsIgnoreCase( cipher ) )
+		if ( cipherUpper.startsWith( "RC2" ) )
 		{
 			RC2ParameterSpec rcParams;
-			if ( "ECB".equals( mode ) || ivParams == null )
+			if ( mode.startsWith( "ECB" ) || ivParams == null )
 			{
 				// ECB doesn't take an IV.
 				rcParams = new RC2ParameterSpec( keySize );
@@ -452,7 +447,21 @@ public class PKCS8Key
 			}
 			c.init( cipherMode, secret, rcParams );
 		}
-		else if ( "ECB".equals( mode ) || "RC4".equals( cipher ) )
+		else if ( cipherUpper.startsWith( "RC5" ) )
+		{
+			RC5ParameterSpec rcParams;
+			if ( mode.startsWith( "ECB" ) || ivParams == null )
+			{
+				// ECB doesn't take an IV.
+				rcParams = new RC5ParameterSpec( 16, 12, 32 );
+			}
+			else
+			{
+				rcParams = new RC5ParameterSpec( 16, 12, 32, ivParams.getIV() );
+			}
+			c.init( cipherMode, secret, rcParams );
+		}
+		else if ( mode.startsWith( "ECB" ) || cipherUpper.startsWith( "RC4" ) )
 		{
 			// RC4 doesn't require any params.
 			// Any cipher using ECB does not require an IV.

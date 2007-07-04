@@ -103,6 +103,7 @@ public class Ping
 			{
 				System.out.println();
 				System.out.println( "* Error: " + parseException.getMessage() + "." );
+				parseException.printStackTrace( System.out );
 				System.out.println();
 			}
 			System.out.println( Version.versionString() );

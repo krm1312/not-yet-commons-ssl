@@ -39,6 +39,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.security.GeneralSecurityException;
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.StringTokenizer;
 
@@ -68,17 +69,39 @@ public class OpenSSL
 	 *                  <li>aes128, aes192, aes256, aes-256-cbc
 	 *                  <li>rc2, rc4, bf</ul>
 	 * @param pwd       password to use for this PBE decryption
+	 * @param encrypted byte array to decrypt.  Can be raw, or base64.
+	 * @return decrypted bytes
+	 * @throws IOException              problems with encrypted bytes (unlikely!)
+	 * @throws GeneralSecurityException problems decrypting
+	 */
+	public static byte[] decrypt( String cipher, char[] pwd, byte[] encrypted )
+			throws IOException, GeneralSecurityException
+	{
+		ByteArrayInputStream in = new ByteArrayInputStream( encrypted );
+		InputStream decrypted = decrypt( cipher, pwd, in );
+		return Util.streamToBytes( decrypted );
+	}
+
+	/**
+	 * Decrypts data using a password and an OpenSSL compatible cipher
+	 * name.
+	 *
+	 * @param cipher    The OpenSSL compatible cipher to use (try "man enc" on a
+	 *                  unix box to see what's possible).  Some examples:
+	 *                  <ul><li>des, des3, des-ede3-cbc
+	 *                  <li>aes128, aes192, aes256, aes-256-cbc
+	 *                  <li>rc2, rc4, bf</ul>
+	 * @param pwd       password to use for this PBE decryption
 	 * @param encrypted InputStream to decrypt.  Can be raw, or base64.
 	 * @return decrypted bytes as an InputStream
 	 * @throws IOException              problems with InputStream
 	 * @throws GeneralSecurityException problems decrypting
 	 */
-	public static InputStream decrypt( String cipher, byte[] pwd,
+	public static InputStream decrypt( String cipher, char[] pwd,
 	                                   InputStream encrypted )
 			throws IOException, GeneralSecurityException
 	{
 		CipherInfo cipherInfo = lookup( cipher );
-		MessageDigest md5 = MessageDigest.getInstance( "MD5" );
 		boolean salted = false;
 
 		// First 16 bytes of raw binary will hopefully be OpenSSL's
@@ -135,13 +158,8 @@ public class OpenSSL
 		}
 
 		int keySize = cipherInfo.keySize;
-		int ivSize = 64;
-		if ( cipherInfo.javaCipher.startsWith( "AES" ) )
-		{
-			ivSize = 128;
-		}
-
-		DerivedKey dk = deriveKey( pwd, salt, keySize, ivSize, md5 );
+		int ivSize = cipherInfo.ivSize;
+		DerivedKey dk = deriveKey( pwd, salt, keySize, ivSize );
 		Cipher c = PKCS8Key.generateCipher( cipherInfo.javaCipher,
 		                                    cipherInfo.blockMode,
 		                                    dk, cipherInfo.des2, null, true );
@@ -149,7 +167,46 @@ public class OpenSSL
 		return new CipherInputStream( encrypted, c );
 	}
 
-	public static InputStream encrypt( String cipher, byte[] pwd,
+	/**
+	 * Encrypts data using a password and an OpenSSL compatible cipher
+	 * name.
+	 *
+	 * @param cipher   The OpenSSL compatible cipher to use (try "man enc" on a
+	 *                 unix box to see what's possible).  Some examples:
+	 *                 <ul><li>des, des3, des-ede3-cbc
+	 *                 <li>aes128, aes192, aes256, aes-256-cbc
+	 *                 <li>rc2, rc4, bf</ul>
+	 * @param pwd      password to use for this PBE encryption
+	 * @param data     byte array to encrypt
+	 * @return encrypted bytes as an array in base64.  First 16 bytes include the
+	 *         special OpenSSL "Salted__" info encoded into base64.
+	 * @throws IOException              problems with the data byte array
+	 * @throws GeneralSecurityException problems encrypting
+	 */	
+	public static byte[] encrypt( String cipher, char[] pwd, byte[] data )
+			throws IOException, GeneralSecurityException
+	{
+		// base64 is the default output format.
+		return encrypt( cipher, pwd, data, true );
+	}
+
+	/**
+	 * Encrypts data using a password and an OpenSSL compatible cipher
+	 * name.
+	 *
+	 * @param cipher   The OpenSSL compatible cipher to use (try "man enc" on a
+	 *                 unix box to see what's possible).  Some examples:
+	 *                 <ul><li>des, des3, des-ede3-cbc
+	 *                 <li>aes128, aes192, aes256, aes-256-cbc
+	 *                 <li>rc2, rc4, bf</ul>
+	 * @param pwd      password to use for this PBE encryption
+	 * @param data     InputStream to encrypt
+	 * @return encrypted bytes as an InputStream.  First 16 bytes include the
+	 *         special OpenSSL "Salted__" info encoded into base64.
+	 * @throws IOException              problems with the data InputStream
+	 * @throws GeneralSecurityException problems encrypting
+	 */		
+	public static InputStream encrypt( String cipher, char[] pwd,
 	                                   InputStream data )
 			throws IOException, GeneralSecurityException
 	{
@@ -157,12 +214,86 @@ public class OpenSSL
 		return encrypt( cipher, pwd, data, true );
 	}
 
-	public static InputStream encrypt( String cipher, byte[] pwd,
+	/**
+	 * Encrypts data using a password and an OpenSSL compatible cipher
+	 * name.
+	 *
+	 * @param cipher   The OpenSSL compatible cipher to use (try "man enc" on a
+	 *                 unix box to see what's possible).  Some examples:
+	 *                 <ul><li>des, des3, des-ede3-cbc
+	 *                 <li>aes128, aes192, aes256, aes-256-cbc
+	 *                 <li>rc2, rc4, bf</ul>
+	 * @param pwd      password to use for this PBE encryption
+	 * @param data     byte array to encrypt
+	 * @param toBase64 true if resulting InputStream should contain base64,
+	 *                 <br>false if InputStream should contain raw binary.
+	 * @return encrypted bytes as an array.  First 16 bytes include the
+	 *         special OpenSSL "Salted__" info.
+	 * @throws IOException              problems with the data byte array
+	 * @throws GeneralSecurityException problems encrypting
+	 */
+	public static byte[] encrypt( String cipher, char[] pwd, byte[] data,
+	                              boolean toBase64 )
+			throws IOException, GeneralSecurityException
+	{
+		// we use a salt by default.
+		return encrypt( cipher, pwd, data, toBase64, true );
+	}
+
+	/**
+	 * Encrypts data using a password and an OpenSSL compatible cipher
+	 * name.
+	 *
+	 * @param cipher   The OpenSSL compatible cipher to use (try "man enc" on a
+	 *                 unix box to see what's possible).  Some examples:
+	 *                 <ul><li>des, des3, des-ede3-cbc
+	 *                 <li>aes128, aes192, aes256, aes-256-cbc
+	 *                 <li>rc2, rc4, bf</ul>
+	 * @param pwd      password to use for this PBE encryption
+	 * @param data     InputStream to encrypt
+	 * @param toBase64 true if resulting InputStream should contain base64,
+	 *                 <br>false if InputStream should contain raw binary.
+	 * @return encrypted bytes as an InputStream.  First 16 bytes include the
+	 *         special OpenSSL "Salted__" info.
+	 * @throws IOException              problems with the data InputStream
+	 * @throws GeneralSecurityException problems encrypting
+	 */	
+	public static InputStream encrypt( String cipher, char[] pwd,
 	                                   InputStream data, boolean toBase64 )
 			throws IOException, GeneralSecurityException
 	{
 		// we use a salt by default.
 		return encrypt( cipher, pwd, data, toBase64, true );
+	}
+
+	/**
+	 * Encrypts data using a password and an OpenSSL compatible cipher
+	 * name.
+	 *
+	 * @param cipher   The OpenSSL compatible cipher to use (try "man enc" on a
+	 *                 unix box to see what's possible).  Some examples:
+	 *                 <ul><li>des, des3, des-ede3-cbc
+	 *                 <li>aes128, aes192, aes256, aes-256-cbc
+	 *                 <li>rc2, rc4, bf</ul>
+	 * @param pwd      password to use for this PBE encryption
+	 * @param data     byte array to encrypt
+	 * @param toBase64 true if resulting InputStream should contain base64,
+	 *                 <br>false if InputStream should contain raw binary.
+	 * @param useSalt  true if a salt should be used to derive the key.
+	 *                 <br>false otherwise.  (Best security practises
+	 *                 always recommend using a salt!).
+	 * @return encrypted bytes as an array.  First 16 bytes include the
+	 *         special OpenSSL "Salted__" info if <code>useSalt</code> is true.
+	 * @throws IOException              problems with the data InputStream
+	 * @throws GeneralSecurityException problems encrypting
+	 */
+	public static byte[] encrypt( String cipher, char[] pwd, byte[] data,
+	                              boolean toBase64, boolean useSalt )
+			throws IOException, GeneralSecurityException
+	{
+		ByteArrayInputStream in = new ByteArrayInputStream( data );
+		InputStream encrypted = encrypt( cipher, pwd, in, toBase64, useSalt );
+		return Util.streamToBytes( encrypted );
 	}
 
 	/**
@@ -186,13 +317,12 @@ public class OpenSSL
 	 * @throws IOException              problems with the data InputStream
 	 * @throws GeneralSecurityException problems encrypting
 	 */
-	public static InputStream encrypt( String cipher, byte[] pwd,
+	public static InputStream encrypt( String cipher, char[] pwd,
 	                                   InputStream data, boolean toBase64,
 	                                   boolean useSalt )
 			throws IOException, GeneralSecurityException
 	{
 		CipherInfo cipherInfo = lookup( cipher );
-		MessageDigest md5 = MessageDigest.getInstance( "MD5" );
 		byte[] salt = null;
 		if ( useSalt )
 		{
@@ -202,13 +332,8 @@ public class OpenSSL
 		}
 
 		int keySize = cipherInfo.keySize;
-		int ivSize = 64;
-		if ( cipherInfo.javaCipher.startsWith( "AES" ) )
-		{
-			ivSize = 128;
-		}
-
-		DerivedKey dk = deriveKey( pwd, salt, keySize, ivSize, md5 );
+		int ivSize = cipherInfo.ivSize;
+		DerivedKey dk = deriveKey( pwd, salt, keySize, ivSize );
 		Cipher c = PKCS8Key.generateCipher( cipherInfo.javaCipher,
 		                                    cipherInfo.blockMode,
 		                                    dk, cipherInfo.des2, null, false );
@@ -231,16 +356,24 @@ public class OpenSSL
 		return cipherStream;
 	}
 
-	public static DerivedKey deriveKey( byte[] password, byte[] salt,
-	                                    int keySize, MessageDigest md )
+	public static DerivedKey deriveKey( char[] password, byte[] salt,
+	                                    int keySize )
+			throws NoSuchAlgorithmException
 	{
-		return deriveKey( password, salt, keySize, 0, md );
+		return deriveKey( password, salt, keySize, 0 );
 	}
 
-	public static DerivedKey deriveKey( byte[] password, byte[] salt,
-	                                    int keySize, int ivSize,
-	                                    MessageDigest md )
+	public static DerivedKey deriveKey( char[] password, byte[] salt,
+	                                    int keySize, int ivSize )
+			throws NoSuchAlgorithmException
 	{
+		MessageDigest md = MessageDigest.getInstance( "MD5" );
+		byte[] pwdAsBytes = new byte[password.length];
+		for ( int i = 0; i < password.length; i++ )
+		{
+			pwdAsBytes[ i ] = (byte) password[ i ];
+		}
+
 		md.reset();
 		byte[] keyAndIv = new byte[( keySize / 8 ) + ( ivSize / 8 )];
 		if ( salt == null || salt.length == 0 )
@@ -252,7 +385,7 @@ public class OpenSSL
 		int currentPos = 0;
 		while ( currentPos < keyAndIv.length )
 		{
-			md.update( password );
+			md.update( pwdAsBytes );
 			if ( salt != null )
 			{
 				// First 8 bytes of salt ONLY!  That wasn't obvious to me
@@ -309,14 +442,16 @@ public class OpenSSL
 		public final String javaCipher;
 		public final String blockMode;
 		public final int keySize;
+		public final int ivSize;
 		public final boolean des2;
 
 		public CipherInfo( String javaCipher, String blockMode, int keySize,
-		                   boolean des2 )
+		                   int ivSize, boolean des2 )
 		{
 			this.javaCipher = javaCipher;
 			this.blockMode = blockMode;
 			this.keySize = keySize;
+			this.ivSize = ivSize;
 			this.des2 = des2;
 		}
 
@@ -340,9 +475,10 @@ public class OpenSSL
 		{
 			openSSLCipher = openSSLCipher.substring( 1 );
 		}
-		String javaCipher = openSSLCipher;
+		String javaCipher = openSSLCipher.toUpperCase();
 		String blockMode = "CBC";
 		int keySize = -1;
+		int ivSize = 64;
 		boolean des2 = false;
 
 
@@ -364,11 +500,11 @@ public class OpenSSL
 					{
 						// I guess 2nd token isn't an integer
 						String upper = tok.toUpperCase();
-						if ( "EDE3".equals( upper ) )
+						if ( upper.startsWith( "EDE3" ) )
 						{
 							javaCipher = "DESede";
 						}
-						if ( "EDE".equals( upper ) )
+						else if ( upper.startsWith( "EDE" ) )
 						{
 							javaCipher = "DESede";
 							des2 = true;
@@ -378,28 +514,60 @@ public class OpenSSL
 				}
 				else
 				{
-					// It's the last token, so must be mode (usually "CBC").
-					blockMode = tok.toUpperCase();
-					if ( "EDE".equals( blockMode ) )
+					try
 					{
-						javaCipher = "DESede";
-						blockMode = "ECB";
-						des2 = true;
+						keySize = Integer.parseInt( tok );
 					}
-					else if ( "EDE3".equals( blockMode ) )
+					catch ( NumberFormatException nfe )
 					{
-						javaCipher = "DESede";
-						blockMode = "ECB";
+						// It's the last token, so must be mode (usually "CBC").
+						blockMode = tok.toUpperCase();
+						if ( blockMode.startsWith( "EDE3" ) )
+						{
+							javaCipher = "DESede";
+							blockMode = "ECB";
+						}
+						else if ( blockMode.startsWith( "EDE" ) )
+						{
+							javaCipher = "DESede";
+							blockMode = "ECB";
+							des2 = true;
+						}
 					}
 				}
 			}
 		}
-		if ( "BF".equals( javaCipher ) )
+		if ( javaCipher.startsWith( "BF" ) )
 		{
 			javaCipher = "Blowfish";
 		}
-
-		if ( "DES3".equals( javaCipher ) )
+		else if ( javaCipher.startsWith( "TWOFISH" ) )
+		{
+			javaCipher = "Twofish";
+			ivSize = 128;
+		}
+		else if ( javaCipher.startsWith( "IDEA" ) )
+		{
+			javaCipher = "IDEA";
+		}
+		else if ( javaCipher.startsWith( "CAST6" ) )
+		{
+			javaCipher = "CAST6";
+			ivSize = 128;			
+		}
+		else if ( javaCipher.startsWith( "CAST" ) )
+		{
+			javaCipher = "CAST5";
+		}
+		else if ( javaCipher.startsWith( "GOST" ) )
+		{
+			keySize = 256;
+		}
+		else if ( javaCipher.startsWith( "DESX" ) )
+		{
+			javaCipher = "DESX";
+		}
+		else if ( "DES3".equals( javaCipher ) )
 		{
 			javaCipher = "DESede";
 		}
@@ -408,23 +576,73 @@ public class OpenSSL
 			javaCipher = "DESede";
 			des2 = true;
 		}
-		else if ( "AES128".equals( javaCipher ) )
+		else if ( javaCipher.startsWith( "RIJNDAEL" ) )
 		{
-			javaCipher = "AES";
-			keySize = 128;
+			javaCipher = "Rijndael";
+			ivSize = 128;
 		}
-		else if ( "AES192".equals( javaCipher ) )
+		else if ( javaCipher.startsWith( "SEED" ) )
 		{
-			javaCipher = "AES";
-			keySize = 192;
+			javaCipher = "SEED";
+			ivSize = 128;
 		}
-		else if ( "AES256".equals( javaCipher ) )
+		else if ( javaCipher.startsWith( "SERPENT" ) )
 		{
-			javaCipher = "AES";
-			keySize = 256;
+			javaCipher = "Serpent";
+			ivSize = 128;
 		}
-
-
+		else if ( javaCipher.startsWith( "Skipjack" ) )
+		{
+			javaCipher = "Skipjack";
+			ivSize = 128;
+		}
+		else if ( javaCipher.startsWith( "RC6" ) )
+		{
+			javaCipher = "RC6";
+			ivSize = 128;
+		}
+		else if ( javaCipher.startsWith( "TEA" ) )
+		{
+			javaCipher = "TEA";
+		}
+		else if ( javaCipher.startsWith( "XTEA" ) )
+		{
+			javaCipher = "XTEA";
+		}
+		else if ( javaCipher.startsWith( "AES" ) )
+		{
+			if ( javaCipher.startsWith( "AES128" ) )
+			{
+				keySize = 128;
+			}
+			else if ( javaCipher.startsWith( "AES192" ) )
+			{
+				keySize = 192;
+			}
+			else if ( javaCipher.startsWith( "AES256" ) )
+			{
+				keySize = 256;
+			}
+			javaCipher = "AES";
+			ivSize = 128;
+		}
+		else if ( javaCipher.startsWith( "CAMELLIA" ) )
+		{
+			if ( javaCipher.startsWith( "CAMELLIA128" ) )
+			{
+				keySize = 128;
+			}
+			else if ( javaCipher.startsWith( "CAMELLIA192" ) )
+			{
+				keySize = 192;
+			}
+			else if ( javaCipher.startsWith( "CAMELLIA256" ) )
+			{
+				keySize = 256;
+			}
+			javaCipher = "CAMELLIA";
+			ivSize = 128;			
+		}
 		if ( keySize == -1 )
 		{
 			if ( javaCipher.startsWith( "DESede" ) )
@@ -437,12 +655,11 @@ public class OpenSSL
 			}
 			else
 			{
-				// RC2, RC4, and Blowfish ?
+				// RC2, RC4, RC5 and Blowfish ?
 				keySize = 128;
 			}
 		}
-
-		return new CipherInfo( javaCipher, blockMode, keySize, des2 );
+		return new CipherInfo( javaCipher, blockMode, keySize, ivSize, des2 );
 	}
 
 
@@ -471,14 +688,9 @@ public class OpenSSL
 			System.exit( 1 );
 		}
 		char[] password = args[ 0 ].toCharArray();
-		byte[] pwdAsBytes = new byte[password.length];
-		for ( int i = 0; i < password.length; i++ )
-		{
-			pwdAsBytes[ i ] = (byte) password[ i ];
-		}
 
 		InputStream in = new FileInputStream( args[ 2 ] );
-		in = decrypt( args[ 1 ], pwdAsBytes, in );
+		in = decrypt( args[ 1 ], password, in );
 
 		// in = encrypt( args[ 1 ], pwdAsBytes, in, true );		
 
