@@ -40,7 +40,7 @@ the same key or password is used to encrypt and decrypt the file.
 </p>
 <p>Please visit the <a href="#Quick-FAQ">Quick-FAQ</a> if you are having problems.</p>
 
-<pre style="border: 1px solid red; padding: 10px; float: left;"><u><b>PBE example:</b></u>
+<pre style="border: 1px solid red; padding: 10px; float: left;"><u><b>PBE example (AES-128):</b></u>
 
 FileInputStream in = new FileInputStream( "/path/to/file" );
 
@@ -61,7 +61,7 @@ Util.pipeStream( encryptedStream, out );
 
 </pre>
 <br clear="all"/>
-<pre style="border: 1px solid red; padding: 10px; float: left;"><u><b>Another PBE example:</b></u>
+<pre style="border: 1px solid red; padding: 10px; float: left;"><u><b>Another PBE example (DES-3):</b></u>
 
 char[] password = { 'c', 'h', 'a', 'n', 'g', 'e', 'i', 't' };
 byte[] data = "Hello World!".getBytes( "UTF-8" );
@@ -141,7 +141,7 @@ rc4                       rc4-40                    <i>rc5</i>
 <dd>
 Don't forget to install your JVM's Unlimited Strength
 Jurisdiction Policy Files if you want AES-192 and AES-256 to work.  (Same is true
-for Camillia-192 and Camellia-256).
+for Camillia-192, Camellia-256, and GOST28147).
 
 Visit <a href="http://java.sun.com/javase/downloads/">http://java.sun.com/javase/downloads/</a>
 and scroll to the bottom:

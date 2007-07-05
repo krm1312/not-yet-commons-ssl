@@ -59,6 +59,11 @@ IDEA and RC5.  (DES-X might work, but couldn't find a JCE provider that supporte
 additional BouncyCastle ciphers even though OpenSSL doesn't support them (cast6, gost28147, rc6, seed, serpent,
 skipjack, tea, twofish, xtea).  Around <a href="samples/pbe/">650 test files</a> created to make sure PBE is working properly.
 </dd>
+<dt>3. PBE API changed on <a href="javadocs/org/apache/commons/ssl/OpenSSL.html#encrypt(java.lang.String,%20char[],%20java.io.InputStream)">OpenSSL.encrypt()</a> and <a href="javadocs/org/apache/commons/ssl/OpenSSL.html#decrypt(java.lang.String,%20char[],%20java.io.InputStream)">OpenSSL.decrypt()</a>.</dt>
+<dd>The password is now char[] instead of byte[] (sorry!).  Encrypt/decrypt on byte[] introduced.  Encrypt/decrypt on InputStream
+is still available, and is properly streamed so that even extremely large files can be encrypted/decrypted.</dd>
+</dl>
+<br/>
 <h3>Features as of not-yet-commons-ssl-0.3.7:</h3>
 <dl>
 <dt>1. useStrongCiphers() used by default.</dt>
