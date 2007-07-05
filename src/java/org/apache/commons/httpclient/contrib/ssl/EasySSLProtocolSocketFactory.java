@@ -93,6 +93,7 @@ public class EasySSLProtocolSocketFactory extends HttpSecureProtocol
 			throws GeneralSecurityException, IOException
 	{
 		super();
+		super.useDefaultJavaCiphers();
 		super.setTrustMaterial( TrustMaterial.TRUST_ALL );
 		super.setCheckHostname( false );
 		super.setCheckExpiry( false );
