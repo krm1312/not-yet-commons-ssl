@@ -33,6 +33,8 @@ package org.apache.commons.ssl;
 
 import org.apache.commons.ssl.asn1.DERInteger;
 import org.apache.commons.ssl.asn1.DERSequence;
+import org.apache.commons.ssl.asn1.ASN1EncodableVector;
+import org.apache.commons.ssl.util.Hex;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -448,7 +450,7 @@ public class KeyStoreBuilder
 
 		if ( !isProbablyJKS )
 		{
-			String hex = PEMUtil.bytesToHex( stuff, 0, 4 );
+			String hex = Hex.encode( stuff, 0, 4 );
 			try
 			{
 				BuildResult br = tryJKS( "jks", stuffStream, password );
@@ -660,17 +662,18 @@ public class KeyStoreBuilder
 			if ( key instanceof RSAPrivateCrtKey )
 			{
 				RSAPrivateCrtKey rsa = (RSAPrivateCrtKey) key;
-				DERSequence seq = new DERSequence();
-				seq.add( DERInteger.valueOf( 0 ) );
-				seq.add( new DERInteger( rsa.getModulus() ) );
-				seq.add( new DERInteger( rsa.getPublicExponent() ) );
-				seq.add( new DERInteger( rsa.getPrivateExponent() ) );
-				seq.add( new DERInteger( rsa.getPrimeP() ) );
-				seq.add( new DERInteger( rsa.getPrimeQ() ) );
-				seq.add( new DERInteger( rsa.getPrimeExponentP() ) );
-				seq.add( new DERInteger( rsa.getPrimeExponentQ() ) );
-				seq.add( new DERInteger( rsa.getCrtCoefficient() ) );
-				byte[] derBytes = PKCS8Key.encode( seq );
+                ASN1EncodableVector vec = new ASN1EncodableVector();
+				vec.add( new DERInteger( BigInteger.ZERO ) );
+				vec.add( new DERInteger( rsa.getModulus() ) );
+				vec.add( new DERInteger( rsa.getPublicExponent() ) );
+				vec.add( new DERInteger( rsa.getPrivateExponent() ) );
+				vec.add( new DERInteger( rsa.getPrimeP() ) );
+				vec.add( new DERInteger( rsa.getPrimeQ() ) );
+				vec.add( new DERInteger( rsa.getPrimeExponentP() ) );
+				vec.add( new DERInteger( rsa.getPrimeExponentQ() ) );
+				vec.add( new DERInteger( rsa.getCrtCoefficient() ) );
+                DERSequence seq = new DERSequence( vec );
+                byte[] derBytes = PKCS8Key.encode( seq );
 				PKCS8Key pkcs8 = new PKCS8Key( derBytes, null );
 				pkcs8DerBytes = pkcs8.getDecryptedBytes();
 			}
@@ -683,15 +686,16 @@ public class KeyStoreBuilder
 				BigInteger q = params.getQ();
 				BigInteger x = dsa.getX();
 				BigInteger y = q.modPow( x, p );
-
-				DERSequence seq = new DERSequence();
-				seq.add( DERInteger.valueOf( 0 ) );
-				seq.add( new DERInteger( p ) );
-				seq.add( new DERInteger( q ) );
-				seq.add( new DERInteger( g ) );
-				seq.add( new DERInteger( y ) );
-				seq.add( new DERInteger( x ) );
-				byte[] derBytes = PKCS8Key.encode( seq );
+                
+                ASN1EncodableVector vec = new ASN1EncodableVector();
+                vec.add( new DERInteger( BigInteger.ZERO ) );
+				vec.add( new DERInteger( p ) );
+				vec.add( new DERInteger( q ) );
+				vec.add( new DERInteger( g ) );
+				vec.add( new DERInteger( y ) );
+				vec.add( new DERInteger( x ) );
+                DERSequence seq = new DERSequence(vec);
+                byte[] derBytes = PKCS8Key.encode( seq );
 				PKCS8Key pkcs8 = new PKCS8Key( derBytes, null );
 				pkcs8DerBytes = pkcs8.getDecryptedBytes();
 			}

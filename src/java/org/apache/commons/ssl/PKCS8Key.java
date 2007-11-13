@@ -38,6 +38,7 @@ import org.apache.commons.ssl.asn1.DERNull;
 import org.apache.commons.ssl.asn1.DERObjectIdentifier;
 import org.apache.commons.ssl.asn1.DEROctetString;
 import org.apache.commons.ssl.asn1.DERSequence;
+import org.apache.commons.ssl.asn1.ASN1EncodableVector;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
@@ -68,6 +69,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.math.BigInteger;
 
 /**
  * Utility for decrypting PKCS8 private keys.  Way easier to use than
@@ -207,7 +209,7 @@ public class PKCS8Key
 				}
 				derBytes = formatAsPKCS8( decryptResult.bytes, oid, null );
 
-				String tf = decryptResult.transformation;
+                String tf = decryptResult.transformation;
 				int ks = decryptResult.keySize;
 				decryptResult = new DecryptResult( tf, ks, derBytes );
 			}
@@ -245,7 +247,7 @@ public class PKCS8Key
 				decryptResult = new DecryptResult( tf, ks, derBytes );
 				break;
 			default:
-				break;
+                break;
 		}
 
 		oid = pkcs8.oid1;
@@ -371,15 +373,17 @@ public class PKCS8Key
 		}
 	}
 
-	private static DecryptResult opensslDecrypt( PEMItem item, char[] password )
+	private static DecryptResult opensslDecrypt( final PEMItem item,
+	                                             final char[] password )
 			throws GeneralSecurityException
 	{
-		String cipher = item.cipher;
-		String mode = item.mode;
-		int keySize = item.keySizeInBits;
-		byte[] salt = item.iv;
-		DerivedKey dk = OpenSSL.deriveKey( password, salt, keySize );
-		return decrypt( cipher, mode, dk, item.des2, null, item.getDerBytes() );
+		final String cipher = item.cipher;
+		final String mode = item.mode;
+		final int keySize = item.keySizeInBits;
+		final byte[] salt = item.iv;
+		final boolean des2 = item.des2;
+		final DerivedKey dk = OpenSSL.deriveKey( password, salt, keySize, des2 );
+		return decrypt( cipher, mode, dk, des2, null, item.getDerBytes() );
 	}
 
 	public static Cipher generateCipher( String cipher, String mode,
@@ -424,8 +428,9 @@ public class PKCS8Key
 		else
 		{
 			ivParams = dk.iv != null ? new IvParameterSpec( dk.iv ) : null;
-		}
-		Cipher c = Cipher.getInstance( transformation );
+		}      
+
+        Cipher c = Cipher.getInstance( transformation );
 		int cipherMode = Cipher.ENCRYPT_MODE;
 		if ( decryptMode )
 		{
@@ -1055,15 +1060,14 @@ public class PKCS8Key
 	public static byte[] formatAsPKCS8( byte[] privateKey, String oid,
 	                                    ASN1Structure pkcs8 )
 	{
-		DERInteger derZero = DERInteger.valueOf( 0 );
-		DERSequence outter = new DERSequence();
-		DERSequence inner = new DERSequence();
-		outter.add( derZero );
-		outter.add( inner );
+		DERInteger derZero = new DERInteger( BigInteger.ZERO );
+        ASN1EncodableVector outterVec = new ASN1EncodableVector();
+        ASN1EncodableVector innerVec = new ASN1EncodableVector();
+        DEROctetString octetsToAppend;
 		try
 		{
-			DERObjectIdentifier derOID = DERObjectIdentifier.valueOf( oid );
-			inner.add( derOID );
+			DERObjectIdentifier derOID = new DERObjectIdentifier( oid );
+			innerVec.add( derOID );
 			if ( DSA_OID.equals( oid ) )
 			{
 				if ( pkcs8 == null )
@@ -1090,22 +1094,26 @@ public class PKCS8Key
 				DERInteger x = ints[ 5 ];
 
 				byte[] encodedX = encode( x );
-				DEROctetString xAsOctets = new DEROctetString( encodedX );
-				DERSequence pqg = new DERSequence();
-				pqg.add( p );
-				pqg.add( q );
-				pqg.add( g );
-
-				inner.add( pqg );
-				outter.add( xAsOctets );
+				octetsToAppend = new DEROctetString( encodedX );
+                ASN1EncodableVector pqgVec = new ASN1EncodableVector();
+				pqgVec.add( p );
+				pqgVec.add( q );
+				pqgVec.add( g );
+                DERSequence pqg = new DERSequence(pqgVec);
+                innerVec.add( pqg );
 			}
 			else
 			{
-				inner.add( DERNull.DER_NULL );
-				DEROctetString octet = new DEROctetString( privateKey );
-				outter.add( octet );
+				innerVec.add( DERNull.INSTANCE );
+				octetsToAppend = new DEROctetString( privateKey );
 			}
-			return encode( outter );
+           
+		    DERSequence inner = new DERSequence( innerVec );
+            outterVec.add( derZero );
+            outterVec.add( inner );
+            outterVec.add( octetsToAppend );
+            DERSequence outter = new DERSequence(outterVec);
+            return encode( outter );
 		}
 		catch ( IOException ioe )
 		{
@@ -1129,11 +1137,10 @@ public class PKCS8Key
 	{
 		ByteArrayOutputStream baos = new ByteArrayOutputStream( 1024 );
 		ASN1OutputStream out = new ASN1OutputStream( baos );
-		der.encode( out );
+        out.writeObject(der);
 		out.close();
 		return baos.toByteArray();
 	}
-
 
 	public static void main( String[] args ) throws Exception
 	{

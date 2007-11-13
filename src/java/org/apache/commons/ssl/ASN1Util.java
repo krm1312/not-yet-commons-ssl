@@ -40,6 +40,7 @@ import org.apache.commons.ssl.asn1.DERSequence;
 import org.apache.commons.ssl.asn1.DERSet;
 import org.apache.commons.ssl.asn1.DERTaggedObject;
 import org.apache.commons.ssl.asn1.ASN1InputStream;
+import org.apache.commons.ssl.util.Hex;
 
 import java.math.BigInteger;
 import java.util.Enumeration;
@@ -82,7 +83,7 @@ public class ASN1Util
 		}
 
 		ASN1Structure asn1 = analyze( bytes );
-		while ( asn1.bigPayload != null )
+        while ( asn1.bigPayload != null )
 		{
 			System.out.println( "------------------------------------------" );
 			System.out.println( asn1 );
@@ -146,7 +147,7 @@ public class ASN1Util
 					{
 						pkcs8.derIntegers.add( dInt );
 					}
-					BigInteger big = dInt.toBigInteger();
+					BigInteger big = dInt.getValue();
 					int intValue = big.intValue();
 					if ( BIGGEST.compareTo( big ) >= 0 && intValue > 0 )
 					{
@@ -159,12 +160,12 @@ public class ASN1Util
 							pkcs8.keySize = intValue;
 						}
 					}
-					str = dInt.toBigInteger().toString();
+					str = dInt.getValue().toString();
 				}
 				else if ( obj instanceof DERObjectIdentifier )
 				{
 					DERObjectIdentifier id = (DERObjectIdentifier) obj;
-					str = id.getIdentifier();
+					str = id.getId();
 					pkcs8.oids.add( str );
 					if ( pkcs8.oid1 == null )
 					{
@@ -180,8 +181,8 @@ public class ASN1Util
 					}
 				}
 				else
-				{
-					pkcs8.derIntegers = null;
+				{     
+                    pkcs8.derIntegers = null;
 					if ( obj instanceof DEROctetString )
 					{
 						DEROctetString oct = (DEROctetString) obj;
@@ -208,7 +209,7 @@ public class ASN1Util
 						}
 						else
 						{
-							str = PEMUtil.bytesToHex( octets );
+							str = Hex.encode( octets );
 							if ( octets.length <= 64 )
 							{
 								if ( octets.length % 8 == 0 )

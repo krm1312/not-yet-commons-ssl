@@ -31,11 +31,13 @@
 
 package org.apache.commons.ssl;
 
+import org.apache.commons.ssl.util.Hex;
+
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.Iterator;
 
 /**
  * @author Credit Union Central of British Columbia
@@ -71,7 +73,7 @@ class ASN1Structure
 		buf.append( "\nsalt:   " );
 		if ( salt != null )
 		{
-			buf.append( PEMUtil.bytesToHex( salt ) );
+			buf.append( Hex.encode( salt ) );
 		}
 		else
 		{
@@ -94,7 +96,7 @@ class ASN1Structure
 			buf.append( "\niv:      " );
 			if ( iv != null )
 			{
-				buf.append( PEMUtil.bytesToHex( iv ) );
+				buf.append( Hex.encode( iv ) );
 			}
 			else
 			{

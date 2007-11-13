@@ -31,6 +31,8 @@
 
 package org.apache.commons.ssl;
 
+import org.apache.commons.ssl.util.Hex;
+
 import java.util.Collections;
 import java.util.Map;
 import java.util.StringTokenizer;
@@ -87,7 +89,7 @@ public class PEMItem
 			}
 		}
 		this.dekInfo = diCipher;
-		this.iv = PEMUtil.hexToBytes( diIV );
+		this.iv = Hex.decode( diIV );
 		if ( !"".equals( diCipher ) )
 		{
 			OpenSSL.CipherInfo cipherInfo = OpenSSL.lookup( diCipher );

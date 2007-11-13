@@ -1,7 +1,10 @@
 package org.apache.commons.ssl;
 
+import org.apache.commons.ssl.util.Hex;
+
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.InputStream;
 import java.util.Arrays;
 
 /**
@@ -11,9 +14,9 @@ import java.util.Arrays;
 public class OpenSSLTest
 {
 
-	public static void main( String[] args )
+	public static void main( String[] args ) throws Exception
 	{
-		String path = args[ 0 ];
+        String path = args[ 0 ];
 		File f = new File( path );
 		if ( f.isDirectory() )
 		{
@@ -23,6 +26,19 @@ public class OpenSSLTest
 			{
 				process( files[ i ], 0 );
 			}
+		}
+		else
+		{
+			System.out.println( "Attempting decrypt!" );
+
+			String keyS = "1234567890ABDEF01234567890ABDEFF";
+			String ivS = "1234567890ABDEF01234567890ABDEFF";
+			byte[] key = Hex.decode( keyS.getBytes( ) );
+			byte[] iv = Hex.decode( ivS.getBytes( ) );
+			FileInputStream in = new FileInputStream( f );
+			InputStream decrypted = OpenSSL.decrypt( "aes128", key, iv, in );
+			byte[] b = Util.streamToBytes( decrypted );
+			System.out.println( new String( b ) );
 		}
 	}
 
@@ -84,13 +100,14 @@ System.out.println( "SUCCESS \t" + cipherPadded + "\t" + filePadded );
 					}
 					else
 					{
-System.out.println( "FAILURE \t" + cipherPadded + "\t" + filePadded + "\tDECRYPT RESULTS DON'T MATCH" );
+System.out.println( "FAILURE*\t" + cipherPadded + "\t" + filePadded + "\tDECRYPT RESULTS DON'T MATCH" );
 					}
 				}
 				catch ( Exception e )
 				{
-System.out.println( "FAILURE \t" + cipherPadded + "\t" + filePadded + "\t" + e );
-				}
+System.out.println( "FAILURE*\t" + cipherPadded + "\t" + filePadded + "\t" + e );
+				e.printStackTrace();
+                }
 			}
 		}
 	}

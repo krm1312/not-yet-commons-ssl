@@ -262,40 +262,5 @@ public class PEMUtil
 		return buf.toString();
 	}
 
-	public static byte[] hexToBytes( String s )
-	{
-		byte[] b = new byte[s.length() / 2];
-		for ( int i = 0; i < b.length; i++ )
-		{
-			String hex = s.substring( 2 * i, 2 * ( i + 1 ) );
-			b[ i ] = (byte) Integer.parseInt( hex, 16 );
-		}
-		return b;
-	}
-
-	public static String bytesToHex( byte[] b )
-	{
-		return bytesToHex( b, 0, b.length );
-	}
-
-	public static String bytesToHex( byte[] b, int offset, int length )
-	{
-		StringBuffer buf = new StringBuffer();
-		int len = Math.min( offset + length, b.length );
-		for ( int i = offset; i < len; i++ )
-		{
-			int c = (int) b[ i ];
-			if ( c < 0 )
-			{
-				c = c + 256;
-			}
-			if ( c >= 0 && c <= 15 )
-			{
-				buf.append( '0' );
-			}
-			buf.append( Integer.toHexString( c ) );
-		}
-		return buf.toString();
-	}
 
 }
