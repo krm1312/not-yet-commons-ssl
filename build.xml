@@ -100,5 +100,7 @@
     <delete dir="${build}"/>
   </target>
 
+  <target name="all" depends="clean,jar"/>
+
 
 </project>
