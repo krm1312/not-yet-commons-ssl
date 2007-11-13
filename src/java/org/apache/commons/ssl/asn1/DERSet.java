@@ -1,91 +1,99 @@
-/*
- * $HeadURL:  $
- * $Revision$
- * $Date$
- *
- * ====================================================================
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- * ====================================================================
- *
- * This software consists of voluntary contributions made by many
- * individuals on behalf of the Apache Software Foundation.  For more
- * information on the Apache Software Foundation, please see
- * <http://www.apache.org/>.
- *
- */
-
 package org.apache.commons.ssl.asn1;
-
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Enumeration;
-import java.util.Vector;
-
 
 /**
  * A DER encoded set object
  */
-public class DERSet implements DEREncodable
+public class DERSet
+    extends ASN1Set
 {
-	protected Vector set = new Vector();
+    /**
+     * create an empty set
+     */
+    public DERSet()
+    {
+    }
 
+    /**
+     * @param obj - a single object that makes up the set.
+     */
+    public DERSet(
+        DEREncodable   obj)
+    {
+        this.addObject(obj);
+    }
 
-	public Enumeration getObjects()
-	{
-		return set.elements();
-	}
+    /**
+     * @param v - a vector of objects making up the set.
+     */
+    public DERSet(
+        DEREncodableVector   v)
+    {
+        this(v, true);
+    }
+    
+    /**
+     * create a set from an array of objects.
+     */
+    public DERSet(
+        ASN1Encodable[]   a)
+    {
+        for (int i = 0; i != a.length; i++)
+        {
+            this.addObject(a[i]);
+        }
+        
+        this.sort();
+    }
+    
+    /**
+     * @param v - a vector of objects making up the set.
+     */
+    DERSet(
+        DEREncodableVector   v,
+        boolean              needsSorting)
+    {
+        for (int i = 0; i != v.size(); i++)
+        {
+            this.addObject(v.get(i));
+        }
 
+        if (needsSorting)
+        {
+            this.sort();
+        }
+    }
 
-	public DEREncodable getObjectAt( int index )
-	{
-		return (DEREncodable) set.elementAt( index );
-	}
+    /*
+     * A note on the implementation:
+     * <p>
+     * As DER requires the constructed, definite-length model to
+     * be used for structured types, this varies slightly from the
+     * ASN.1 descriptions given. Rather than just outputing SET,
+     * we also have to specify CONSTRUCTED, and the objects length.
+     */
+    void encode(
+        DEROutputStream out)
+        throws IOException
+    {
+        ByteArrayOutputStream   bOut = new ByteArrayOutputStream();
+        DEROutputStream         dOut = new DEROutputStream(bOut);
+        Enumeration             e = this.getObjects();
 
+        while (e.hasMoreElements())
+        {
+            Object    obj = e.nextElement();
 
-	public int size()
-	{
-		return set.size();
-	}
+            dOut.writeObject(obj);
+        }
 
+        dOut.close();
 
-	public void add( DEREncodable obj )
-	{
-		set.addElement( obj );
-	}
+        byte[]  bytes = bOut.toByteArray();
 
-
-	public void encode( ASN1OutputStream out ) throws IOException
-	{
-		ByteArrayOutputStream baos = new ByteArrayOutputStream();
-		ASN1OutputStream aos = new ASN1OutputStream( baos );
-
-		Enumeration e = getObjects();
-
-		while ( e.hasMoreElements() )
-		{
-			aos.writeObject( e.nextElement() );
-		}
-
-		aos.close();
-
-		byte[] bytes = baos.toByteArray();
-
-		out.writeEncoded( DERObject.SET | DERObject.CONSTRUCTED, bytes );
-	}
+        out.writeEncoded(SET | CONSTRUCTED, bytes);
+    }
 }

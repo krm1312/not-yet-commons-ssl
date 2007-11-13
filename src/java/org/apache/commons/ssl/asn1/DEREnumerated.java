@@ -1,91 +1,113 @@
-/*
- * $HeadURL:  $
- * $Revision$
- * $Date$
- *
- * ====================================================================
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- * ====================================================================
- *
- * This software consists of voluntary contributions made by many
- * individuals on behalf of the Apache Software Foundation.  For more
- * information on the Apache Software Foundation, please see
- * <http://www.apache.org/>.
- *
- */
-
 package org.apache.commons.ssl.asn1;
 
+import java.io.IOException;
+import java.math.BigInteger;
 
-/**
- * DER Enumerated object.
- */
-public class DEREnumerated extends DERObject
+public class DEREnumerated
+    extends ASN1Object
 {
-	/**
-	 * Basic DERObject constructor.
-	 */
-	public DEREnumerated( byte[] value )
-	{
-		super( ENUMERATED, value );
-	}
+    byte[]      bytes;
 
+    /**
+     * return an integer from the passed in object
+     *
+     * @exception IllegalArgumentException if the object cannot be converted.
+     */
+    public static DEREnumerated getInstance(
+        Object  obj)
+    {
+        if (obj == null || obj instanceof DEREnumerated)
+        {
+            return (DEREnumerated)obj;
+        }
 
-	/**
-	 * Static factory method, type-conversion operator.
-	 */
-	public static DEREnumerated valueOf( int integer )
-	{
-		return new DEREnumerated( intToOctet( integer ) );
-	}
+        if (obj instanceof ASN1OctetString)
+        {
+            return new DEREnumerated(((ASN1OctetString)obj).getOctets());
+        }
 
+        if (obj instanceof ASN1TaggedObject)
+        {
+            return getInstance(((ASN1TaggedObject)obj).getObject());
+        }
 
-	/**
-	 * Lazy accessor
-	 *
-	 * @return integer value
-	 */
-	public int intValue()
-	{
-		return octetToInt( value );
-	}
+        throw new IllegalArgumentException("illegal object in getInstance: " + obj.getClass().getName());
+    }
 
+    /**
+     * return an Enumerated from a tagged object.
+     *
+     * @param obj the tagged object holding the object we want
+     * @param explicit true if the object is meant to be explicitly
+     *              tagged false otherwise.
+     * @exception IllegalArgumentException if the tagged object cannot
+     *               be converted.
+     */
+    public static DEREnumerated getInstance(
+        ASN1TaggedObject obj,
+        boolean          explicit)
+    {
+        return getInstance(obj.getObject());
+    }
 
-	private static int octetToInt( byte[] bytes )
-	{
-		int result = 0;
+    public DEREnumerated(
+        int         value)
+    {
+        bytes = BigInteger.valueOf(value).toByteArray();
+    }
 
-		for ( int ii = 0; ii < Math.min( 4, bytes.length ); ii++ )
-		{
-			result += bytes[ ii ] * ( 16 ^ ii );
-		}
-		return result;
-	}
+    public DEREnumerated(
+        BigInteger   value)
+    {
+        bytes = value.toByteArray();
+    }
 
+    public DEREnumerated(
+        byte[]   bytes)
+    {
+        this.bytes = bytes;
+    }
 
-	private static byte[] intToOctet( int integer )
-	{
-		byte[] result = new byte[4];
+    public BigInteger getValue()
+    {
+        return new BigInteger(bytes);
+    }
 
-		for ( int ii = 0, shift = 24; ii < 4; ii++, shift -= 8 )
-		{
-			result[ ii ] = (byte) ( 0xFF & ( integer >> shift ) );
-		}
-		return result;
-	}
+    void encode(
+        DEROutputStream out)
+        throws IOException
+    {
+        out.writeEncoded(ENUMERATED, bytes);
+    }
+    
+    boolean asn1Equals(
+        DERObject  o)
+    {
+        if (!(o instanceof DEREnumerated))
+        {
+            return false;
+        }
+
+        DEREnumerated other = (DEREnumerated)o;
+
+        if (bytes.length != other.bytes.length)
+        {
+            return false;
+        }
+
+        for (int i = 0; i != bytes.length; i++)
+        {
+            if (bytes[i] != other.bytes[i])
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+    
+    public int hashCode()
+    {
+        return this.getValue().hashCode();
+    }
 }

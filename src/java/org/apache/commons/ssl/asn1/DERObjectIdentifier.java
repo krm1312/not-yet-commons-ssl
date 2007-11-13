@@ -1,173 +1,293 @@
-/*
- * $HeadURL:  $
- * $Revision$
- * $Date$
- *
- * ====================================================================
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- * ====================================================================
- *
- * This software consists of voluntary contributions made by many
- * individuals on behalf of the Apache Software Foundation.  For more
- * information on the Apache Software Foundation, please see
- * <http://www.apache.org/>.
- *
- */
-
 package org.apache.commons.ssl.asn1;
-
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.math.BigInteger;
 
-
-public class DERObjectIdentifier extends DERObject
+public class DERObjectIdentifier
+    extends ASN1Object
 {
-	private static final DERObjectIdentifier DUMMY = new DERObjectIdentifier( "".getBytes() );
+    String      identifier;
 
-	String identifier;
+    /**
+     * return an OID from the passed in object
+     *
+     * @exception IllegalArgumentException if the object cannot be converted.
+     */
+    public static DERObjectIdentifier getInstance(
+        Object  obj)
+    {
+        if (obj == null || obj instanceof DERObjectIdentifier)
+        {
+            return (DERObjectIdentifier)obj;
+        }
 
-	public static DERObjectIdentifier valueOf( String identifier )
-			throws IOException
-	{
-		OIDTokenizer tok = new OIDTokenizer( identifier );
-		ByteArrayOutputStream baos = new ByteArrayOutputStream();
-		ASN1OutputStream aos = new ASN1OutputStream( baos );
+        if (obj instanceof ASN1OctetString)
+        {
+            return new DERObjectIdentifier(((ASN1OctetString)obj).getOctets());
+        }
 
-		DUMMY.writeField( baos, Integer.parseInt( tok.nextToken() ) * 40 + Integer.parseInt( tok.nextToken() ) );
+        if (obj instanceof ASN1TaggedObject)
+        {
+            return getInstance(((ASN1TaggedObject)obj).getObject());
+        }
 
-		while ( tok.hasMoreTokens() )
-		{
-			DUMMY.writeField( baos, Long.parseLong( tok.nextToken() ) );
-		}
+        throw new IllegalArgumentException("illegal object in getInstance: " + obj.getClass().getName());
+    }
 
-		aos.close();
+    /**
+     * return an Object Identifier from a tagged object.
+     *
+     * @param obj the tagged object holding the object we want
+     * @param explicit true if the object is meant to be explicitly
+     *              tagged false otherwise.
+     * @exception IllegalArgumentException if the tagged object cannot
+     *               be converted.
+     */
+    public static DERObjectIdentifier getInstance(
+        ASN1TaggedObject obj,
+        boolean          explicit)
+    {
+        return getInstance(obj.getObject());
+    }
+    
 
-		byte[] bytes = baos.toByteArray();
+    DERObjectIdentifier(
+        byte[]  bytes)
+    {
+        StringBuffer    objId = new StringBuffer();
+        long            value = 0;
+        BigInteger      bigValue = null;
+        boolean         first = true;
 
-		return new DERObjectIdentifier( bytes );
-	}
+        for (int i = 0; i != bytes.length; i++)
+        {
+            int b = bytes[i] & 0xff;
 
+            if (value < 0x80000000000000L) 
+            {
+                value = value * 128 + (b & 0x7f);
+                if ((b & 0x80) == 0)             // end of number reached
+                {
+                    if (first)
+                    {
+                        switch ((int)value / 40)
+                        {
+                        case 0:
+                            objId.append('0');
+                            break;
+                        case 1:
+                            objId.append('1');
+                            value -= 40;
+                            break;
+                        default:
+                            objId.append('2');
+                            value -= 80;
+                        }
+                        first = false;
+                    }
 
-	DERObjectIdentifier( byte[] bytes )
-	{
-		super( OBJECT_IDENTIFIER, bytes );
+                    objId.append('.');
+                    objId.append(value);
+                    value = 0;
+                }
+            } 
+            else 
+            {
+                if (bigValue == null)
+                {
+                    bigValue = BigInteger.valueOf(value);
+                }
+                bigValue = bigValue.shiftLeft(7);
+                bigValue = bigValue.or(BigInteger.valueOf(b & 0x7f));
+                if ((b & 0x80) == 0) 
+                {
+                    objId.append('.');
+                    objId.append(bigValue);
+                    bigValue = null;
+                    value = 0;
+                }
+            }
+        }
 
-		StringBuffer objId = new StringBuffer();
-		long value = 0;
-		boolean first = true;
+        this.identifier = objId.toString();
+    }
 
-		for ( int i = 0; i != bytes.length; i++ )
-		{
-			int b = bytes[ i ] & 0xff;
+    public DERObjectIdentifier(
+        String  identifier)
+    {
+        if (!isValidIdentifier(identifier))
+        {
+            throw new IllegalArgumentException("string " + identifier + " not an OID");
+        }
 
-			value = value * 128 + ( b & 0x7f );
-			if ( ( b & 0x80 ) == 0 ) // end of number reached
-			{
-				if ( first )
-				{
-					switch ( (int) value / 40 )
-					{
-						case 0:
-							objId.append( '0' );
-							break;
-						case 1:
-							objId.append( '1' );
-							value -= 40;
-							break;
-						default:
-							objId.append( '2' );
-							value -= 80;
-					}
-					first = false;
-				}
+        this.identifier = identifier;
+    }
 
-				objId.append( '.' );
-				objId.append( Long.toString( value ) );
-				value = 0;
-			}
-		}
+    public String getId()
+    {
+        return identifier;
+    }
 
-		this.identifier = objId.toString();
-	}
+    private void writeField(
+        OutputStream    out,
+        long            fieldValue)
+        throws IOException
+    {
+        if (fieldValue >= (1L << 7))
+        {
+            if (fieldValue >= (1L << 14))
+            {
+                if (fieldValue >= (1L << 21))
+                {
+                    if (fieldValue >= (1L << 28))
+                    {
+                        if (fieldValue >= (1L << 35))
+                        {
+                            if (fieldValue >= (1L << 42))
+                            {
+                                if (fieldValue >= (1L << 49))
+                                {
+                                    if (fieldValue >= (1L << 56))
+                                    {
+                                        out.write((int)(fieldValue >> 56) | 0x80);
+                                    }
+                                    out.write((int)(fieldValue >> 49) | 0x80);
+                                }
+                                out.write((int)(fieldValue >> 42) | 0x80);
+                            }
+                            out.write((int)(fieldValue >> 35) | 0x80);
+                        }
+                        out.write((int)(fieldValue >> 28) | 0x80);
+                    }
+                    out.write((int)(fieldValue >> 21) | 0x80);
+                }
+                out.write((int)(fieldValue >> 14) | 0x80);
+            }
+            out.write((int)(fieldValue >> 7) | 0x80);
+        }
+        out.write((int)fieldValue & 0x7f);
+    }
 
+    private void writeField(
+        OutputStream    out,
+        BigInteger      fieldValue)
+        throws IOException
+    {
+        int byteCount = (fieldValue.bitLength()+6)/7;
+        if (byteCount == 0) 
+        {
+            out.write(0);
+        }  
+        else 
+        {
+            BigInteger tmpValue = fieldValue;
+            byte[] tmp = new byte[byteCount];
+            for (int i = byteCount-1; i >= 0; i--) 
+            {
+                tmp[i] = (byte) ((tmpValue.intValue() & 0x7f) | 0x80);
+                tmpValue = tmpValue.shiftRight(7); 
+            }
+            tmp[byteCount-1] &= 0x7f;
+            out.write(tmp);
+        }
 
-	private void writeField( OutputStream out, long fieldValue ) throws IOException
-	{
-		if ( fieldValue >= ( 1 << 7 ) )
-		{
-			if ( fieldValue >= ( 1 << 14 ) )
-			{
-				if ( fieldValue >= ( 1 << 21 ) )
-				{
-					if ( fieldValue >= ( 1 << 28 ) )
-					{
-						if ( fieldValue >= ( 1 << 35 ) )
-						{
-							if ( fieldValue >= ( 1 << 42 ) )
-							{
-								if ( fieldValue >= ( 1 << 49 ) )
-								{
-									if ( fieldValue >= ( 1 << 56 ) )
-									{
-										out.write( (int) ( fieldValue >> 56 ) | 0x80 );
-									}
-									out.write( (int) ( fieldValue >> 49 ) | 0x80 );
-								}
-								out.write( (int) ( fieldValue >> 42 ) | 0x80 );
-							}
-							out.write( (int) ( fieldValue >> 35 ) | 0x80 );
-						}
-						out.write( (int) ( fieldValue >> 28 ) | 0x80 );
-					}
-					out.write( (int) ( fieldValue >> 21 ) | 0x80 );
-				}
-				out.write( (int) ( fieldValue >> 14 ) | 0x80 );
-			}
-			out.write( (int) ( fieldValue >> 7 ) | 0x80 );
-		}
-		out.write( (int) fieldValue & 0x7f );
-	}
+    }
 
+    void encode(
+        DEROutputStream out)
+        throws IOException
+    {
+        OIDTokenizer            tok = new OIDTokenizer(identifier);
+        ByteArrayOutputStream   bOut = new ByteArrayOutputStream();
+        DEROutputStream         dOut = new DEROutputStream(bOut);
 
-	public void encode( ASN1OutputStream out ) throws IOException
-	{
-		OIDTokenizer tok = new OIDTokenizer( identifier );
-		ByteArrayOutputStream baos = new ByteArrayOutputStream();
-		ASN1OutputStream aos = new ASN1OutputStream( baos );
+        writeField(bOut, 
+                    Integer.parseInt(tok.nextToken()) * 40
+                    + Integer.parseInt(tok.nextToken()));
 
-		writeField( baos, Integer.parseInt( tok.nextToken() ) * 40 + Integer.parseInt( tok.nextToken() ) );
+        while (tok.hasMoreTokens())
+        {
+            String token = tok.nextToken();
+            if (token.length() < 18) 
+            {
+                writeField(bOut, Long.parseLong(token));
+            }
+            else
+            {
+                writeField(bOut, new BigInteger(token));
+            }
+        }
 
-		while ( tok.hasMoreTokens() )
-		{
-			writeField( baos, Long.parseLong( tok.nextToken() ) );
-		}
+        dOut.close();
 
-		aos.close();
+        byte[]  bytes = bOut.toByteArray();
 
-		byte[] bytes = baos.toByteArray();
+        out.writeEncoded(OBJECT_IDENTIFIER, bytes);
+    }
 
-		out.writeEncoded( OBJECT_IDENTIFIER, bytes );
-	}
+    public int hashCode()
+    {
+        return identifier.hashCode();
+    }
 
-	public String getIdentifier()
-	{
-		return identifier;
-	}
+    boolean asn1Equals(
+        DERObject  o)
+    {
+        if (!(o instanceof DERObjectIdentifier))
+        {
+            return false;
+        }
+
+        return identifier.equals(((DERObjectIdentifier)o).identifier);
+    }
+
+    public String toString()
+    {
+        return getId();
+    }
+
+    private static boolean isValidIdentifier(
+        String identifier)
+    {
+        if (identifier.length() < 3
+            || identifier.charAt(1) != '.')
+        {
+            return false;
+        }
+
+        char first = identifier.charAt(0);
+        if (first < '0' || first > '2')
+        {
+            return false;
+        }
+
+        boolean periodAllowed = false;
+        for (int i = identifier.length() - 1; i >= 2; i--)
+        {
+            char ch = identifier.charAt(i);
+
+            if ('0' <= ch && ch <= '9')
+            {
+                periodAllowed = true;
+                continue;
+            }
+
+            if (ch == '.')
+            {
+                if (!periodAllowed)
+                {
+                    return false;
+                }
+
+                periodAllowed = false;
+                continue;
+            }
+
+            return false;
+        }
+
+        return periodAllowed;
+    }
 }

@@ -1,89 +1,170 @@
-/*
- * $HeadURL:  $
- * $Revision$
- * $Date$
- *
- * ====================================================================
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- * ====================================================================
- *
- * This software consists of voluntary contributions made by many
- * individuals on behalf of the Apache Software Foundation.  For more
- * information on the Apache Software Foundation, please see
- * <http://www.apache.org/>.
- *
- */
-
 package org.apache.commons.ssl.asn1;
-
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
-
 /**
- * DER Application Specific object.
+ * Base class for an application specific object
  */
-public class DERApplicationSpecific extends DERObject
+public class DERApplicationSpecific 
+    extends ASN1Object
 {
-	private int tag;
+    private int       tag;
+    private byte[]    octets;
+    
+    public DERApplicationSpecific(
+        int        tag,
+        byte[]    octets)
+    {
+        this.tag = tag;
+        this.octets = octets;
+    }
+    
+    public DERApplicationSpecific(
+        int                  tag, 
+        DEREncodable         object) 
+        throws IOException 
+    {
+        this(true, tag, object);
+    }
 
+    public DERApplicationSpecific(
+        boolean      explicit,
+        int          tag,
+        DEREncodable object)
+        throws IOException
+    {
+        ByteArrayOutputStream bOut = new ByteArrayOutputStream();
+        DEROutputStream dos = new DEROutputStream(bOut);
 
-	/**
-	 * Basic DERObject constructor.
-	 */
-	public DERApplicationSpecific( int tag, byte[] value )
-	{
-		super( tag, value );
-		this.tag = tag;
-	}
+        dos.writeObject(object);
 
+        byte[] data = bOut.toByteArray();
 
-	/**
-	 * Static factory method, type-conversion operator.
-	 */
-	public static DERApplicationSpecific valueOf( int tag, DEREncodable object ) throws IOException
-	{
-		tag = tag | CONSTRUCTED;
+        if (tag >= 0x1f)
+        {
+            throw new IOException("unsupported tag number");
+        }
 
-		ByteArrayOutputStream baos = new ByteArrayOutputStream();
-		ASN1OutputStream aos = new ASN1OutputStream( baos );
+        if (explicit)
+        {
+            this.tag = tag | DERTags.CONSTRUCTED;
+            this.octets = data;
+        }
+        else
+        {
+            this.tag = tag;
+            int lenBytes = getLengthOfLength(data);
+            byte[] tmp = new byte[data.length - lenBytes];
+            System.arraycopy(data, lenBytes, tmp, 0, tmp.length);
+            this.octets = tmp;
+        }
+    }
 
-		aos.writeObject( object );
+    private int getLengthOfLength(byte[] data)
+    {
+        int count = 2;               // TODO: assumes only a 1 byte tag number
 
-		return new DERApplicationSpecific( tag, baos.toByteArray() );
-	}
+        while((data[count - 1] & 0x80) != 0)
+        {
+            count++;
+        }
 
+        return count;
+    }
 
-	public int getApplicationTag()
-	{
-		return tag & 0x1F;
-	}
+    public boolean isConstructed()
+    {
+        return (tag & DERTags.CONSTRUCTED) != 0;
+    }
+    
+    public byte[] getContents()
+    {
+        return octets;
+    }
+    
+    public int getApplicationTag() 
+    {
+        return tag;
+    }
+     
+    public DERObject getObject() 
+        throws IOException 
+    {
+        return new ASN1InputStream(getContents()).readObject();
+    }
 
+    /**
+     * Return the enclosed object assuming implicit tagging.
+     *
+     * @param derTagNo the type tag that should be applied to the object's contents.
+     * @return  the resulting object
+     * @throws IOException if reconstruction fails.
+     */
+    public DERObject getObject(int derTagNo)
+        throws IOException
+    {
+        if (tag >= 0x1f)
+        {
+            throw new IOException("unsupported tag number");
+        }
+                
+        byte[] tmp = this.getEncoded();
 
-	public DEREncodable getObject() throws IOException
-	{
-		return new ASN1InputStream( getOctets() ).readObject();
-	}
+        tmp[0] = (byte)derTagNo;
+        
+        return new ASN1InputStream(tmp).readObject();
+    }
+    
+    /* (non-Javadoc)
+     * @see org.apache.commons.ssl.asn1.DERObject#encode(org.apache.commons.ssl.asn1.DEROutputStream)
+     */
+    void encode(DEROutputStream out) throws IOException
+    {
+        out.writeEncoded(DERTags.APPLICATION | tag, octets);
+    }
+    
+    boolean asn1Equals(
+        DERObject o)
+    {
+        if (!(o instanceof DERApplicationSpecific))
+        {
+            return false;
+        }
+        
+        DERApplicationSpecific other = (DERApplicationSpecific)o;
+        
+        if (tag != other.tag)
+        {
+            return false;
+        }
+        
+        if (octets.length != other.octets.length)
+        {
+            return false;
+        }
+        
+        for (int i = 0; i < octets.length; i++) 
+        {
+            if (octets[i] != other.octets[i])
+            {
+                return false;
+            }
+        }
+        
+        return true;
+    }
+    
+    public int hashCode()
+    {
+        byte[]  b = this.getContents();
+        int     value = 0;
 
+        for (int i = 0; i != b.length; i++)
+        {
+            value ^= (b[i] & 0xff) << (i % 4);
+        }
 
-	public void encode( ASN1OutputStream out ) throws IOException
-	{
-		out.writeEncoded( APPLICATION | tag, value );
-	}
+        return value ^ this.getApplicationTag();
+    }
 }
