@@ -42,31 +42,34 @@ certificate even if your client certificate is bad (so even though the SSL
 handshake fails).  And unlike "openssl s_client", this utility can bind
 against any IP address available.
 
-$Name$ compiled=[PDT:2007-07-05/09:18:26.000]
-Usage:  java -jar commons-ssl.jar [options]
+Usage:  java -jar not-yet-commons-ssl-0.3.9.jar [options]
+Version 0.3.9      compiled=[PST:2007-11-14/14:42:18.000]
 Options:   (*=required)
-*  -t  --target           [hostname[:port]]                 default port=443
-   -b  --bind             [hostname[:port]]                 default port=0 "ANY"
-   -r  --proxy            [hostname[:port]]                 default port=80
-   -tm --trust-cert       [path to trust material]        *.{pem, der, crt, jks}
-   -km --client-cert      [path to client's private key]  *.{jks, pkcs12, pkcs8}
-   -cc --cert-chain       [path to cert chain if using pkcs8/OpenSSL key]
+*  -t  --target           [hostname[:port]]              default port=443
+   -b  --bind             [hostname[:port]]              default port=0 "ANY"
+   -r  --proxy            [hostname[:port]]              default port=80
+   -tm --trust-cert       [path to trust material]       {pem, der, crt, jks}
+   -km --client-cert      [path to client's private key] {jks, pkcs12, pkcs8}
+   -cc --cert-chain       [path to client's cert chain for pkcs8/OpenSSL key]
    -p  --password         [client cert password]
+   -h  --host-header      [http-host-header]      in case -t is an IP address
+   -u  --path             [path for GET/HEAD request]    default=/
+   -m  --method           [http method to use]           default=HEAD
 
 Example:
 
-java -jar commons-ssl.jar -t cucbc.com:443 -c ./client.pfx -p `cat ./pass.txt`</pre><br clear="all"/>
+java -jar not-yet-commons-ssl.jar -t host.com:443 -c ./client.pfx -p `cat ./pass.txt`</pre><br clear="all"/>
 
 <p style="margin-top: 8px;"><b>TODO:</b><br/>Apparently Java 6.0 includes support for grabbing passwords from
 standard-in without echoing the typed characters.  Would be nice to use that feature when it's
 available, instead of requiring the password to be specified as a command-line argument.</p>
 
 <hr/>
-<h2>KeyStoreBuilder</em></h2>
+<h2>KeyStoreBuilder</h2>
 <p>org.apache.commons.ssl.KeyStoreBuilder is able to convert OpenSSL style public/private keys into
 Java KeyStore files.  It can also convert Java Keystore files into the PEM format that Apache likes.</p>
 
-<p><code>java -cp not-yet-commons-ssl-0.3.8.jar org.apache.commons.ssl.KeyStoreBuilder</code></p>
+<p><code>java -cp not-yet-commons-ssl-0.3.9.jar org.apache.commons.ssl.KeyStoreBuilder</code></p>
 
 <pre style="border: 1px solid red; padding: 10px; float: left;"><u><b>KeyStoreBuilder converts PKCS12 and PKCS8 to Java "Keystore"</b></u>
 

@@ -1,6 +1,6 @@
 <html>
 <head>
-<title>Not-Yet-Commons-SSL - OpenSSL's Password Based Encryption in Java</title>
+<title>OpenSSL's "enc" in Java (PBE / Password Based Encryption)</title>
 <style type="text/css">
 h1, h2, h3 { margin: 0; border: 0; padding: 0; font-size: 100%; }
 h1 { float: left; color: red; }
@@ -10,12 +10,14 @@ div.nav { float: left; margin-left: 20px; font-weight: bold; }
 .nav a, .nav span { padding: 0 5px; }
 .nav a { color: blue; }
 li.top { margin-top: 10px; }
+li { margin-top: 6px; width: 750px; }
 ul.openssl { float: left; width: 100px; margin-top: 8px; }
 ul.pkcs8 { float: left; width: 200px; margin-top: 8px; }
 i { color: purple; }
 i.special { color: red; }
 dt { font-weight: bold; }
 dd { margin-top: 1em; margin-bottom: 1em; }
+sup a { text-decoration: none; }
 </style>
 </head>
 <body>
@@ -33,55 +35,59 @@ dd { margin-top: 1em; margin-bottom: 1em; }
 </div>
 <br clear="all"/>
 <hr/>
-<h2>OpenSSL's Password Based Encryption in Java</em></h2>
+<h2>OpenSSL's "enc" in Java (PBE / Password Based Encryption)</h2>
 <p>Not-Yet-Commons-SSL has an implementation of PBE ("password based encryption") that is 100%
 compatible with OpenSSL's command-line "enc" utility.  PBE is a form of symmetric encryption where
 the same key or password is used to encrypt and decrypt the file.
 </p>
+<p>
+We are also compatible with <code>openssl enc -K [key] -iv [IV]</code>, where the key and IV are provided explicitly,
+instead of being derived from a password.  Look for encrypt()/decrypt() methods that take
+<a href="http://juliusdavies.ca/commons-ssl/javadocs/org/apache/commons/ssl/OpenSSL.html#encrypt(java.lang.String,%20byte[],%20byte[],%20byte[])">byte[] key, byte[] iv</a>
+instead of char[] password.  
+
+</p>
 <p>Please visit the <a href="#Quick-FAQ">Quick-FAQ</a> if you are having problems.</p>
 
-<pre style="border: 1px solid red; padding: 10px; float: left;"><u><b>PBE example (AES-128):</b></u>
 
-FileInputStream in = new FileInputStream( "/path/to/file" );
+<pre style="border: 1px solid red; padding: 10px; float: left;"><u><b>PBE code example (DES-3):</b></u><sup><a href="#fn">*</a></sup>
 
-<em style="color: green;">// The password in this example is "changeit".</em>
-char[] password = { 'c', 'h', 'a', 'n', 'g', 'e', 'i', 't' };
+char[] password = {'c','h','a','n','g','e','i','t'};
+byte[] data = "Hello World!".getBytes();
 
-<em style="color: green;">// Let's encrypt the file!  AES-128 and DES3 are popular cipher choices.</em>
-<em style="color: green;">// By default the output is in base64.</em>
-InputStream encryptedStream = OpenSSL.encrypt( "aes128", password, in );
-
-FileOutputStream out = new FileOutputStream( "/path/to/encrypted_file.base64" );
-
-<em style="color: green;">// Not-Yet-Commons-SSL happens to come with a handy internal utility for</em>
-<em style="color: green;">// transferring contents of an InputStream to an OutputStream.</em>
-Util.pipeStream( encryptedStream, out );
-
-<em style="color: green;">// Note: pipeStream() closes both streams.</em>
-
-</pre>
-<br clear="all"/>
-<pre style="border: 1px solid red; padding: 10px; float: left;"><u><b>Another PBE example (DES-3):</b></u>
-
-char[] password = { 'c', 'h', 'a', 'n', 'g', 'e', 'i', 't' };
-byte[] data = "Hello World!".getBytes( "UTF-8" );
 <em style="color: green;">// Encrypt!</em>
-byte[] encryptedData = OpenSSL.encrypt( "des3", password, data );
-String encryptedString = new String( encryptedData, "UTF-8" );
-System.out.println( "ENCRYPTED: [" + encryptedString + "]" );
+byte[] encrypted = OpenSSL.encrypt("des3", password, data);
+System.out.println("ENCRYPTED: [" + new String(encrypted) + "]");
 
-encryptedData = encryptedString.getBytes( "UTF-8" );
 <em style="color: green;">// Decrypt results of previous!</em>
-data = OpenSSL.decrypt( "des3", password, encryptedData );
-System.out.println( "DECRYPTED: [" + new String( data ) + "]" );
+data = OpenSSL.decrypt("des3", password, encrypted);
+System.out.println("DECRYPTED: [" + new String(data) + "]");
 
 
 OUTPUT:
 =======================
 ENCRYPTED: [U2FsdGVkX19qplb9qVDVVEYxH8wjJDGpMS+F4/2pS2c=]
 DECRYPTED: [Hello World!]
+
+<sup><a name="fn">*</a></sup> <span style="font-size: 85%;">- This code example is <a href="#nqr">not quite right</a>.</span>
 </pre>
 <br clear="all"/>
+<p>Some notes:
+<ul>
+    <li>The OpenSSL.encrypt() and OpenSSL.decrypt() methods have InputStream and byte[] versions.  For large
+    files you're going to have to use the InputStream versions.</li>
+    <li>OpenSSL.encrypt() produces base64 output by default.  Use
+<a href="http://juliusdavies.ca/commons-ssl/javadocs/org/apache/commons/ssl/OpenSSL.html#encrypt(java.lang.String,%20char[],%20byte[],%20boolean)">OpenSSL.encrypt(alg, pwd, data, false)</a>
+    to turn that off.</li>
+    <li>OpenSSL.decrypt() auto-detects whether input is base64 or raw binary, so you don't need to worry about it
+    when decrypting.  The base64 "true/false" parameter is only applicable when encrypting.</li>
+    <li>We also have methods that are compatible with "<code>openssl enc -K [key] -iv [IV]</code>" where key and iv
+    are explicitly provided, rather than being derived from a password.  The [key] and [IV] should be specified
+    in either raw binary, or hexidecimal (4 bits per character).  This isn't really PBE anymore, but it's a
+    common use case.</li>
+</ul>
+</p>
+
 <p>Here's a list of supported OpenSSL ciphers.  The <i>purple ones</i> require the <a href="http://www.bouncycastle.org/latest_releases.html">BouncyCastle JCE</a>.
 The <i class="special">red ones (desx, desx-cbc)</i> probably require RSA's <a href="http://www.rsa.com/node.aspx?id=1204">BSAFE JCE</a>,
 and have not been tested.
@@ -162,7 +168,37 @@ This way, even if you use the same password to encrypt 2 different files, the ac
 secret keys used to encrypt these 2 files are very different.
 <br/>
 <br/>
-It is possible to omit the salt, but this is highly discouraged.
+It is possible to omit the salt, but this is highly discouraged:
+
+<pre style="padding: 10px; float: left;">
+boolean useBase64 = true;
+boolean useSalt = false; <em style="color: green;">// Omitting the salt is bad for security!</em>
+byte[] result = <a href="http://juliusdavies.ca/commons-ssl/javadocs/org/apache/commons/ssl/OpenSSL.html#encrypt(java.lang.String,%20char[],%20byte[],%20boolean,%20boolean)">OpenSSL.encrypt(alg, pwd, data, useBase64, useSalt);</a>
+</pre>
+<br clear="all"/>
 </dd>
+<dt><a name="nqr">Why</a> is code example above "not quite right"?</dt>
+<dd>It relies on the platform's default character set.  Here is the proper version (forcing UTF-8):
+
+<pre style="border: 1px solid red; padding: 10px; float: left;"><u><b>PBE example (DES-3):</b></u>
+
+char[] password = {'c','h','a','n','g','e','i','t'};
+byte[] data = "Hello World!".getBytes("UTF-8");
+
+<em style="color: green;">// Encrypt!</em>
+byte[] encrypted = OpenSSL.encrypt("des3", password, data);
+System.out.println("ENCRYPTED: [" + new String(encrypted, "UTF-8") + "]");
+
+<em style="color: green;">// Decrypt results of previous!</em>
+data = OpenSSL.decrypt("des3", password, encrypted);
+System.out.println("DECRYPTED: [" + new String(data, "UTF-8") + "]");
+
+OUTPUT:
+======================
+ENCRYPTED: [U2FsdGVkX19qplb9qVDVVEYxH8wjJDGpMS+F4/2pS2c=]
+DECRYPTED: [Hello World!]
+</pre>
+</dd>
+</dl>
 </body>
 </html>
