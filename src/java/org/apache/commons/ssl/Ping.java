@@ -54,17 +54,23 @@ import java.util.TreeSet;
 public class Ping {
     protected static SortedSet ARGS = new TreeSet();
     protected static Map ARGS_MATCH = new HashMap();
-    protected final static Arg ARG_TARGET = new Arg("-t", "--target", "[hostname[:port]]             default port=443", true);
-    protected final static Arg ARG_BIND = new Arg("-b", "--bind", "[hostname[:port]]             default port=0 \"ANY\"");
-    protected final static Arg ARG_PROXY = new Arg("-r", "--proxy", "[hostname[:port]]             default port=80");
-    protected final static Arg ARG_TRUST_CERT = new Arg("-tm", "--trust-cert", "[path to trust material]  *.{pem, der, crt, jks}");
-    protected final static Arg ARG_CLIENT_CERT = new Arg("-km", "--client-cert", "[path to client's private key]  *.{jks, pkcs12, pkcs8}");
-    protected final static Arg ARG_CERT_CHAIN = new Arg("-cc", "--cert-chain", "[path to client's cert chain if using pkcs8/OpenSSL key]");
+    protected final static Arg ARG_TARGET = new Arg("-t", "--target", "[hostname[:port]]              default port=443", true);
+    protected final static Arg ARG_BIND = new Arg("-b", "--bind", "[hostname[:port]]              default port=0 \"ANY\"");
+    protected final static Arg ARG_PROXY = new Arg("-r", "--proxy", "[hostname[:port]]              default port=80");
+    protected final static Arg ARG_TRUST_CERT = new Arg("-tm", "--trust-cert", "[path to trust material]       {pem, der, crt, jks}");
+    protected final static Arg ARG_CLIENT_CERT = new Arg("-km", "--client-cert", "[path to client's private key] {jks, pkcs12, pkcs8}");
+    protected final static Arg ARG_CERT_CHAIN = new Arg("-cc", "--cert-chain", "[path to client's cert chain for pkcs8/OpenSSL key]");
     protected final static Arg ARG_PASSWORD = new Arg("-p", "--password", "[client cert password]");
+    protected final static Arg ARG_HOST_HEADER = new Arg("-h", "--host-header", "[http-host-header]      in case -t is an IP address");
+    protected final static Arg ARG_PATH = new Arg("-u", "--path", "[path for GET/HEAD request]    default=/");
+    protected final static Arg ARG_METHOD = new Arg("-m", "--method", "[http method to use]           default=HEAD");
 
     private static HostPort target;
     private static HostPort local;
     private static HostPort proxy;
+    private static String hostHeader;
+    private static String httpMethod = "HEAD";
+    private static String path = "/";
     private static InetAddress targetAddress;
     private static InetAddress localAddress;
     private static int targetPort = 443;
@@ -98,8 +104,8 @@ public class Ping {
                 parseException.printStackTrace(System.out);
                 System.out.println();
             }
-            System.out.println(Version.versionString());
-            System.out.println("Usage:  java -jar not-yet-commons-ssl-0.3.7.jar [options]");
+            System.out.println("Usage:  java -jar not-yet-commons-ssl-0.3.9.jar [options]");
+            System.out.println("Version 0.3.9      compiled=[" + Version.COMPILE_TIME + "]");
             System.out.println("Options:   (*=required)");
             Iterator it = ARGS.iterator();
             while (it.hasNext()) {
@@ -111,7 +117,7 @@ public class Ping {
                 System.out.println(required + "  " + s + " " + l + " " + d);
             }
             System.out.println();
-            String example = "java -jar commons-ssl.jar -t cucbc.com:443 -c ./client.pfx -p `cat ./pass.txt` ";
+            String example = "java -jar commons-ssl.jar -t host.com:443 -c ./client.pfx -p `cat ./pass.txt` ";
             System.out.println("Example:");
             System.out.println();
             System.out.println(example);
@@ -209,8 +215,11 @@ public class Ping {
                 System.out.println("Cipher: " + sslCipher);
                 System.out.println("================================================================================");
 
-                String line1 = "HEAD / HTTP/1.1";
-                String line2 = "Host: " + targetAddress.getHostName();
+                String line1 = httpMethod + " " + path + " HTTP/1.1";
+                if (hostHeader == null) {
+                    hostHeader = targetAddress.getHostName();
+                }
+                String line2 = "Host: " + hostHeader;
                 byte[] crlf = {'\r', '\n'};
 
                 System.out.println("Writing: ");
@@ -427,6 +436,12 @@ public class Ping {
                 certChain = new File(values[0]);
             } else if (arg == ARG_PASSWORD) {
                 password = values[0].toCharArray();
+            } else if (arg == ARG_METHOD) {
+                httpMethod = values[0].trim();
+            } else if (arg == ARG_PATH) {
+                path = values[0].trim();
+            } else if (arg == ARG_HOST_HEADER) {
+                hostHeader = values[0].trim();
             } else if (arg == ARG_TRUST_CERT) {
                 for (int i = 0; i < values.length; i++) {
                     File f = new File(values[i]);
