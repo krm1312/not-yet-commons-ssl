@@ -3,37 +3,31 @@ package org.apache.commons.ssl.asn1;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
-/**
- * Base class for an application specific object
- */
-public class DERApplicationSpecific 
-    extends ASN1Object
-{
-    private int       tag;
-    private byte[]    octets;
-    
+/** Base class for an application specific object */
+public class DERApplicationSpecific
+    extends ASN1Object {
+    private int tag;
+    private byte[] octets;
+
     public DERApplicationSpecific(
-        int        tag,
-        byte[]    octets)
-    {
+        int tag,
+        byte[] octets) {
         this.tag = tag;
         this.octets = octets;
     }
-    
+
     public DERApplicationSpecific(
-        int                  tag, 
-        DEREncodable         object) 
-        throws IOException 
-    {
+        int tag,
+        DEREncodable object)
+        throws IOException {
         this(true, tag, object);
     }
 
     public DERApplicationSpecific(
-        boolean      explicit,
-        int          tag,
+        boolean explicit,
+        int tag,
         DEREncodable object)
-        throws IOException
-    {
+        throws IOException {
         ByteArrayOutputStream bOut = new ByteArrayOutputStream();
         DEROutputStream dos = new DEROutputStream(bOut);
 
@@ -41,18 +35,14 @@ public class DERApplicationSpecific
 
         byte[] data = bOut.toByteArray();
 
-        if (tag >= 0x1f)
-        {
+        if (tag >= 0x1f) {
             throw new IOException("unsupported tag number");
         }
 
-        if (explicit)
-        {
+        if (explicit) {
             this.tag = tag | DERTags.CONSTRUCTED;
             this.octets = data;
-        }
-        else
-        {
+        } else {
             this.tag = tag;
             int lenBytes = getLengthOfLength(data);
             byte[] tmp = new byte[data.length - lenBytes];
@@ -61,36 +51,30 @@ public class DERApplicationSpecific
         }
     }
 
-    private int getLengthOfLength(byte[] data)
-    {
+    private int getLengthOfLength(byte[] data) {
         int count = 2;               // TODO: assumes only a 1 byte tag number
 
-        while((data[count - 1] & 0x80) != 0)
-        {
+        while ((data[count - 1] & 0x80) != 0) {
             count++;
         }
 
         return count;
     }
 
-    public boolean isConstructed()
-    {
+    public boolean isConstructed() {
         return (tag & DERTags.CONSTRUCTED) != 0;
     }
-    
-    public byte[] getContents()
-    {
+
+    public byte[] getContents() {
         return octets;
     }
-    
-    public int getApplicationTag() 
-    {
+
+    public int getApplicationTag() {
         return tag;
     }
-     
-    public DERObject getObject() 
-        throws IOException 
-    {
+
+    public DERObject getObject()
+        throws IOException {
         return new ASN1InputStream(getContents()).readObject();
     }
 
@@ -98,70 +82,59 @@ public class DERApplicationSpecific
      * Return the enclosed object assuming implicit tagging.
      *
      * @param derTagNo the type tag that should be applied to the object's contents.
-     * @return  the resulting object
+     * @return the resulting object
      * @throws IOException if reconstruction fails.
      */
     public DERObject getObject(int derTagNo)
-        throws IOException
-    {
-        if (tag >= 0x1f)
-        {
+        throws IOException {
+        if (tag >= 0x1f) {
             throw new IOException("unsupported tag number");
         }
-                
+
         byte[] tmp = this.getEncoded();
 
-        tmp[0] = (byte)derTagNo;
-        
+        tmp[0] = (byte) derTagNo;
+
         return new ASN1InputStream(tmp).readObject();
     }
-    
+
     /* (non-Javadoc)
-     * @see org.apache.commons.ssl.asn1.DERObject#encode(org.apache.commons.ssl.asn1.DEROutputStream)
-     */
-    void encode(DEROutputStream out) throws IOException
-    {
+    * @see org.apache.commons.ssl.asn1.DERObject#encode(org.apache.commons.ssl.asn1.DEROutputStream)
+    */
+    void encode(DEROutputStream out) throws IOException {
         out.writeEncoded(DERTags.APPLICATION | tag, octets);
     }
-    
+
     boolean asn1Equals(
-        DERObject o)
-    {
-        if (!(o instanceof DERApplicationSpecific))
-        {
+        DERObject o) {
+        if (!(o instanceof DERApplicationSpecific)) {
             return false;
         }
-        
-        DERApplicationSpecific other = (DERApplicationSpecific)o;
-        
-        if (tag != other.tag)
-        {
+
+        DERApplicationSpecific other = (DERApplicationSpecific) o;
+
+        if (tag != other.tag) {
             return false;
         }
-        
-        if (octets.length != other.octets.length)
-        {
+
+        if (octets.length != other.octets.length) {
             return false;
         }
-        
-        for (int i = 0; i < octets.length; i++) 
-        {
-            if (octets[i] != other.octets[i])
-            {
+
+        for (int i = 0; i < octets.length; i++) {
+            if (octets[i] != other.octets[i]) {
                 return false;
             }
         }
-        
+
         return true;
     }
-    
-    public int hashCode()
-    {
-        byte[]  b = this.getContents();
-        int     value = 0;
 
-        for (int i = 0; i != b.length; i++)
-        {
+    public int hashCode() {
+        byte[] b = this.getContents();
+        int value = 0;
+
+        for (int i = 0; i != b.length; i++) {
             value ^= (b[i] & 0xff) << (i % 4);
         }
 

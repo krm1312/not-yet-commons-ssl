@@ -7,30 +7,24 @@ import java.util.Date;
 import java.util.SimpleTimeZone;
 import java.util.TimeZone;
 
-/**
- * Generalized time object.
- */
+/** Generalized time object. */
 public class DERGeneralizedTime
-    extends ASN1Object
-{
-    String      time;
+    extends ASN1Object {
+    String time;
 
     /**
      * return a generalized time from the passed in object
      *
-     * @exception IllegalArgumentException if the object cannot be converted.
+     * @throws IllegalArgumentException if the object cannot be converted.
      */
     public static DERGeneralizedTime getInstance(
-        Object  obj)
-    {
-        if (obj == null || obj instanceof DERGeneralizedTime)
-        {
-            return (DERGeneralizedTime)obj;
+        Object obj) {
+        if (obj == null || obj instanceof DERGeneralizedTime) {
+            return (DERGeneralizedTime) obj;
         }
 
-        if (obj instanceof ASN1OctetString)
-        {
-            return new DERGeneralizedTime(((ASN1OctetString)obj).getOctets());
+        if (obj instanceof ASN1OctetString) {
+            return new DERGeneralizedTime(((ASN1OctetString) obj).getOctets());
         }
 
         throw new IllegalArgumentException("illegal object in getInstance: " + obj.getClass().getName());
@@ -39,19 +33,18 @@ public class DERGeneralizedTime
     /**
      * return a Generalized Time object from a tagged object.
      *
-     * @param obj the tagged object holding the object we want
+     * @param obj      the tagged object holding the object we want
      * @param explicit true if the object is meant to be explicitly
-     *              tagged false otherwise.
-     * @exception IllegalArgumentException if the tagged object cannot
-     *               be converted.
+     *                 tagged false otherwise.
+     * @throws IllegalArgumentException if the tagged object cannot
+     *                                  be converted.
      */
     public static DERGeneralizedTime getInstance(
         ASN1TaggedObject obj,
-        boolean          explicit)
-    {
+        boolean explicit) {
         return getInstance(obj.getObject());
     }
-    
+
     /**
      * The correct format for this is YYYYMMDDHHMMSS[.f]Z, or without the Z
      * for local time, or Z+-HHMM on the end, for difference between local
@@ -59,46 +52,38 @@ public class DERGeneralizedTime
      * least one number with trailing zeroes removed.
      *
      * @param time the time string.
-     * @exception IllegalArgumentException if String is an illegal format.
+     * @throws IllegalArgumentException if String is an illegal format.
      */
     public DERGeneralizedTime(
-        String  time)
-    {
+        String time) {
         this.time = time;
-        try
-        {
+        try {
             this.getDate();
         }
-        catch (ParseException e)
-        {
+        catch (ParseException e) {
             throw new IllegalArgumentException("invalid date string: " + e.getMessage());
         }
     }
 
-    /**
-     * base constructer from a java.util.date object
-     */
+    /** base constructer from a java.util.date object */
     public DERGeneralizedTime(
-        Date time)
-    {
+        Date time) {
         SimpleDateFormat dateF = new SimpleDateFormat("yyyyMMddHHmmss'Z'");
 
-        dateF.setTimeZone(new SimpleTimeZone(0,"Z"));
+        dateF.setTimeZone(new SimpleTimeZone(0, "Z"));
 
         this.time = dateF.format(time);
     }
 
     DERGeneralizedTime(
-        byte[]  bytes)
-    {
+        byte[] bytes) {
         //
         // explicitly convert to characters
         //
-        char[]  dateC = new char[bytes.length];
+        char[] dateC = new char[bytes.length];
 
-        for (int i = 0; i != dateC.length; i++)
-        {
-            dateC[i] = (char)(bytes[i] & 0xff);
+        for (int i = 0; i != dateC.length; i++) {
+            dateC[i] = (char) (bytes[i] & 0xff);
         }
 
         this.time = new String(dateC);
@@ -106,17 +91,17 @@ public class DERGeneralizedTime
 
     /**
      * Return the time.
+     *
      * @return The time string as it appeared in the encoded object.
      */
-    public String getTimeString()
-    {
+    public String getTimeString() {
         return time;
     }
-    
+
     /**
-     * return the time - always in the form of 
-     *  YYYYMMDDhhmmssGMT(+hh:mm|-hh:mm).
-     * <p>
+     * return the time - always in the form of
+     * YYYYMMDDhhmmssGMT(+hh:mm|-hh:mm).
+     * <p/>
      * Normally in a certificate we would expect "Z" rather than "GMT",
      * however adding the "GMT" means we can just use:
      * <pre>
@@ -125,75 +110,60 @@ public class DERGeneralizedTime
      * To read in the time and get a date which is compatible with our local
      * time zone.
      */
-    public String getTime()
-    {
+    public String getTime() {
         //
         // standardise the format.
         //             
-        if (time.charAt(time.length() - 1) == 'Z')
-        {
+        if (time.charAt(time.length() - 1) == 'Z') {
             return time.substring(0, time.length() - 1) + "GMT+00:00";
-        }
-        else
-        {
+        } else {
             int signPos = time.length() - 5;
             char sign = time.charAt(signPos);
-            if (sign == '-' || sign == '+')
-            {
+            if (sign == '-' || sign == '+') {
                 return time.substring(0, signPos)
-                    + "GMT"
-                    + time.substring(signPos, signPos + 3)
-                    + ":"
-                    + time.substring(signPos + 3);
-            }
-            else
-            {
+                       + "GMT"
+                       + time.substring(signPos, signPos + 3)
+                       + ":"
+                       + time.substring(signPos + 3);
+            } else {
                 signPos = time.length() - 3;
                 sign = time.charAt(signPos);
-                if (sign == '-' || sign == '+')
-                {
+                if (sign == '-' || sign == '+') {
                     return time.substring(0, signPos)
-                        + "GMT"
-                        + time.substring(signPos)
-                        + ":00";
+                           + "GMT"
+                           + time.substring(signPos)
+                           + ":00";
                 }
             }
-        }            
+        }
         return time + calculateGMTOffset();
     }
 
-    private String calculateGMTOffset()
-    {
+    private String calculateGMTOffset() {
         String sign = "+";
         TimeZone timeZone = TimeZone.getDefault();
         int offset = timeZone.getRawOffset();
-        if (offset < 0)
-        {
+        if (offset < 0) {
             sign = "-";
             offset = -offset;
         }
         int hours = offset / (60 * 60 * 1000);
         int minutes = (offset - (hours * 60 * 60 * 1000)) / (60 * 1000);
 
-        try
-        {
-            if (timeZone.useDaylightTime() && timeZone.inDaylightTime(this.getDate()))
-            {
+        try {
+            if (timeZone.useDaylightTime() && timeZone.inDaylightTime(this.getDate())) {
                 hours += sign.equals("+") ? 1 : -1;
             }
         }
-        catch (ParseException e)
-        {
+        catch (ParseException e) {
             // we'll do our best and ignore daylight savings
         }
 
         return "GMT" + sign + convert(hours) + ":" + convert(minutes);
     }
 
-    private String convert(int time)
-    {
-        if (time < 10)
-        {
+    private String convert(int time) {
+        if (time < 10) {
             return "0" + time;
         }
 
@@ -201,46 +171,31 @@ public class DERGeneralizedTime
     }
 
     public Date getDate()
-        throws ParseException
-    {
+        throws ParseException {
         SimpleDateFormat dateF;
         String d = time;
 
-        if (time.endsWith("Z"))
-        {
-            if (hasFractionalSeconds())
-            {
+        if (time.endsWith("Z")) {
+            if (hasFractionalSeconds()) {
                 dateF = new SimpleDateFormat("yyyyMMddHHmmss.SSSS'Z'");
-            }
-            else
-            {
+            } else {
                 dateF = new SimpleDateFormat("yyyyMMddHHmmss'Z'");
             }
 
             dateF.setTimeZone(new SimpleTimeZone(0, "Z"));
-        }
-        else if (time.indexOf('-') > 0 || time.indexOf('+') > 0)
-        {
+        } else if (time.indexOf('-') > 0 || time.indexOf('+') > 0) {
             d = this.getTime();
-            if (hasFractionalSeconds())
-            {
+            if (hasFractionalSeconds()) {
                 dateF = new SimpleDateFormat("yyyyMMddHHmmss.SSSSz");
-            }
-            else
-            {
+            } else {
                 dateF = new SimpleDateFormat("yyyyMMddHHmmssz");
             }
 
             dateF.setTimeZone(new SimpleTimeZone(0, "Z"));
-        }
-        else
-        {
-            if (hasFractionalSeconds())
-            {
+        } else {
+            if (hasFractionalSeconds()) {
                 dateF = new SimpleDateFormat("yyyyMMddHHmmss.SSSS");
-            }
-            else
-            {
+            } else {
                 dateF = new SimpleDateFormat("yyyyMMddHHmmss");
             }
 
@@ -250,19 +205,16 @@ public class DERGeneralizedTime
         return dateF.parse(d);
     }
 
-    private boolean hasFractionalSeconds()
-    {
+    private boolean hasFractionalSeconds() {
         return time.indexOf('.') == 14;
     }
 
-    private byte[] getOctets()
-    {
-        char[]  cs = time.toCharArray();
-        byte[]  bs = new byte[cs.length];
+    private byte[] getOctets() {
+        char[] cs = time.toCharArray();
+        byte[] bs = new byte[cs.length];
 
-        for (int i = 0; i != cs.length; i++)
-        {
-            bs[i] = (byte)cs[i];
+        for (int i = 0; i != cs.length; i++) {
+            bs[i] = (byte) cs[i];
         }
 
         return bs;
@@ -270,25 +222,21 @@ public class DERGeneralizedTime
 
 
     void encode(
-        DEROutputStream  out)
-        throws IOException
-    {
+        DEROutputStream out)
+        throws IOException {
         out.writeEncoded(GENERALIZED_TIME, this.getOctets());
     }
-    
+
     boolean asn1Equals(
-        DERObject  o)
-    {
-        if (!(o instanceof DERGeneralizedTime))
-        {
+        DERObject o) {
+        if (!(o instanceof DERGeneralizedTime)) {
             return false;
         }
 
-        return time.equals(((DERGeneralizedTime)o).time);
+        return time.equals(((DERGeneralizedTime) o).time);
     }
-    
-    public int hashCode()
-    {
+
+    public int hashCode() {
         return time.hashCode();
     }
 }

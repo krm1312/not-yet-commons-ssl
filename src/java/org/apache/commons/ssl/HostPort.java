@@ -40,18 +40,16 @@ import java.net.UnknownHostException;
  * @author <a href="mailto:juliusdavies@cucbc.com">juliusdavies@cucbc.com</a>
  * @since 14-July-2006
  */
-public class HostPort
-{
-	public final String host;
-	public final int port;
-	public final InetAddress addr;
+public class HostPort {
+    public final String host;
+    public final int port;
+    public final InetAddress addr;
 
-	public HostPort( String host, int port ) throws UnknownHostException
-	{
-		this.host = host;
-		this.port = port;
-		this.addr = InetAddress.getByName( host );
-	}
+    public HostPort(String host, int port) throws UnknownHostException {
+        this.host = host;
+        this.port = port;
+        this.addr = InetAddress.getByName(host);
+    }
 
-	public String toString() { return host + ":" + port; }
+    public String toString() { return host + ":" + port; }
 }

@@ -41,54 +41,43 @@ import java.security.GeneralSecurityException;
  * @author <a href="mailto:juliusdavies@cucbc.com">juliusdavies@cucbc.com</a>
  * @since 28-Feb-2006
  */
-public class LDAPSocket extends SSLClient
-{
-	private final static LDAPSocket instance;
+public class LDAPSocket extends SSLClient {
+    private final static LDAPSocket instance;
 
-	static
-	{
-		LDAPSocket sf = null;
-		try
-		{
-			sf = new LDAPSocket();
-		}
-		catch ( Exception e )
-		{
-			System.out.println( "could not create LDAPSocket: " + e );
-			e.printStackTrace();
-		}
-		finally
-		{
-			instance = sf;
-		}
-	}
+    static {
+        LDAPSocket sf = null;
+        try {
+            sf = new LDAPSocket();
+        }
+        catch (Exception e) {
+            System.out.println("could not create LDAPSocket: " + e);
+            e.printStackTrace();
+        }
+        finally {
+            instance = sf;
+        }
+    }
 
-	private LDAPSocket() throws GeneralSecurityException, IOException
-	{
-		super();
+    private LDAPSocket() throws GeneralSecurityException, IOException {
+        super();
 
-		// For now we setup the usual trust infrastructure, but consumers
-		// are encouraged to call getInstance().addTrustMaterial() or
-		// getInstance().setTrustMaterial() to customize the trust.
-		if ( TrustMaterial.JSSE_CACERTS != null )
-		{
-			setTrustMaterial( TrustMaterial.JSSE_CACERTS );
-		}
-		else
-		{
-			setTrustMaterial( TrustMaterial.CACERTS );
-		}
-	}
+        // For now we setup the usual trust infrastructure, but consumers
+        // are encouraged to call getInstance().addTrustMaterial() or
+        // getInstance().setTrustMaterial() to customize the trust.
+        if (TrustMaterial.JSSE_CACERTS != null) {
+            setTrustMaterial(TrustMaterial.JSSE_CACERTS);
+        } else {
+            setTrustMaterial(TrustMaterial.CACERTS);
+        }
+    }
 
-	public static SocketFactory getDefault()
-	{
-		return getInstance();
-	}
+    public static SocketFactory getDefault() {
+        return getInstance();
+    }
 
-	public static LDAPSocket getInstance()
-	{
-		return instance;
-	}
+    public static LDAPSocket getInstance() {
+        return instance;
+    }
 
 
 }

@@ -51,27 +51,25 @@ import java.io.IOException;
  * @author <a href="mailto:juliusdavies@cucbc.com">juliusdavies@cucbc.com</a>
  * @since 20-Dec-2005
  */
-public class CRLUtil
-{
+public class CRLUtil {
 
-	public static String getURLToCRL( byte[] extension2_5_29_31 )
-			throws IOException
-	{
+    public static String getURLToCRL(byte[] extension2_5_29_31)
+        throws IOException {
 
-		throw new UnsupportedOperationException( "not yet implemented" );
+        throw new UnsupportedOperationException("not yet implemented");
 
-		/*
-				  byte[] bytes = extension2_5_29_31;
-				  ASN1Encodable asn1 = X509ExtensionUtil.fromExtensionValue(bytes);
-				  DERObject obj = asn1.getDERObject();
-				  CRLDistPoint distPoint = CRLDistPoint.getInstance(obj);
-				  DistributionPoint[] points = distPoint.getDistributionPoints();
-				  DistributionPointName dpn = points[0].getDistributionPoint();
-				  obj = dpn.getName().toASN1Object();
-				  ASN1Sequence seq = ASN1Sequence.getInstance(obj);
-				  DERTaggedObject tag = (DERTaggedObject) seq.getObjectAt(0);
-				  bytes = ASN1OctetString.getInstance(tag, false).getOctets();
-				  return new String(bytes);
-				  */
-	}
+        /*
+                    byte[] bytes = extension2_5_29_31;
+                    ASN1Encodable asn1 = X509ExtensionUtil.fromExtensionValue(bytes);
+                    DERObject obj = asn1.getDERObject();
+                    CRLDistPoint distPoint = CRLDistPoint.getInstance(obj);
+                    DistributionPoint[] points = distPoint.getDistributionPoints();
+                    DistributionPointName dpn = points[0].getDistributionPoint();
+                    obj = dpn.getName().toASN1Object();
+                    ASN1Sequence seq = ASN1Sequence.getInstance(obj);
+                    DERTaggedObject tag = (DERTaggedObject) seq.getObjectAt(0);
+                    bytes = ASN1OctetString.getInstance(tag, false).getOctets();
+                    return new String(bytes);
+                    */
+    }
 }

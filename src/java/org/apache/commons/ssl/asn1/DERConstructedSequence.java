@@ -4,20 +4,15 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Enumeration;
 
-/**
- * @deprecated use DERSequence.
- */
+/** @deprecated use DERSequence. */
 public class DERConstructedSequence
-    extends ASN1Sequence
-{
+    extends ASN1Sequence {
     public void addObject(
-        DEREncodable obj)
-    {
+        DEREncodable obj) {
         super.addObject(obj);
     }
 
-    public int getSize()
-    {
+    public int getSize() {
         return size();
     }
 
@@ -31,22 +26,20 @@ public class DERConstructedSequence
      */
     void encode(
         DEROutputStream out)
-        throws IOException
-    {
-        ByteArrayOutputStream   bOut = new ByteArrayOutputStream();
-        DEROutputStream         dOut = new DEROutputStream(bOut);
-        Enumeration             e = this.getObjects();
+        throws IOException {
+        ByteArrayOutputStream bOut = new ByteArrayOutputStream();
+        DEROutputStream dOut = new DEROutputStream(bOut);
+        Enumeration e = this.getObjects();
 
-        while (e.hasMoreElements())
-        {
-            Object    obj = e.nextElement();
+        while (e.hasMoreElements()) {
+            Object obj = e.nextElement();
 
             dOut.writeObject(obj);
         }
 
         dOut.close();
 
-        byte[]  bytes = bOut.toByteArray();
+        byte[] bytes = bOut.toByteArray();
 
         out.writeEncoded(SEQUENCE | CONSTRUCTED, bytes);
     }

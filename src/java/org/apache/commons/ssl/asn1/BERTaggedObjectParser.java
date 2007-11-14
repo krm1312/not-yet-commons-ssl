@@ -4,8 +4,7 @@ import java.io.IOException;
 import java.io.InputStream;
 
 public class BERTaggedObjectParser
-    implements ASN1TaggedObjectParser
-{
+    implements ASN1TaggedObjectParser {
     private int _baseTag;
     private int _tagNumber;
     private InputStream _contentStream;
@@ -13,66 +12,49 @@ public class BERTaggedObjectParser
     private boolean _indefiniteLength;
 
     protected BERTaggedObjectParser(
-        int         baseTag,
-        int         tagNumber,
-        InputStream contentStream)
-    {
+        int baseTag,
+        int tagNumber,
+        InputStream contentStream) {
         _baseTag = baseTag;
         _tagNumber = tagNumber;
         _contentStream = contentStream;
         _indefiniteLength = contentStream instanceof IndefiniteLengthInputStream;
     }
 
-    public boolean isConstructed()
-    {
+    public boolean isConstructed() {
         return (_baseTag & DERTags.CONSTRUCTED) != 0;
     }
 
-    public int getTagNo()
-    {
+    public int getTagNo() {
         return _tagNumber;
     }
-    
+
     public DEREncodable getObjectParser(
-        int     tag,
+        int tag,
         boolean isExplicit)
-        throws IOException
-    {
-        if (isExplicit)
-        {
+        throws IOException {
+        if (isExplicit) {
             return new ASN1StreamParser(_contentStream).readObject();
-        }
-        else
-        {
-            switch (tag)
-            {
-            case DERTags.SET:
-                if (_indefiniteLength)
-                {
-                    return new BERSetParser(new ASN1ObjectParser(_baseTag, _tagNumber, _contentStream));
-                }
-                else
-                {
-                    return new DERSet(loadVector(_contentStream)).parser();
-                }
-            case DERTags.SEQUENCE:
-                if (_indefiniteLength)
-                {
-                    return new BERSequenceParser(new ASN1ObjectParser(_baseTag, _tagNumber, _contentStream));
-                }
-                else
-                {
-                    return new DERSequence(loadVector(_contentStream)).parser();
-                }
-            case DERTags.OCTET_STRING:
-                if (_indefiniteLength || this.isConstructed())
-                {
-                    return new BEROctetStringParser(new ASN1ObjectParser(_baseTag, _tagNumber, _contentStream));
-                }
-                else
-                {
-                    return new DEROctetString(((DefiniteLengthInputStream)_contentStream).toByteArray()).parser();
-                }
+        } else {
+            switch (tag) {
+                case DERTags.SET:
+                    if (_indefiniteLength) {
+                        return new BERSetParser(new ASN1ObjectParser(_baseTag, _tagNumber, _contentStream));
+                    } else {
+                        return new DERSet(loadVector(_contentStream)).parser();
+                    }
+                case DERTags.SEQUENCE:
+                    if (_indefiniteLength) {
+                        return new BERSequenceParser(new ASN1ObjectParser(_baseTag, _tagNumber, _contentStream));
+                    } else {
+                        return new DERSequence(loadVector(_contentStream)).parser();
+                    }
+                case DERTags.OCTET_STRING:
+                    if (_indefiniteLength || this.isConstructed()) {
+                        return new BEROctetStringParser(new ASN1ObjectParser(_baseTag, _tagNumber, _contentStream));
+                    } else {
+                        return new DEROctetString(((DefiniteLengthInputStream) _contentStream).toByteArray()).parser();
+                    }
             }
         }
 
@@ -80,14 +62,12 @@ public class BERTaggedObjectParser
     }
 
     private ASN1EncodableVector loadVector(InputStream in)
-        throws IOException
-    {
-        ASN1StreamParser        aIn = new ASN1StreamParser(in);
-        ASN1EncodableVector     v = new ASN1EncodableVector();
-        DEREncodable            obj = aIn.readObject();
+        throws IOException {
+        ASN1StreamParser aIn = new ASN1StreamParser(in);
+        ASN1EncodableVector v = new ASN1EncodableVector();
+        DEREncodable obj = aIn.readObject();
 
-        while (obj != null)
-        {
+        while (obj != null) {
             v.add(obj.getDERObject());
             obj = aIn.readObject();
         }
@@ -95,57 +75,41 @@ public class BERTaggedObjectParser
         return v;
     }
 
-    private ASN1EncodableVector rLoadVector(InputStream in)
-    {
-        try
-        {
+    private ASN1EncodableVector rLoadVector(InputStream in) {
+        try {
             return loadVector(in);
         }
-        catch (IOException e)
-        {
+        catch (IOException e) {
             throw new IllegalStateException(e.getMessage());
         }
     }
 
-    public DERObject getDERObject()
-    {
-        if (_indefiniteLength)
-        {
+    public DERObject getDERObject() {
+        if (_indefiniteLength) {
             ASN1EncodableVector v = rLoadVector(_contentStream);
 
-            if (v.size() > 1)
-            {
+            if (v.size() > 1) {
                 return new BERTaggedObject(false, _tagNumber, new BERSequence(v));
-            }
-            else if (v.size() == 1)
-            {
+            } else if (v.size() == 1) {
                 return new BERTaggedObject(true, _tagNumber, v.get(0));
-            }
-            else
-            {
+            } else {
                 return new BERTaggedObject(false, _tagNumber, new BERSequence());
             }
-        }
-        else
-        {
-            if (this.isConstructed())
-            {
+        } else {
+            if (this.isConstructed()) {
                 ASN1EncodableVector v = rLoadVector(_contentStream);
 
-                if (v.size() == 1)
-                {
+                if (v.size() == 1) {
                     return new DERTaggedObject(true, _tagNumber, v.get(0));
                 }
 
-                return new DERTaggedObject(false, _tagNumber, new DERSequence(v));                
+                return new DERTaggedObject(false, _tagNumber, new DERSequence(v));
             }
 
-            try
-            {
-                return new DERTaggedObject(false, _tagNumber, new DEROctetString(((DefiniteLengthInputStream)_contentStream).toByteArray()));
+            try {
+                return new DERTaggedObject(false, _tagNumber, new DEROctetString(((DefiniteLengthInputStream) _contentStream).toByteArray()));
             }
-            catch (IOException e)
-            {
+            catch (IOException e) {
                 throw new IllegalStateException(e.getMessage());
             }
         }

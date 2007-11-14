@@ -7,32 +7,25 @@ import java.util.Vector;
  * this will eventually be superceded by ASN1EncodableVector so you should
  * use that class in preference.
  */
-public class DEREncodableVector
-{
-    private Vector  v = new Vector();
+public class DEREncodableVector {
+    private Vector v = new Vector();
 
-    /**
-     * @deprecated use ASN1EncodableVector instead.
-     */
-    public DEREncodableVector()
-    {
+    /** @deprecated use ASN1EncodableVector instead. */
+    public DEREncodableVector() {
 
     }
-    
+
     public void add(
-        DEREncodable   obj)
-    {
+        DEREncodable obj) {
         v.addElement(obj);
     }
 
     public DEREncodable get(
-        int i)
-    {
-        return (DEREncodable)v.elementAt(i);
+        int i) {
+        return (DEREncodable) v.elementAt(i);
     }
 
-    public int size()
-    {
+    public int size() {
         return v.size();
     }
 }

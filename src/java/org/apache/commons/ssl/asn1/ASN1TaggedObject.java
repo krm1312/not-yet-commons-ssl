@@ -9,31 +9,26 @@ import java.io.IOException;
  */
 public abstract class ASN1TaggedObject
     extends ASN1Object
-    implements ASN1TaggedObjectParser
-{
-    int             tagNo;
-    boolean         empty = false;
-    boolean         explicit = true;
-    DEREncodable    obj = null;
+    implements ASN1TaggedObjectParser {
+    int tagNo;
+    boolean empty = false;
+    boolean explicit = true;
+    DEREncodable obj = null;
 
     static public ASN1TaggedObject getInstance(
-        ASN1TaggedObject    obj,
-        boolean             explicit)
-    {
-        if (explicit)
-        {
-            return (ASN1TaggedObject)obj.getObject();
+        ASN1TaggedObject obj,
+        boolean explicit) {
+        if (explicit) {
+            return (ASN1TaggedObject) obj.getObject();
         }
 
         throw new IllegalArgumentException("implicitly tagged tagged object");
     }
 
     static public ASN1TaggedObject getInstance(
-        Object obj) 
-    {
-        if (obj == null || obj instanceof ASN1TaggedObject) 
-        {
-                return (ASN1TaggedObject)obj;
+        Object obj) {
+        if (obj == null || obj instanceof ASN1TaggedObject) {
+            return (ASN1TaggedObject) obj;
         }
 
         throw new IllegalArgumentException("unknown object in getInstance");
@@ -41,14 +36,13 @@ public abstract class ASN1TaggedObject
 
     /**
      * Create a tagged object in the explicit style.
-     * 
+     *
      * @param tagNo the tag number for this object.
-     * @param obj the tagged object.
+     * @param obj   the tagged object.
      */
     public ASN1TaggedObject(
-        int             tagNo,
-        DEREncodable    obj)
-    {
+        int tagNo,
+        DEREncodable obj) {
         this.explicit = true;
         this.tagNo = tagNo;
         this.obj = obj;
@@ -60,108 +54,90 @@ public abstract class ASN1TaggedObject
      * If the object implements ASN1Choice the tag style will always be changed
      * to explicit in accordance with the ASN.1 encoding rules.
      * </p>
+     *
      * @param explicit true if the object is explicitly tagged.
-     * @param tagNo the tag number for this object.
-     * @param obj the tagged object.
+     * @param tagNo    the tag number for this object.
+     * @param obj      the tagged object.
      */
     public ASN1TaggedObject(
-        boolean         explicit,
-        int             tagNo,
-        DEREncodable    obj)
-    {
-        if (obj instanceof ASN1Choice)
-        {
+        boolean explicit,
+        int tagNo,
+        DEREncodable obj) {
+        if (obj instanceof ASN1Choice) {
             this.explicit = true;
-        }
-        else
-        {
+        } else {
             this.explicit = explicit;
         }
-        
+
         this.tagNo = tagNo;
         this.obj = obj;
     }
-    
+
     boolean asn1Equals(
-        DERObject o)
-    {
-        if (!(o instanceof ASN1TaggedObject))
-        {
+        DERObject o) {
+        if (!(o instanceof ASN1TaggedObject)) {
             return false;
         }
-        
-        ASN1TaggedObject other = (ASN1TaggedObject)o;
-        
-        if (tagNo != other.tagNo || empty != other.empty || explicit != other.explicit)
-        {
+
+        ASN1TaggedObject other = (ASN1TaggedObject) o;
+
+        if (tagNo != other.tagNo || empty != other.empty || explicit != other.explicit) {
             return false;
         }
-        
-        if(obj == null)
-        {
-            if (other.obj != null)
-            {
+
+        if (obj == null) {
+            if (other.obj != null) {
+                return false;
+            }
+        } else {
+            if (!(obj.getDERObject().equals(other.obj.getDERObject()))) {
                 return false;
             }
         }
-        else
-        {
-            if (!(obj.getDERObject().equals(other.obj.getDERObject())))
-            {
-                return false;
-            }
-        }
-        
+
         return true;
     }
-    
-    public int hashCode()
-    {
+
+    public int hashCode() {
         int code = tagNo;
 
-        if (obj != null)
-        {
+        if (obj != null) {
             code ^= obj.hashCode();
         }
 
         return code;
     }
 
-    public int getTagNo()
-    {
+    public int getTagNo() {
         return tagNo;
     }
 
     /**
-     * return whether or not the object may be explicitly tagged. 
-     * <p>
+     * return whether or not the object may be explicitly tagged.
+     * <p/>
      * Note: if the object has been read from an input stream, the only
      * time you can be sure if isExplicit is returning the true state of
      * affairs is if it returns false. An implicitly tagged object may appear
      * to be explicitly tagged, so you need to understand the context under
      * which the reading was done as well, see getObject below.
      */
-    public boolean isExplicit()
-    {
+    public boolean isExplicit() {
         return explicit;
     }
 
-    public boolean isEmpty()
-    {
+    public boolean isEmpty() {
         return empty;
     }
 
     /**
      * return whatever was following the tag.
-     * <p>
+     * <p/>
      * Note: tagged objects are generally context dependent if you're
      * trying to extract a tagged object you should be going via the
      * appropriate getInstance method.
      */
-    public DERObject getObject()
-    {
-        if (obj != null)
-        {
+    public DERObject getObject() {
+        if (obj != null) {
             return obj.getDERObject();
         }
 
@@ -174,32 +150,28 @@ public abstract class ASN1TaggedObject
      * associated with it, the base object is returned.
      */
     public DEREncodable getObjectParser(
-        int     tag,
-        boolean isExplicit)
-    {
-        switch (tag)
-        {
-        case DERTags.SET:
-            return ASN1Set.getInstance(this, isExplicit).parser();
-        case DERTags.SEQUENCE:
-            return ASN1Sequence.getInstance(this, isExplicit).parser();
-        case DERTags.OCTET_STRING:
-            return ASN1OctetString.getInstance(this, isExplicit).parser();
+        int tag,
+        boolean isExplicit) {
+        switch (tag) {
+            case DERTags.SET:
+                return ASN1Set.getInstance(this, isExplicit).parser();
+            case DERTags.SEQUENCE:
+                return ASN1Sequence.getInstance(this, isExplicit).parser();
+            case DERTags.OCTET_STRING:
+                return ASN1OctetString.getInstance(this, isExplicit).parser();
         }
 
-        if (isExplicit)
-        {
+        if (isExplicit) {
             return getObject();
         }
 
         throw new RuntimeException("implicit tagging not implemented for tag: " + tag);
     }
 
-    abstract void encode(DEROutputStream  out)
+    abstract void encode(DEROutputStream out)
         throws IOException;
 
-    public String toString()
-    {
+    public String toString() {
         return "[" + tagNo + "]" + obj;
     }
 }

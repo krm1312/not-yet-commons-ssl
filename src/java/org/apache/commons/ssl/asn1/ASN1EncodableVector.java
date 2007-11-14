@@ -1,14 +1,10 @@
 package org.apache.commons.ssl.asn1;
 
-/**
- * the parent class for this will eventually disappear. Use this one!
- */
+/** the parent class for this will eventually disappear. Use this one! */
 public class ASN1EncodableVector
-    extends DEREncodableVector
-{
+    extends DEREncodableVector {
     // migrating from DEREncodeableVector
-    public ASN1EncodableVector()
-    {
-        
+    public ASN1EncodableVector() {
+
     }
 }

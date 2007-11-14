@@ -3,27 +3,21 @@ package org.apache.commons.ssl.asn1;
 import java.io.IOException;
 
 public class DEROctetString
-    extends ASN1OctetString
-{
-    /**
-     * @param string the octets making up the octet string.
-     */
+    extends ASN1OctetString {
+    /** @param string the octets making up the octet string. */
     public DEROctetString(
-        byte[]  string)
-    {
+        byte[] string) {
         super(string);
     }
 
     public DEROctetString(
-        DEREncodable  obj)
-    {
+        DEREncodable obj) {
         super(obj);
     }
 
     void encode(
         DEROutputStream out)
-        throws IOException
-    {
+        throws IOException {
         out.writeEncoded(OCTET_STRING, string);
     }
 }

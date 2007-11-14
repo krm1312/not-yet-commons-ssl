@@ -52,37 +52,36 @@ import org.apache.log4j.Logger;
  * @author <a href="mailto:juliusdavies@cucbc.com">juliusdavies@cucbc.com</a>
  * @since 3-Aug-2006
  */
-final class LogHelper
-{
-	private final Logger l;
+final class LogHelper {
+    private final Logger l;
 
-	LogHelper( Class c ) { l = Logger.getLogger( c ); }
+    LogHelper(Class c) { l = Logger.getLogger(c); }
 
-	LogHelper( String s ) { l = Logger.getLogger( s ); }
+    LogHelper(String s) { l = Logger.getLogger(s); }
 
-	void debug( Object o ) { l.debug( o ); }
+    void debug(Object o) { l.debug(o); }
 
-	void debug( Object o, Throwable t ) { l.debug( o, t ); }
+    void debug(Object o, Throwable t) { l.debug(o, t); }
 
-	void info( Object o ) { l.info( o ); }
+    void info(Object o) { l.info(o); }
 
-	void info( Object o, Throwable t ) { l.info( o, t ); }
+    void info(Object o, Throwable t) { l.info(o, t); }
 
-	void warn( Object o ) { l.warn( o ); }
+    void warn(Object o) { l.warn(o); }
 
-	void warn( Object o, Throwable t ) { l.warn( o, t ); }
+    void warn(Object o, Throwable t) { l.warn(o, t); }
 
-	void error( Object o ) { l.error( o ); }
+    void error(Object o) { l.error(o); }
 
-	void error( Object o, Throwable t ) { l.error( o, t ); }
+    void error(Object o, Throwable t) { l.error(o, t); }
 
-	void fatal( Object o ) { l.fatal( o ); }
+    void fatal(Object o) { l.fatal(o); }
 
-	void fatal( Object o, Throwable t ) { l.fatal( o, t ); }
+    void fatal(Object o, Throwable t) { l.fatal(o, t); }
 
-	boolean isDebugEnabled() { return l.isDebugEnabled(); }
+    boolean isDebugEnabled() { return l.isDebugEnabled(); }
 
-	boolean isInfoEnabled() { return l.isInfoEnabled(); }
+    boolean isInfoEnabled() { return l.isInfoEnabled(); }
 
-	Object getLog4jLogger() { return l; }
+    Object getLog4jLogger() { return l; }
 }

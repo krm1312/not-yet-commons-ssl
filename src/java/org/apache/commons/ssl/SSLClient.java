@@ -52,206 +52,182 @@ import java.util.List;
  * @author <a href="mailto:juliusdavies@cucbc.com">juliusdavies@cucbc.com</a>
  * @since 27-Feb-2006
  */
-public class SSLClient extends SSLSocketFactory
-{
-	private final SSL ssl;
+public class SSLClient extends SSLSocketFactory {
+    private final SSL ssl;
 
-	public SSLClient()
-			throws GeneralSecurityException, IOException
-	{
-		this.ssl = new SSL();
-	}
+    public SSLClient()
+        throws GeneralSecurityException, IOException {
+        this.ssl = new SSL();
+    }
 
-	public void addTrustMaterial( TrustChain trustChain )
-			throws NoSuchAlgorithmException, KeyStoreException,
-			       KeyManagementException, IOException, CertificateException
-	{
-		ssl.addTrustMaterial( trustChain );
-	}
+    public void addTrustMaterial(TrustChain trustChain)
+        throws NoSuchAlgorithmException, KeyStoreException,
+        KeyManagementException, IOException, CertificateException {
+        ssl.addTrustMaterial(trustChain);
+    }
 
-	public void setTrustMaterial( TrustChain trustChain )
-			throws NoSuchAlgorithmException, KeyStoreException,
-			       KeyManagementException, IOException, CertificateException
-	{
-		ssl.setTrustMaterial( trustChain );
-	}
+    public void setTrustMaterial(TrustChain trustChain)
+        throws NoSuchAlgorithmException, KeyStoreException,
+        KeyManagementException, IOException, CertificateException {
+        ssl.setTrustMaterial(trustChain);
+    }
 
-	public void setKeyMaterial( KeyMaterial keyMaterial )
-			throws NoSuchAlgorithmException, KeyStoreException,
-			       KeyManagementException, IOException, CertificateException
-	{
-		ssl.setKeyMaterial( keyMaterial );
-	}
+    public void setKeyMaterial(KeyMaterial keyMaterial)
+        throws NoSuchAlgorithmException, KeyStoreException,
+        KeyManagementException, IOException, CertificateException {
+        ssl.setKeyMaterial(keyMaterial);
+    }
 
-	public void addAllowedName( String s ) { ssl.addAllowedName( s ); }
+    public void addAllowedName(String s) { ssl.addAllowedName(s); }
 
-	public void addAllowedNames( Collection c ) { ssl.addAllowedNames( c ); }
+    public void addAllowedNames(Collection c) { ssl.addAllowedNames(c); }
 
-	public void clearAllowedNames() { ssl.clearAllowedNames(); }
+    public void clearAllowedNames() { ssl.clearAllowedNames(); }
 
-	public void setCheckCRL( boolean b ) { ssl.setCheckCRL( b ); }
+    public void setCheckCRL(boolean b) { ssl.setCheckCRL(b); }
 
-	public void setCheckExpiry( boolean b ) { ssl.setCheckExpiry( b ); }
+    public void setCheckExpiry(boolean b) { ssl.setCheckExpiry(b); }
 
-	public void setCheckHostname( boolean b ) { ssl.setCheckHostname( b ); }
+    public void setCheckHostname(boolean b) { ssl.setCheckHostname(b); }
 
-	public void setConnectTimeout( int i ) { ssl.setConnectTimeout( i ); }
+    public void setConnectTimeout(int i) { ssl.setConnectTimeout(i); }
 
-	public void setDefaultProtocol( String s ) { ssl.setDefaultProtocol( s ); }
+    public void setDefaultProtocol(String s) { ssl.setDefaultProtocol(s); }
 
-	public void useDefaultJavaCiphers() { ssl.useDefaultJavaCiphers(); }
+    public void useDefaultJavaCiphers() { ssl.useDefaultJavaCiphers(); }
 
-	public void useStrongCiphers() { ssl.useStrongCiphers(); }
+    public void useStrongCiphers() { ssl.useStrongCiphers(); }
 
-	public void setEnabledCiphers( String[] ciphers )
-	{
-		ssl.setEnabledCiphers( ciphers );
-	}
+    public void setEnabledCiphers(String[] ciphers) {
+        ssl.setEnabledCiphers(ciphers);
+    }
 
-	public void setEnabledProtocols( String[] protocols )
-	{
-		ssl.setEnabledProtocols( protocols );
-	}
+    public void setEnabledProtocols(String[] protocols) {
+        ssl.setEnabledProtocols(protocols);
+    }
 
-	public void setHostnameVerifier( HostnameVerifier verifier )
-	{
-		ssl.setHostnameVerifier( verifier );
-	}
+    public void setHostnameVerifier(HostnameVerifier verifier) {
+        ssl.setHostnameVerifier(verifier);
+    }
 
-	public void setSoTimeout( int soTimeout ) { ssl.setSoTimeout( soTimeout ); }
+    public void setSoTimeout(int soTimeout) { ssl.setSoTimeout(soTimeout); }
 
-	public void setSSLWrapperFactory( SSLWrapperFactory wf )
-	{
-		ssl.setSSLWrapperFactory( wf );
-	}
+    public void setSSLWrapperFactory(SSLWrapperFactory wf) {
+        ssl.setSSLWrapperFactory(wf);
+    }
 
-	public void setNeedClientAuth( boolean b ) { ssl.setNeedClientAuth( b ); }
+    public void setNeedClientAuth(boolean b) { ssl.setNeedClientAuth(b); }
 
-	public void setWantClientAuth( boolean b ) { ssl.setWantClientAuth( b ); }
+    public void setWantClientAuth(boolean b) { ssl.setWantClientAuth(b); }
 
-	public void setUseClientMode( boolean b ) { ssl.setUseClientMode( b ); }
+    public void setUseClientMode(boolean b) { ssl.setUseClientMode(b); }
 
-	public List getAllowedNames() { return ssl.getAllowedNames(); }
+    public List getAllowedNames() { return ssl.getAllowedNames(); }
 
-	public X509Certificate[] getAssociatedCertificateChain()
-	{
-		return ssl.getAssociatedCertificateChain();
-	}
+    public X509Certificate[] getAssociatedCertificateChain() {
+        return ssl.getAssociatedCertificateChain();
+    }
 
-	public boolean getCheckCRL() { return ssl.getCheckCRL(); }
+    public boolean getCheckCRL() { return ssl.getCheckCRL(); }
 
-	public boolean getCheckExpiry() { return ssl.getCheckExpiry(); }
+    public boolean getCheckExpiry() { return ssl.getCheckExpiry(); }
 
-	public boolean getCheckHostname() { return ssl.getCheckHostname(); }
+    public boolean getCheckHostname() { return ssl.getCheckHostname(); }
 
-	public int getConnectTimeout() { return ssl.getConnectTimeout(); }
+    public int getConnectTimeout() { return ssl.getConnectTimeout(); }
 
-	public String getDefaultProtocol() { return ssl.getDefaultProtocol(); }
+    public String getDefaultProtocol() { return ssl.getDefaultProtocol(); }
 
-	public String[] getEnabledCiphers() { return ssl.getEnabledCiphers(); }
+    public String[] getEnabledCiphers() { return ssl.getEnabledCiphers(); }
 
-	public String[] getEnabledProtocols() { return ssl.getEnabledProtocols(); }
+    public String[] getEnabledProtocols() { return ssl.getEnabledProtocols(); }
 
-	public HostnameVerifier getHostnameVerifier()
-	{
-		return ssl.getHostnameVerifier();
-	}
+    public HostnameVerifier getHostnameVerifier() {
+        return ssl.getHostnameVerifier();
+    }
 
-	public int getSoTimeout() { return ssl.getSoTimeout(); }
+    public int getSoTimeout() { return ssl.getSoTimeout(); }
 
-	public SSLWrapperFactory getSSLWrapperFactory()
-	{
-		return ssl.getSSLWrapperFactory();
-	}
+    public SSLWrapperFactory getSSLWrapperFactory() {
+        return ssl.getSSLWrapperFactory();
+    }
 
-	public boolean getNeedClientAuth() { return ssl.getNeedClientAuth(); }
+    public boolean getNeedClientAuth() { return ssl.getNeedClientAuth(); }
 
-	public boolean getWantClientAuth() { return ssl.getWantClientAuth(); }
+    public boolean getWantClientAuth() { return ssl.getWantClientAuth(); }
 
-	public boolean getUseClientMode()
-	{ /* SSLClient's default is true. */
-		return ssl.getUseClientModeDefault() || ssl.getUseClientMode();
-	}
+    public boolean getUseClientMode() { /* SSLClient's default is true. */
+        return ssl.getUseClientModeDefault() || ssl.getUseClientMode();
+    }
 
-	public SSLContext getSSLContext() throws GeneralSecurityException, IOException
-	{
-		return ssl.getSSLContext();
-	}
+    public SSLContext getSSLContext() throws GeneralSecurityException, IOException {
+        return ssl.getSSLContext();
+    }
 
-	public TrustChain getTrustChain() { return ssl.getTrustChain(); }
+    public TrustChain getTrustChain() { return ssl.getTrustChain(); }
 
-	public X509Certificate[] getCurrentServerChain()
-	{
-		return ssl.getCurrentServerChain();
-	}
+    public X509Certificate[] getCurrentServerChain() {
+        return ssl.getCurrentServerChain();
+    }
 
-	public String[] getDefaultCipherSuites()
-	{
-		return ssl.getDefaultCipherSuites();
-	}
+    public String[] getDefaultCipherSuites() {
+        return ssl.getDefaultCipherSuites();
+    }
 
-	public String[] getSupportedCipherSuites()
-	{
-		return ssl.getSupportedCipherSuites();
-	}
+    public String[] getSupportedCipherSuites() {
+        return ssl.getSupportedCipherSuites();
+    }
 
-	public Socket createSocket() throws IOException
-	{
-		return ssl.createSocket();
-	}
+    public Socket createSocket() throws IOException {
+        return ssl.createSocket();
+    }
 
-	public Socket createSocket( String host, int port )
-			throws IOException
-	{
-		return createSocket( host, port, null, 0 );
-	}
+    public Socket createSocket(String host, int port)
+        throws IOException {
+        return createSocket(host, port, null, 0);
+    }
 
-	public Socket createSocket( InetAddress host, int port )
-			throws IOException
-	{
-		return createSocket( host.getHostName(), port );
-	}
+    public Socket createSocket(InetAddress host, int port)
+        throws IOException {
+        return createSocket(host.getHostName(), port);
+    }
 
-	public Socket createSocket( InetAddress host, int port,
-	                            InetAddress localHost, int localPort )
-			throws IOException
-	{
-		return createSocket( host.getHostName(), port, localHost, localPort );
-	}
+    public Socket createSocket(InetAddress host, int port,
+                               InetAddress localHost, int localPort)
+        throws IOException {
+        return createSocket(host.getHostName(), port, localHost, localPort);
+    }
 
-	public Socket createSocket( String host, int port,
-	                            InetAddress localHost, int localPort )
-			throws IOException
-	{
-		return createSocket( host, port, localHost, localPort, 0 );
-	}
+    public Socket createSocket(String host, int port,
+                               InetAddress localHost, int localPort)
+        throws IOException {
+        return createSocket(host, port, localHost, localPort, 0);
+    }
 
-	/**
-	 * Attempts to get a new socket connection to the given host within the
-	 * given time limit.
-	 *
-	 * @param host      the host name/IP
-	 * @param port      the port on the host
-	 * @param localHost the local host name/IP to bind the socket to
-	 * @param localPort the port on the local machine
-	 * @param timeout   the connection timeout (0==infinite)
-	 * @return Socket a new socket
-	 * @throws IOException          if an I/O error occurs while creating thesocket
-	 * @throws UnknownHostException if the IP address of the host cannot be
-	 *                              determined
-	 */
-	public Socket createSocket( String host, int port, InetAddress localHost,
-	                            int localPort, int timeout )
-			throws IOException
-	{
-		return ssl.createSocket( host, port, localHost, localPort, timeout );
-	}
+    /**
+     * Attempts to get a new socket connection to the given host within the
+     * given time limit.
+     *
+     * @param host      the host name/IP
+     * @param port      the port on the host
+     * @param localHost the local host name/IP to bind the socket to
+     * @param localPort the port on the local machine
+     * @param timeout   the connection timeout (0==infinite)
+     * @return Socket a new socket
+     * @throws IOException          if an I/O error occurs while creating thesocket
+     * @throws UnknownHostException if the IP address of the host cannot be
+     *                              determined
+     */
+    public Socket createSocket(String host, int port, InetAddress localHost,
+                               int localPort, int timeout)
+        throws IOException {
+        return ssl.createSocket(host, port, localHost, localPort, timeout);
+    }
 
-	public Socket createSocket( Socket s, String remoteHost, int remotePort,
-	                            boolean autoClose )
-			throws IOException
-	{
-		return ssl.createSocket( s, remoteHost, remotePort, autoClose );
-	}
+    public Socket createSocket(Socket s, String remoteHost, int remotePort,
+                               boolean autoClose)
+        throws IOException {
+        return ssl.createSocket(s, remoteHost, remotePort, autoClose);
+    }
 
 }

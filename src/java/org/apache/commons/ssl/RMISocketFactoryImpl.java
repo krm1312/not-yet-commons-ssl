@@ -50,7 +50,17 @@ import java.net.UnknownHostException;
 import java.rmi.server.RMISocketFactory;
 import java.security.GeneralSecurityException;
 import java.security.cert.X509Certificate;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.Map;
+import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeMap;
+import java.util.TreeSet;
 
 
 /**
@@ -89,570 +99,480 @@ import java.util.*;
  * @author <a href="mailto:juliusdavies@cucbc.com">juliusdavies@cucbc.com</a>
  * @since 22-Apr-2005
  */
-public class RMISocketFactoryImpl extends RMISocketFactory
-{
-	public final static String RMI_HOSTNAME_KEY = "java.rmi.server.hostname";
-	private final static LogWrapper log = LogWrapper.getLogger( RMISocketFactoryImpl.class );
+public class RMISocketFactoryImpl extends RMISocketFactory {
+    public final static String RMI_HOSTNAME_KEY = "java.rmi.server.hostname";
+    private final static LogWrapper log = LogWrapper.getLogger(RMISocketFactoryImpl.class);
 
-	private volatile SocketFactory defaultClient;
-	private volatile ServerSocketFactory sslServer;
-	private volatile String localBindAddress = null;
-	private volatile int anonymousPort = 31099;
-	private Map clientMap = new TreeMap();
-	private Map serverSockets = new HashMap();
-	private final SocketFactory plainClient = SocketFactory.getDefault();
+    private volatile SocketFactory defaultClient;
+    private volatile ServerSocketFactory sslServer;
+    private volatile String localBindAddress = null;
+    private volatile int anonymousPort = 31099;
+    private Map clientMap = new TreeMap();
+    private Map serverSockets = new HashMap();
+    private final SocketFactory plainClient = SocketFactory.getDefault();
 
-	public RMISocketFactoryImpl() throws GeneralSecurityException, IOException
-	{
-		this( true );
-	}
+    public RMISocketFactoryImpl() throws GeneralSecurityException, IOException {
+        this(true);
+    }
 
-	/**
-	 * @param createDefaultServer If false, then we only set the default
-	 *                            client, and the default server is set to null.
-	 *                            If true, then a default server is also created.
-	 * @throws GeneralSecurityException bad things
-	 * @throws IOException              bad things
-	 */
-	public RMISocketFactoryImpl( boolean createDefaultServer )
-			throws GeneralSecurityException, IOException
-	{
-		SSLServer defaultServer = createDefaultServer ? new SSLServer() : null;
-		SSLClient defaultClient = new SSLClient();
+    /**
+     * @param createDefaultServer If false, then we only set the default
+     *                            client, and the default server is set to null.
+     *                            If true, then a default server is also created.
+     * @throws GeneralSecurityException bad things
+     * @throws IOException              bad things
+     */
+    public RMISocketFactoryImpl(boolean createDefaultServer)
+        throws GeneralSecurityException, IOException {
+        SSLServer defaultServer = createDefaultServer ? new SSLServer() : null;
+        SSLClient defaultClient = new SSLClient();
 
-		// RMI calls to localhost will not check that host matches CN in
-		// certificate.  Hopefully this is acceptable.  (The registry server
-		// will followup the registry lookup with the proper DNS name to get
-		// the remote object, anyway).
-		HostnameVerifier verifier = HostnameVerifier.DEFAULT_AND_LOCALHOST;
-		defaultClient.setHostnameVerifier( verifier );
-		if ( defaultServer != null )
-		{
-			defaultServer.setHostnameVerifier( verifier );
-			// The RMI server will try to re-use Tomcat's "port 8443" SSL
-			// Certificate if possible.
-			defaultServer.useTomcatSSLMaterial();
-			X509Certificate[] x509 = defaultServer.getAssociatedCertificateChain();
-			if ( x509 == null || x509.length < 1 )
-			{
-				throw new SSLException( "Cannot initialize RMI-SSL Server: no KeyMaterial!" );
-			}
-			setServer( defaultServer );
-		}
-		setDefaultClient( defaultClient );
-	}
+        // RMI calls to localhost will not check that host matches CN in
+        // certificate.  Hopefully this is acceptable.  (The registry server
+        // will followup the registry lookup with the proper DNS name to get
+        // the remote object, anyway).
+        HostnameVerifier verifier = HostnameVerifier.DEFAULT_AND_LOCALHOST;
+        defaultClient.setHostnameVerifier(verifier);
+        if (defaultServer != null) {
+            defaultServer.setHostnameVerifier(verifier);
+            // The RMI server will try to re-use Tomcat's "port 8443" SSL
+            // Certificate if possible.
+            defaultServer.useTomcatSSLMaterial();
+            X509Certificate[] x509 = defaultServer.getAssociatedCertificateChain();
+            if (x509 == null || x509.length < 1) {
+                throw new SSLException("Cannot initialize RMI-SSL Server: no KeyMaterial!");
+            }
+            setServer(defaultServer);
+        }
+        setDefaultClient(defaultClient);
+    }
 
-	public void setServer( ServerSocketFactory f )
-			throws GeneralSecurityException, IOException
-	{
-		this.sslServer = f;
-		if ( f instanceof SSLServer )
-		{
-			final HostnameVerifier VERIFIER;
-			VERIFIER = HostnameVerifier.DEFAULT_AND_LOCALHOST;
+    public void setServer(ServerSocketFactory f)
+        throws GeneralSecurityException, IOException {
+        this.sslServer = f;
+        if (f instanceof SSLServer) {
+            final HostnameVerifier VERIFIER;
+            VERIFIER = HostnameVerifier.DEFAULT_AND_LOCALHOST;
 
-			final SSLServer ssl = (SSLServer) f;
-			final X509Certificate[] chain = ssl.getAssociatedCertificateChain();
-			String[] cns = Certificates.getCNs( chain[ 0 ] );
-			String[] subjectAlts = Certificates.getDNSSubjectAlts( chain[ 0 ] );
-			LinkedList names = new LinkedList();
-			if ( cns != null && cns.length > 0 )
-			{
-				// Only first CN is used.  Not going to get into the IE6 nonsense
-				// where all CN values are used.
-				names.add( cns[ 0 ] );
-			}
-			if ( subjectAlts != null && subjectAlts.length > 0 )
-			{
-				names.addAll( Arrays.asList( subjectAlts ) );
-			}
+            final SSLServer ssl = (SSLServer) f;
+            final X509Certificate[] chain = ssl.getAssociatedCertificateChain();
+            String[] cns = Certificates.getCNs(chain[0]);
+            String[] subjectAlts = Certificates.getDNSSubjectAlts(chain[0]);
+            LinkedList names = new LinkedList();
+            if (cns != null && cns.length > 0) {
+                // Only first CN is used.  Not going to get into the IE6 nonsense
+                // where all CN values are used.
+                names.add(cns[0]);
+            }
+            if (subjectAlts != null && subjectAlts.length > 0) {
+                names.addAll(Arrays.asList(subjectAlts));
+            }
 
-			String rmiHostName = System.getProperty( RMI_HOSTNAME_KEY );
-			// If "java.rmi.server.hostname" is already set, don't mess with it.
-			// But blowup if it's not going to work with our SSL Server
-			// Certificate!
-			if ( rmiHostName != null )
-			{
-				try
-				{
-					VERIFIER.check( rmiHostName, cns, subjectAlts );
-				}
-				catch ( SSLException ssle )
-				{
-					String s = ssle.toString();
-					throw new SSLException( RMI_HOSTNAME_KEY + " of " + rmiHostName + " conflicts with SSL Server Certificate: " + s );
-				}
-			}
-			else
-			{
-				// If SSL Cert only contains one non-wild name, just use that and
-				// hope for the best.
-				boolean hopingForBest = false;
-				if ( names.size() == 1 )
-				{
-					String name = (String) names.get( 0 );
-					if ( !name.startsWith( "*" ) )
-					{
-						System.setProperty( RMI_HOSTNAME_KEY, name );
-						log.warn( "commons-ssl '" + RMI_HOSTNAME_KEY + "' set to '" + name + "' as found in my SSL Server Certificate." );
-						hopingForBest = true;
-					}
-				}
-				if ( !hopingForBest )
-				{
-					// Help me, Obi-Wan Kenobi; you're my only hope.  All we can
-					// do now is grab our internet-facing addresses, reverse-lookup
-					// on them, and hope that one of them validates against our
-					// server cert.
-					Set s = getMyInternetFacingIPs();
-					Iterator it = s.iterator();
-					while ( it.hasNext() )
-					{
-						String name = (String) it.next();
-						try
-						{
-							VERIFIER.check( name, cns, subjectAlts );
-							System.setProperty( RMI_HOSTNAME_KEY, name );
-							log.warn( "commons-ssl '" + RMI_HOSTNAME_KEY + "' set to '" + name + "' as found by reverse-dns against my own IP." );
-							hopingForBest = true;
-							break;
-						}
-						catch ( SSLException ssle )
-						{
-							// next!
-						}
-					}
-				}
-				if ( !hopingForBest )
-				{
-					throw new SSLException( "'" + RMI_HOSTNAME_KEY + "' not present.  Must work with my SSL Server Certificate's CN field: " + names );
-				}
-			}
-		}
-		trustOurself();
-	}
+            String rmiHostName = System.getProperty(RMI_HOSTNAME_KEY);
+            // If "java.rmi.server.hostname" is already set, don't mess with it.
+            // But blowup if it's not going to work with our SSL Server
+            // Certificate!
+            if (rmiHostName != null) {
+                try {
+                    VERIFIER.check(rmiHostName, cns, subjectAlts);
+                }
+                catch (SSLException ssle) {
+                    String s = ssle.toString();
+                    throw new SSLException(RMI_HOSTNAME_KEY + " of " + rmiHostName + " conflicts with SSL Server Certificate: " + s);
+                }
+            } else {
+                // If SSL Cert only contains one non-wild name, just use that and
+                // hope for the best.
+                boolean hopingForBest = false;
+                if (names.size() == 1) {
+                    String name = (String) names.get(0);
+                    if (!name.startsWith("*")) {
+                        System.setProperty(RMI_HOSTNAME_KEY, name);
+                        log.warn("commons-ssl '" + RMI_HOSTNAME_KEY + "' set to '" + name + "' as found in my SSL Server Certificate.");
+                        hopingForBest = true;
+                    }
+                }
+                if (!hopingForBest) {
+                    // Help me, Obi-Wan Kenobi; you're my only hope.  All we can
+                    // do now is grab our internet-facing addresses, reverse-lookup
+                    // on them, and hope that one of them validates against our
+                    // server cert.
+                    Set s = getMyInternetFacingIPs();
+                    Iterator it = s.iterator();
+                    while (it.hasNext()) {
+                        String name = (String) it.next();
+                        try {
+                            VERIFIER.check(name, cns, subjectAlts);
+                            System.setProperty(RMI_HOSTNAME_KEY, name);
+                            log.warn("commons-ssl '" + RMI_HOSTNAME_KEY + "' set to '" + name + "' as found by reverse-dns against my own IP.");
+                            hopingForBest = true;
+                            break;
+                        }
+                        catch (SSLException ssle) {
+                            // next!
+                        }
+                    }
+                }
+                if (!hopingForBest) {
+                    throw new SSLException("'" + RMI_HOSTNAME_KEY + "' not present.  Must work with my SSL Server Certificate's CN field: " + names);
+                }
+            }
+        }
+        trustOurself();
+    }
 
-	public void setLocalBindAddress( String localBindAddress )
-	{
-		this.localBindAddress = localBindAddress;
-	}
+    public void setLocalBindAddress(String localBindAddress) {
+        this.localBindAddress = localBindAddress;
+    }
 
-	public void setAnonymousPort( int port )
-	{
-		this.anonymousPort = port;
-	}
+    public void setAnonymousPort(int port) {
+        this.anonymousPort = port;
+    }
 
-	public void setDefaultClient( SocketFactory f )
-			throws GeneralSecurityException, IOException
-	{
-		this.defaultClient = f;
-		trustOurself();
-	}
+    public void setDefaultClient(SocketFactory f)
+        throws GeneralSecurityException, IOException {
+        this.defaultClient = f;
+        trustOurself();
+    }
 
-	public void setClient( String host, SocketFactory f )
-			throws GeneralSecurityException, IOException
-	{
-		if ( f != null && sslServer != null )
-		{
-			boolean clientIsCommonsSSL = f instanceof SSLClient;
-			boolean serverIsCommonsSSL = sslServer instanceof SSLServer;
-			if ( clientIsCommonsSSL && serverIsCommonsSSL )
-			{
-				SSLClient c = (SSLClient) f;
-				SSLServer s = (SSLServer) sslServer;
-				trustEachOther( c, s );
-			}
-		}
-		Set names = hostnamePossibilities( host );
-		Iterator it = names.iterator();
-		synchronized( this )
-		{
-			while ( it.hasNext() )
-			{
-				clientMap.put( it.next(), f );
-			}
-		}
-	}
+    public void setClient(String host, SocketFactory f)
+        throws GeneralSecurityException, IOException {
+        if (f != null && sslServer != null) {
+            boolean clientIsCommonsSSL = f instanceof SSLClient;
+            boolean serverIsCommonsSSL = sslServer instanceof SSLServer;
+            if (clientIsCommonsSSL && serverIsCommonsSSL) {
+                SSLClient c = (SSLClient) f;
+                SSLServer s = (SSLServer) sslServer;
+                trustEachOther(c, s);
+            }
+        }
+        Set names = hostnamePossibilities(host);
+        Iterator it = names.iterator();
+        synchronized (this) {
+            while (it.hasNext()) {
+                clientMap.put(it.next(), f);
+            }
+        }
+    }
 
-	public void removeClient( String host )
-	{
-		Set names = hostnamePossibilities( host );
-		Iterator it = names.iterator();
-		synchronized( this )
-		{
-			while ( it.hasNext() )
-			{
-				clientMap.remove( it.next() );
-			}
-		}
-	}
+    public void removeClient(String host) {
+        Set names = hostnamePossibilities(host);
+        Iterator it = names.iterator();
+        synchronized (this) {
+            while (it.hasNext()) {
+                clientMap.remove(it.next());
+            }
+        }
+    }
 
-	public synchronized void removeClient( SocketFactory sf )
-	{
-		Iterator it = clientMap.entrySet().iterator();
-		while ( it.hasNext() )
-		{
-			Map.Entry entry = (Map.Entry) it.next();
-			Object o = entry.getValue();
-			if ( sf.equals( o ) )
-			{
-				it.remove();
-			}
-		}
-	}
+    public synchronized void removeClient(SocketFactory sf) {
+        Iterator it = clientMap.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry entry = (Map.Entry) it.next();
+            Object o = entry.getValue();
+            if (sf.equals(o)) {
+                it.remove();
+            }
+        }
+    }
 
-	private Set hostnamePossibilities( String host )
-	{
-		host = host != null ? host.toLowerCase().trim() : "";
-		if ( "".equals( host ) )
-		{
-			return Collections.EMPTY_SET;
-		}
-		TreeSet names = new TreeSet();
-		names.add( host );
-		InetAddress[] addresses;
-		try
-		{
-			// If they gave us "hostname.com", this will give us the various
-			// IP addresses:
-			addresses = InetAddress.getAllByName( host );
-			for ( int i = 0; i < addresses.length; i++ )
-			{
-				String name1 = addresses[ i ].getHostName();
-				String name2 = addresses[ i ].getHostAddress();
-				names.add( name1.trim().toLowerCase() );
-				names.add( name2.trim().toLowerCase() );
-			}
-		}
-		catch ( UnknownHostException uhe )
-		{
-			/* oh well, nothing found, nothing to add for this client */
-		}
+    private Set hostnamePossibilities(String host) {
+        host = host != null ? host.toLowerCase().trim() : "";
+        if ("".equals(host)) {
+            return Collections.EMPTY_SET;
+        }
+        TreeSet names = new TreeSet();
+        names.add(host);
+        InetAddress[] addresses;
+        try {
+            // If they gave us "hostname.com", this will give us the various
+            // IP addresses:
+            addresses = InetAddress.getAllByName(host);
+            for (int i = 0; i < addresses.length; i++) {
+                String name1 = addresses[i].getHostName();
+                String name2 = addresses[i].getHostAddress();
+                names.add(name1.trim().toLowerCase());
+                names.add(name2.trim().toLowerCase());
+            }
+        }
+        catch (UnknownHostException uhe) {
+            /* oh well, nothing found, nothing to add for this client */
+        }
 
-		try
-		{
-			host = InetAddress.getByName( host ).getHostAddress();
+        try {
+            host = InetAddress.getByName(host).getHostAddress();
 
-			// If they gave us "1.2.3.4", this will hopefully give us
-			// "hostname.com" so that we can then try and find any other
-			// IP addresses associated with that name.
-			host = InetAddress.getByName( host ).getHostName();
-			names.add( host.trim().toLowerCase() );
-			addresses = InetAddress.getAllByName( host );
-			for ( int i = 0; i < addresses.length; i++ )
-			{
-				String name1 = addresses[ i ].getHostName();
-				String name2 = addresses[ i ].getHostAddress();
-				names.add( name1.trim().toLowerCase() );
-				names.add( name2.trim().toLowerCase() );
-			}
-		}
-		catch ( UnknownHostException uhe )
-		{
-			/* oh well, nothing found, nothing to add for this client */
-		}
-		return names;
-	}
+            // If they gave us "1.2.3.4", this will hopefully give us
+            // "hostname.com" so that we can then try and find any other
+            // IP addresses associated with that name.
+            host = InetAddress.getByName(host).getHostName();
+            names.add(host.trim().toLowerCase());
+            addresses = InetAddress.getAllByName(host);
+            for (int i = 0; i < addresses.length; i++) {
+                String name1 = addresses[i].getHostName();
+                String name2 = addresses[i].getHostAddress();
+                names.add(name1.trim().toLowerCase());
+                names.add(name2.trim().toLowerCase());
+            }
+        }
+        catch (UnknownHostException uhe) {
+            /* oh well, nothing found, nothing to add for this client */
+        }
+        return names;
+    }
 
-	private void trustOurself()
-			throws GeneralSecurityException, IOException
-	{
-		if ( defaultClient == null || sslServer == null )
-		{
-			return;
-		}
-		boolean clientIsCommonsSSL = defaultClient instanceof SSLClient;
-		boolean serverIsCommonsSSL = sslServer instanceof SSLServer;
-		if ( clientIsCommonsSSL && serverIsCommonsSSL )
-		{
-			SSLClient c = (SSLClient) defaultClient;
-			SSLServer s = (SSLServer) sslServer;
-			trustEachOther( c, s );
-		}
-	}
+    private void trustOurself()
+        throws GeneralSecurityException, IOException {
+        if (defaultClient == null || sslServer == null) {
+            return;
+        }
+        boolean clientIsCommonsSSL = defaultClient instanceof SSLClient;
+        boolean serverIsCommonsSSL = sslServer instanceof SSLServer;
+        if (clientIsCommonsSSL && serverIsCommonsSSL) {
+            SSLClient c = (SSLClient) defaultClient;
+            SSLServer s = (SSLServer) sslServer;
+            trustEachOther(c, s);
+        }
+    }
 
-	private void trustEachOther( SSLClient client, SSLServer server )
-			throws GeneralSecurityException, IOException
-	{
-		if ( client != null && server != null )
-		{
-			// Our own client should trust our own server.
-			X509Certificate[] certs = server.getAssociatedCertificateChain();
-			if ( certs != null && certs[ 0 ] != null )
-			{
-				TrustMaterial tm = new TrustMaterial( certs[ 0 ] );
-				client.addTrustMaterial( tm );
-			}
+    private void trustEachOther(SSLClient client, SSLServer server)
+        throws GeneralSecurityException, IOException {
+        if (client != null && server != null) {
+            // Our own client should trust our own server.
+            X509Certificate[] certs = server.getAssociatedCertificateChain();
+            if (certs != null && certs[0] != null) {
+                TrustMaterial tm = new TrustMaterial(certs[0]);
+                client.addTrustMaterial(tm);
+            }
 
-			// Our own server should trust our own client.
-			certs = client.getAssociatedCertificateChain();
-			if ( certs != null && certs[ 0 ] != null )
-			{
-				TrustMaterial tm = new TrustMaterial( certs[ 0 ] );
-				server.addTrustMaterial( tm );
-			}
-		}
-	}
+            // Our own server should trust our own client.
+            certs = client.getAssociatedCertificateChain();
+            if (certs != null && certs[0] != null) {
+                TrustMaterial tm = new TrustMaterial(certs[0]);
+                server.addTrustMaterial(tm);
+            }
+        }
+    }
 
-	public ServerSocketFactory getServer() { return sslServer; }
+    public ServerSocketFactory getServer() { return sslServer; }
 
-	public SocketFactory getDefaultClient() { return defaultClient; }
+    public SocketFactory getDefaultClient() { return defaultClient; }
 
-	public synchronized SocketFactory getClient( String host )
-	{
-		host = host != null ? host.trim().toLowerCase() : "";
-		return (SocketFactory) clientMap.get( host );
-	}
+    public synchronized SocketFactory getClient(String host) {
+        host = host != null ? host.trim().toLowerCase() : "";
+        return (SocketFactory) clientMap.get(host);
+    }
 
-	public synchronized ServerSocket createServerSocket( int port )
-			throws IOException
-	{
-		// Re-use existing ServerSocket if possible.
-		if ( port == 0 )
-		{
-			port = anonymousPort;
-		}
-		Integer key = new Integer( port );
-		ServerSocket ss = (ServerSocket) serverSockets.get( key );
-		if ( ss == null || ss.isClosed() )
-		{
-			if ( ss != null && ss.isClosed() )
-			{
-				System.out.println( "found closed server on port: " + port );
-			}
-			log.debug( "commons-ssl RMI server-socket: listening on port " + port );
-			ss = sslServer.createServerSocket( port );
-			serverSockets.put( key, ss );
-		}
-		return ss;
-	}
+    public synchronized ServerSocket createServerSocket(int port)
+        throws IOException {
+        // Re-use existing ServerSocket if possible.
+        if (port == 0) {
+            port = anonymousPort;
+        }
+        Integer key = new Integer(port);
+        ServerSocket ss = (ServerSocket) serverSockets.get(key);
+        if (ss == null || ss.isClosed()) {
+            if (ss != null && ss.isClosed()) {
+                System.out.println("found closed server on port: " + port);
+            }
+            log.debug("commons-ssl RMI server-socket: listening on port " + port);
+            ss = sslServer.createServerSocket(port);
+            serverSockets.put(key, ss);
+        }
+        return ss;
+    }
 
-	public Socket createSocket( String host, int port )
-			throws IOException
-	{
-		host = host != null ? host.trim().toLowerCase() : "";
-		InetAddress local = null;
-		String bindAddress = localBindAddress;
-		if ( bindAddress == null )
-		{
-			bindAddress = System.getProperty( RMI_HOSTNAME_KEY );
-			if ( bindAddress != null )
-			{
-				local = InetAddress.getByName( bindAddress );
-				if ( !local.isLoopbackAddress() )
-				{
-					String ip = local.getHostAddress();
-					Set myInternetIps = getMyInternetFacingIPs();
-					if ( !myInternetIps.contains( ip ) )
-					{
-						log.warn( "Cannot bind to " + ip + " since it doesn't exist on this machine." );
-						// Not going to be able to bind as this.  Our RMI_HOSTNAME_KEY
-						// must be set to some kind of proxy in front of us.  So we
-						// still want to use it, but we can't bind to it.
-						local = null;
-						bindAddress = null;
-					}
-				}
-			}
-		}
-		if ( bindAddress == null )
-		{
-			// Our last resort - let's make sure we at least use something that's
-			// internet facing!
-			bindAddress = getMyDefaultIP();
-		}
-		if ( local == null && bindAddress != null )
-		{
-			local = InetAddress.getByName( bindAddress );
-			localBindAddress = local.getHostName();
-		}
+    public Socket createSocket(String host, int port)
+        throws IOException {
+        host = host != null ? host.trim().toLowerCase() : "";
+        InetAddress local = null;
+        String bindAddress = localBindAddress;
+        if (bindAddress == null) {
+            bindAddress = System.getProperty(RMI_HOSTNAME_KEY);
+            if (bindAddress != null) {
+                local = InetAddress.getByName(bindAddress);
+                if (!local.isLoopbackAddress()) {
+                    String ip = local.getHostAddress();
+                    Set myInternetIps = getMyInternetFacingIPs();
+                    if (!myInternetIps.contains(ip)) {
+                        log.warn("Cannot bind to " + ip + " since it doesn't exist on this machine.");
+                        // Not going to be able to bind as this.  Our RMI_HOSTNAME_KEY
+                        // must be set to some kind of proxy in front of us.  So we
+                        // still want to use it, but we can't bind to it.
+                        local = null;
+                        bindAddress = null;
+                    }
+                }
+            }
+        }
+        if (bindAddress == null) {
+            // Our last resort - let's make sure we at least use something that's
+            // internet facing!
+            bindAddress = getMyDefaultIP();
+        }
+        if (local == null && bindAddress != null) {
+            local = InetAddress.getByName(bindAddress);
+            localBindAddress = local.getHostName();
+        }
 
-		SocketFactory sf;
-		synchronized( this )
-		{
-			sf = (SocketFactory) clientMap.get( host );
-		}
-		if ( sf == null )
-		{
-			sf = defaultClient;
-		}
+        SocketFactory sf;
+        synchronized (this) {
+            sf = (SocketFactory) clientMap.get(host);
+        }
+        if (sf == null) {
+            sf = defaultClient;
+        }
 
-		Socket s = null;
-		SSLSocket ssl = null;
-		int soTimeout = Integer.MIN_VALUE;
-		IOException reasonForPlainSocket = null;
-		boolean tryPlain = false;
-		try
-		{
-			s = sf.createSocket( host, port, local, 0 );
-			soTimeout = s.getSoTimeout();
-			if ( !( s instanceof SSLSocket ) )
-			{
-				// Someone called setClient() or setDefaultClient() and passed in
-				// a plain socket factory.  Okay, nothing to see, move along.
-				return s;
-			}
-			else
-			{
-				ssl = (SSLSocket) s;
-			}
+        Socket s = null;
+        SSLSocket ssl = null;
+        int soTimeout = Integer.MIN_VALUE;
+        IOException reasonForPlainSocket = null;
+        boolean tryPlain = false;
+        try {
+            s = sf.createSocket(host, port, local, 0);
+            soTimeout = s.getSoTimeout();
+            if (!(s instanceof SSLSocket)) {
+                // Someone called setClient() or setDefaultClient() and passed in
+                // a plain socket factory.  Okay, nothing to see, move along.
+                return s;
+            } else {
+                ssl = (SSLSocket) s;
+            }
 
-			// If we don't get the peer certs in 15 seconds, revert to plain
-			// socket.
-			ssl.setSoTimeout( 15000 );
-			ssl.getSession().getPeerCertificates();
+            // If we don't get the peer certs in 15 seconds, revert to plain
+            // socket.
+            ssl.setSoTimeout(15000);
+            ssl.getSession().getPeerCertificates();
 
-			// Everything worked out okay, so go back to original soTimeout.
-			ssl.setSoTimeout( soTimeout );
-			return ssl;
-		}
-		catch ( IOException ioe )
-		{
-			// SSL didn't work.  Let's analyze the IOException to see if maybe
-			// we're accidentally attempting to talk to a plain-socket RMI
-			// server.
-			Throwable t = ioe;
-			while ( !tryPlain && t != null )
-			{
-				tryPlain = tryPlain || t instanceof EOFException;
-				tryPlain = tryPlain || t instanceof InterruptedIOException;
-				tryPlain = tryPlain || t instanceof SSLProtocolException;
-				t = t.getCause();
-			}
-			if ( !tryPlain && ioe instanceof SSLPeerUnverifiedException )
-			{
-				try
-				{
-					if ( ssl != null )
-					{
-						ssl.startHandshake();
-					}
-				}
-				catch ( IOException ioe2 )
-				{
-					// Stacktrace from startHandshake() will be more descriptive
-					// then the one we got from getPeerCertificates().
-					ioe = ioe2;
-					t = ioe2;
-					while ( !tryPlain && t != null )
-					{
-						tryPlain = tryPlain || t instanceof EOFException;
-						tryPlain = tryPlain || t instanceof InterruptedIOException;
-						tryPlain = tryPlain || t instanceof SSLProtocolException;
-						t = t.getCause();
-					}
-				}
-			}
-			if ( !tryPlain )
-			{
-				log.debug( "commons-ssl RMI-SSL failed: " + ioe );
-				throw ioe;
-			}
-			else
-			{
-				reasonForPlainSocket = ioe;
-			}
-		}
-		finally
-		{
-			// Some debug logging:
-			boolean isPlain = tryPlain || ( s != null && ssl == null );
-			String socket = isPlain ? "RMI plain-socket " : "RMI ssl-socket ";
-			String localIP = local != null ? local.getHostAddress() : "ANY";
-			StringBuffer buf = new StringBuffer( 64 );
-			buf.append( socket );
-			buf.append( localIP );
-			buf.append( " --> " );
-			buf.append( host );
-			buf.append( ":" );
-			buf.append( port );
-			log.debug( buf.toString() );
-		}
+            // Everything worked out okay, so go back to original soTimeout.
+            ssl.setSoTimeout(soTimeout);
+            return ssl;
+        }
+        catch (IOException ioe) {
+            // SSL didn't work.  Let's analyze the IOException to see if maybe
+            // we're accidentally attempting to talk to a plain-socket RMI
+            // server.
+            Throwable t = ioe;
+            while (!tryPlain && t != null) {
+                tryPlain = tryPlain || t instanceof EOFException;
+                tryPlain = tryPlain || t instanceof InterruptedIOException;
+                tryPlain = tryPlain || t instanceof SSLProtocolException;
+                t = t.getCause();
+            }
+            if (!tryPlain && ioe instanceof SSLPeerUnverifiedException) {
+                try {
+                    if (ssl != null) {
+                        ssl.startHandshake();
+                    }
+                }
+                catch (IOException ioe2) {
+                    // Stacktrace from startHandshake() will be more descriptive
+                    // then the one we got from getPeerCertificates().
+                    ioe = ioe2;
+                    t = ioe2;
+                    while (!tryPlain && t != null) {
+                        tryPlain = tryPlain || t instanceof EOFException;
+                        tryPlain = tryPlain || t instanceof InterruptedIOException;
+                        tryPlain = tryPlain || t instanceof SSLProtocolException;
+                        t = t.getCause();
+                    }
+                }
+            }
+            if (!tryPlain) {
+                log.debug("commons-ssl RMI-SSL failed: " + ioe);
+                throw ioe;
+            } else {
+                reasonForPlainSocket = ioe;
+            }
+        }
+        finally {
+            // Some debug logging:
+            boolean isPlain = tryPlain || (s != null && ssl == null);
+            String socket = isPlain ? "RMI plain-socket " : "RMI ssl-socket ";
+            String localIP = local != null ? local.getHostAddress() : "ANY";
+            StringBuffer buf = new StringBuffer(64);
+            buf.append(socket);
+            buf.append(localIP);
+            buf.append(" --> ");
+            buf.append(host);
+            buf.append(":");
+            buf.append(port);
+            log.debug(buf.toString());
+        }
 
-		// SSL didn't work.  Remote server either timed out, or sent EOF, or
-		// there was some kind of SSLProtocolException.  (Any other problem
-		// would have caused an IOException to be thrown, so execution wouldn't
-		// have made it this far).  Maybe plain socket will work in these three
-		// cases.
-		sf = plainClient;
-		s = JavaImpl.connect( null, sf, host, port, local, 0, 15000 );
-		if ( soTimeout != Integer.MIN_VALUE )
-		{
-			s.setSoTimeout( soTimeout );
-		}
+        // SSL didn't work.  Remote server either timed out, or sent EOF, or
+        // there was some kind of SSLProtocolException.  (Any other problem
+        // would have caused an IOException to be thrown, so execution wouldn't
+        // have made it this far).  Maybe plain socket will work in these three
+        // cases.
+        sf = plainClient;
+        s = JavaImpl.connect(null, sf, host, port, local, 0, 15000);
+        if (soTimeout != Integer.MIN_VALUE) {
+            s.setSoTimeout(soTimeout);
+        }
 
-		try
-		{
-			// Plain socket worked!  Let's remember that for next time an RMI call
-			// against this host happens.
-			setClient( host, plainClient );
-			String msg = "RMI downgrading from SSL to plain-socket for " + host + " because of " + reasonForPlainSocket;
-			log.warn( msg, reasonForPlainSocket );
-		}
-		catch ( GeneralSecurityException gse )
-		{
-			throw new RuntimeException( "can't happen because we're using plain socket", gse );
-			// won't happen because we're using plain socket, not SSL.
-		}
+        try {
+            // Plain socket worked!  Let's remember that for next time an RMI call
+            // against this host happens.
+            setClient(host, plainClient);
+            String msg = "RMI downgrading from SSL to plain-socket for " + host + " because of " + reasonForPlainSocket;
+            log.warn(msg, reasonForPlainSocket);
+        }
+        catch (GeneralSecurityException gse) {
+            throw new RuntimeException("can't happen because we're using plain socket", gse);
+            // won't happen because we're using plain socket, not SSL.
+        }
 
-		return s;
-	}
+        return s;
+    }
 
 
-	public static String getMyDefaultIP()
-	{
-		String anInternetIP = "64.111.122.211";
-		String ip = null;
-		try
-		{
-			DatagramSocket dg = new DatagramSocket();
-			dg.setSoTimeout( 250 );
-			// 64.111.122.211 is juliusdavies.ca.
-			// This code doesn't actually send any packets (so no firewalls can
-			// get in the way).  It's just a neat trick for getting our
-			// internet-facing interface card.
-			InetAddress addr = InetAddress.getByName( anInternetIP );
-			dg.connect( addr, 12345 );
-			InetAddress localAddr = dg.getLocalAddress();
-			ip = localAddr.getHostAddress();
-			// log.debug( "Using bogus UDP socket (" + anInternetIP + ":12345), I think my IP address is: " + ip );
-			dg.close();
-			if ( localAddr.isLoopbackAddress() || "0.0.0.0".equals( ip ) )
-			{
-				ip = null;
-			}
-		}
-		catch ( IOException ioe )
-		{
-			log.debug( "Bogus UDP didn't work: " + ioe );
-		}
-		return ip;
-	}
+    public static String getMyDefaultIP() {
+        String anInternetIP = "64.111.122.211";
+        String ip = null;
+        try {
+            DatagramSocket dg = new DatagramSocket();
+            dg.setSoTimeout(250);
+            // 64.111.122.211 is juliusdavies.ca.
+            // This code doesn't actually send any packets (so no firewalls can
+            // get in the way).  It's just a neat trick for getting our
+            // internet-facing interface card.
+            InetAddress addr = InetAddress.getByName(anInternetIP);
+            dg.connect(addr, 12345);
+            InetAddress localAddr = dg.getLocalAddress();
+            ip = localAddr.getHostAddress();
+            // log.debug( "Using bogus UDP socket (" + anInternetIP + ":12345), I think my IP address is: " + ip );
+            dg.close();
+            if (localAddr.isLoopbackAddress() || "0.0.0.0".equals(ip)) {
+                ip = null;
+            }
+        }
+        catch (IOException ioe) {
+            log.debug("Bogus UDP didn't work: " + ioe);
+        }
+        return ip;
+    }
 
-	public static SortedSet getMyInternetFacingIPs() throws SocketException
-	{
-		TreeSet set = new TreeSet();
-		Enumeration en = NetworkInterface.getNetworkInterfaces();
-		while ( en.hasMoreElements() )
-		{
-			NetworkInterface ni = (NetworkInterface) en.nextElement();
-			Enumeration en2 = ni.getInetAddresses();
-			while ( en2.hasMoreElements() )
-			{
-				InetAddress addr = (InetAddress) en2.nextElement();
-				if ( !addr.isLoopbackAddress() )
-				{
-					String ip = addr.getHostAddress();
-					String reverse = addr.getHostName();
-					// IP:
-					set.add( ip );
-					// Reverse-Lookup:
-					set.add( reverse );
+    public static SortedSet getMyInternetFacingIPs() throws SocketException {
+        TreeSet set = new TreeSet();
+        Enumeration en = NetworkInterface.getNetworkInterfaces();
+        while (en.hasMoreElements()) {
+            NetworkInterface ni = (NetworkInterface) en.nextElement();
+            Enumeration en2 = ni.getInetAddresses();
+            while (en2.hasMoreElements()) {
+                InetAddress addr = (InetAddress) en2.nextElement();
+                if (!addr.isLoopbackAddress()) {
+                    String ip = addr.getHostAddress();
+                    String reverse = addr.getHostName();
+                    // IP:
+                    set.add(ip);
+                    // Reverse-Lookup:
+                    set.add(reverse);
 
-				}
-			}
-		}
-		return set;
-	}
+                }
+            }
+        }
+        return set;
+    }
 
 }

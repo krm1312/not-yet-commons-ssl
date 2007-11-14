@@ -43,8 +43,8 @@ import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.Enumeration;
+import java.util.Iterator;
 
 /**
  * @author Credit Union Central of British Columbia
@@ -52,266 +52,221 @@ import java.util.Enumeration;
  * @author <a href="mailto:juliusdavies@cucbc.com">juliusdavies@cucbc.com</a>
  * @since 27-Feb-2006
  */
-public class TrustMaterial extends TrustChain
-{
-	final static int SIMPLE_TRUST_TYPE_TRUST_ALL = 1;
-	final static int SIMPLE_TRUST_TYPE_TRUST_THIS_JVM = 2;
+public class TrustMaterial extends TrustChain {
+    final static int SIMPLE_TRUST_TYPE_TRUST_ALL = 1;
+    final static int SIMPLE_TRUST_TYPE_TRUST_THIS_JVM = 2;
 
-	/**
-	 * Might be null if "$JAVA_HOME/jre/lib/security/cacerts" doesn't exist.
-	 */
-	public final static TrustMaterial CACERTS;
+    /** Might be null if "$JAVA_HOME/jre/lib/security/cacerts" doesn't exist. */
+    public final static TrustMaterial CACERTS;
 
-	/**
-	 * Might be null if "$JAVA_HOME/jre/lib/security/jssecacerts" doesn't exist.
-	 */	
-	public final static TrustMaterial JSSE_CACERTS;
+    /** Might be null if "$JAVA_HOME/jre/lib/security/jssecacerts" doesn't exist. */
+    public final static TrustMaterial JSSE_CACERTS;
 
-	/**
-	 * Should never be null (unless both CACERTS and JSSE_CACERTS are not
-	 * present???).  Is either CACERTS or JSSE_CACERTS.  Priority given to
-	 * JSSE_CACERTS, but 99.9% of the time it's CACERTS, since JSSE_CACERTS
-	 * is almost never present.
-	 */
-	public final static TrustMaterial DEFAULT;
+    /**
+     * Should never be null (unless both CACERTS and JSSE_CACERTS are not
+     * present???).  Is either CACERTS or JSSE_CACERTS.  Priority given to
+     * JSSE_CACERTS, but 99.9% of the time it's CACERTS, since JSSE_CACERTS
+     * is almost never present.
+     */
+    public final static TrustMaterial DEFAULT;
 
-	static
-	{
-		JavaImpl.load();
-		String javaHome = System.getProperty( "java.home" );
-		String pathToCacerts = javaHome + "/lib/security/cacerts";
-		String pathToJSSECacerts = javaHome + "/lib/security/jssecacerts";
-		TrustMaterial cacerts = null;
-		TrustMaterial jssecacerts = null;
-		try
-		{
-			File f = new File( pathToCacerts );
-			if ( f.exists() )
-			{
-				cacerts = new TrustMaterial( pathToCacerts );
-			}
-		}
-		catch ( Exception e )
-		{
-			e.printStackTrace();
-		}
-		try
-		{
-			File f = new File( pathToJSSECacerts );
-			if ( f.exists() )
-			{
-				jssecacerts = new TrustMaterial( pathToJSSECacerts );
-			}
-		}
-		catch ( Exception e )
-		{
-			e.printStackTrace();
-		}
+    static {
+        JavaImpl.load();
+        String javaHome = System.getProperty("java.home");
+        String pathToCacerts = javaHome + "/lib/security/cacerts";
+        String pathToJSSECacerts = javaHome + "/lib/security/jssecacerts";
+        TrustMaterial cacerts = null;
+        TrustMaterial jssecacerts = null;
+        try {
+            File f = new File(pathToCacerts);
+            if (f.exists()) {
+                cacerts = new TrustMaterial(pathToCacerts);
+            }
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+        }
+        try {
+            File f = new File(pathToJSSECacerts);
+            if (f.exists()) {
+                jssecacerts = new TrustMaterial(pathToJSSECacerts);
+            }
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+        }
 
-		CACERTS = cacerts;
-		JSSE_CACERTS = jssecacerts;
-		if ( JSSE_CACERTS != null )
-		{
-			DEFAULT = JSSE_CACERTS;
-		}
-		else
-		{
-			DEFAULT = CACERTS;
-		}
-	}
+        CACERTS = cacerts;
+        JSSE_CACERTS = jssecacerts;
+        if (JSSE_CACERTS != null) {
+            DEFAULT = JSSE_CACERTS;
+        } else {
+            DEFAULT = CACERTS;
+        }
+    }
 
-	public final static TrustMaterial TRUST_ALL =
-			new TrustMaterial( SIMPLE_TRUST_TYPE_TRUST_ALL );
+    public final static TrustMaterial TRUST_ALL =
+        new TrustMaterial(SIMPLE_TRUST_TYPE_TRUST_ALL);
 
-	public final static TrustMaterial TRUST_THIS_JVM =
-			new TrustMaterial( SIMPLE_TRUST_TYPE_TRUST_THIS_JVM );
+    public final static TrustMaterial TRUST_THIS_JVM =
+        new TrustMaterial(SIMPLE_TRUST_TYPE_TRUST_THIS_JVM);
 
-	public final int simpleTrustType;
-	private final KeyStore jks;	
+    public final int simpleTrustType;
+    private final KeyStore jks;
 
-	private TrustMaterial( int simpleTrustType )
-	{
-		this( null, simpleTrustType );
-	}
+    private TrustMaterial(int simpleTrustType) {
+        this(null, simpleTrustType);
+    }
 
-	TrustMaterial( KeyStore jks, int simpleTrustType )
-	{
-		if ( jks == null && simpleTrustType != 0 )
-		{
-			// Just use CACERTS as a place holder, since Java 5 and 6 seem to get
-			// upset when we hand SSLContext null TrustManagers.  See
-			// Java14.initSSL(), which despite its name, is also used
-			// with Java5 and Java6.
-			this.jks = CACERTS != null ? CACERTS.jks : JSSE_CACERTS.jks;
-		}
-		else
-		{
-			this.jks = jks;
-		}
-		addTrustMaterial( this );
-		this.simpleTrustType = simpleTrustType;
-	}
+    TrustMaterial(KeyStore jks, int simpleTrustType) {
+        if (jks == null && simpleTrustType != 0) {
+            // Just use CACERTS as a place holder, since Java 5 and 6 seem to get
+            // upset when we hand SSLContext null TrustManagers.  See
+            // Java14.initSSL(), which despite its name, is also used
+            // with Java5 and Java6.
+            this.jks = CACERTS != null ? CACERTS.jks : JSSE_CACERTS.jks;
+        } else {
+            this.jks = jks;
+        }
+        addTrustMaterial(this);
+        this.simpleTrustType = simpleTrustType;
+    }
 
-	public TrustMaterial( Collection x509Certs )
-			throws GeneralSecurityException, IOException
-	{
-		KeyStore ks = KeyStore.getInstance( KeyStore.getDefaultType() );
-		ks.load( null, null );
-		loadCerts( ks, x509Certs );
-		this.jks = ks;
-		addTrustMaterial( this );
+    public TrustMaterial(Collection x509Certs)
+        throws GeneralSecurityException, IOException {
+        KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
+        ks.load(null, null);
+        loadCerts(ks, x509Certs);
+        this.jks = ks;
+        addTrustMaterial(this);
 
-		// We're not a simple trust type, so set value to 0.
-		// Only TRUST_ALL and TRUST_THIS_JVM are simple trust types.
-		this.simpleTrustType = 0;
-	}
+        // We're not a simple trust type, so set value to 0.
+        // Only TRUST_ALL and TRUST_THIS_JVM are simple trust types.
+        this.simpleTrustType = 0;
+    }
 
-	public TrustMaterial( X509Certificate x509Cert )
-			throws GeneralSecurityException, IOException
-	{
-		this( Collections.singleton( x509Cert ) );
-	}
+    public TrustMaterial(X509Certificate x509Cert)
+        throws GeneralSecurityException, IOException {
+        this(Collections.singleton(x509Cert));
+    }
 
-	public TrustMaterial( X509Certificate[] x509Certs )
-			throws GeneralSecurityException, IOException
-	{
-		this( Arrays.asList( x509Certs ) );
-	}
+    public TrustMaterial(X509Certificate[] x509Certs)
+        throws GeneralSecurityException, IOException {
+        this(Arrays.asList(x509Certs));
+    }
 
-	public TrustMaterial( byte[] pemBase64 )
-			throws GeneralSecurityException, IOException
-	{
-		this( pemBase64, null );
-	}
+    public TrustMaterial(byte[] pemBase64)
+        throws GeneralSecurityException, IOException {
+        this(pemBase64, null);
+    }
 
-	public TrustMaterial( InputStream pemBase64 )
-			throws GeneralSecurityException, IOException
-	{
-		this( Util.streamToBytes( pemBase64 ) );
-	}
+    public TrustMaterial(InputStream pemBase64)
+        throws GeneralSecurityException, IOException {
+        this(Util.streamToBytes(pemBase64));
+    }
 
-	public TrustMaterial( String pathToPemFile )
-			throws GeneralSecurityException, IOException
-	{
-		this( new FileInputStream( pathToPemFile ) );
-	}
+    public TrustMaterial(String pathToPemFile)
+        throws GeneralSecurityException, IOException {
+        this(new FileInputStream(pathToPemFile));
+    }
 
-	public TrustMaterial( File pemFile )
-			throws GeneralSecurityException, IOException
-	{
-		this( new FileInputStream( pemFile ) );
-	}
+    public TrustMaterial(File pemFile)
+        throws GeneralSecurityException, IOException {
+        this(new FileInputStream(pemFile));
+    }
 
-	public TrustMaterial( URL urlToPemFile )
-			throws GeneralSecurityException, IOException
-	{
-		this( urlToPemFile.openStream() );
-	}
+    public TrustMaterial(URL urlToPemFile)
+        throws GeneralSecurityException, IOException {
+        this(urlToPemFile.openStream());
+    }
 
-	public TrustMaterial( String pathToJksFile, char[] password )
-			throws GeneralSecurityException, IOException
-	{
-		this( new File( pathToJksFile ), password );
-	}
+    public TrustMaterial(String pathToJksFile, char[] password)
+        throws GeneralSecurityException, IOException {
+        this(new File(pathToJksFile), password);
+    }
 
-	public TrustMaterial( File jksFile, char[] password )
-			throws GeneralSecurityException, IOException
-	{
-		this( new FileInputStream( jksFile ), password );
-	}
+    public TrustMaterial(File jksFile, char[] password)
+        throws GeneralSecurityException, IOException {
+        this(new FileInputStream(jksFile), password);
+    }
 
-	public TrustMaterial( URL urlToJKS, char[] password )
-			throws GeneralSecurityException, IOException
-	{
-		this( urlToJKS.openStream(), password );
-	}
+    public TrustMaterial(URL urlToJKS, char[] password)
+        throws GeneralSecurityException, IOException {
+        this(urlToJKS.openStream(), password);
+    }
 
-	public TrustMaterial( InputStream jks, char[] password )
-			throws GeneralSecurityException, IOException
-	{
-		this( Util.streamToBytes( jks ), password );
-	}
+    public TrustMaterial(InputStream jks, char[] password)
+        throws GeneralSecurityException, IOException {
+        this(Util.streamToBytes(jks), password);
+    }
 
 
-	public TrustMaterial( byte[] jks, char[] password )
-			throws GeneralSecurityException, IOException
-	{
+    public TrustMaterial(byte[] jks, char[] password)
+        throws GeneralSecurityException, IOException {
 
-		KeyStoreBuilder.BuildResult br = KeyStoreBuilder.parse( jks, password );
-		if ( br.jks != null )
-		{
-			// If we've been given a keystore, just use that.
-			this.jks = br.jks;
-		}
-		else
-		{
-			// Otherwise we need to build a keystore from what we were given.
-			KeyStore ks = KeyStore.getInstance( "jks" );
-			if ( br.chain != null && br.chain.length > 0 )
-			{
-				ks.load( null, password );
-				loadCerts( ks, Arrays.asList( br.chain ) );
-			}
-			this.jks = ks;
-		}
+        KeyStoreBuilder.BuildResult br = KeyStoreBuilder.parse(jks, password);
+        if (br.jks != null) {
+            // If we've been given a keystore, just use that.
+            this.jks = br.jks;
+        } else {
+            // Otherwise we need to build a keystore from what we were given.
+            KeyStore ks = KeyStore.getInstance("jks");
+            if (br.chain != null && br.chain.length > 0) {
+                ks.load(null, password);
+                loadCerts(ks, Arrays.asList(br.chain));
+            }
+            this.jks = ks;
+        }
 
-		// Should validate our keystore to make sure it has at least ONE
-		// certificate entry:
-		KeyStore ks = this.jks;
-		boolean hasCertificates = false;
-		Enumeration en = ks.aliases();
-		while ( en.hasMoreElements() )
-		{
-			String alias = (String) en.nextElement();
-			if ( ks.isCertificateEntry( alias ) )
-			{
-				hasCertificates = true;
-				break;
-			}
-		}
-		if ( !hasCertificates )
-		{
-			throw new KeyStoreException( "TrustMaterial couldn't load any certificates to trust!" );
-		}	
+        // Should validate our keystore to make sure it has at least ONE
+        // certificate entry:
+        KeyStore ks = this.jks;
+        boolean hasCertificates = false;
+        Enumeration en = ks.aliases();
+        while (en.hasMoreElements()) {
+            String alias = (String) en.nextElement();
+            if (ks.isCertificateEntry(alias)) {
+                hasCertificates = true;
+                break;
+            }
+        }
+        if (!hasCertificates) {
+            throw new KeyStoreException("TrustMaterial couldn't load any certificates to trust!");
+        }
 
-		// overwrite password
-		if ( password != null && !( this instanceof KeyMaterial ) )
-		{
-			for ( int i = 0; i < password.length; i++ )
-			{
-				password[ i ] = '*';
-			}
-		}
-		addTrustMaterial( this );
+        // overwrite password
+        if (password != null && !(this instanceof KeyMaterial)) {
+            for (int i = 0; i < password.length; i++) {
+                password[i] = '*';
+            }
+        }
+        addTrustMaterial(this);
 
-		// We're not a simple trust type, so set value to 0.
-		// Only TRUST_ALL and TRUST_THIS_JVM are simple trust types.
-		this.simpleTrustType = 0;
-	}
+        // We're not a simple trust type, so set value to 0.
+        // Only TRUST_ALL and TRUST_THIS_JVM are simple trust types.
+        this.simpleTrustType = 0;
+    }
 
-	public KeyStore getKeyStore()
-	{
-		return jks;
-	}
+    public KeyStore getKeyStore() {
+        return jks;
+    }
 
-	private static void loadCerts( KeyStore ks, Collection certs )
-			throws KeyStoreException
-	{
-		Iterator it = certs.iterator();
-		int count = 0;
-		while ( it.hasNext() )
-		{
-			X509Certificate cert = (X509Certificate) it.next();
+    private static void loadCerts(KeyStore ks, Collection certs)
+        throws KeyStoreException {
+        Iterator it = certs.iterator();
+        int count = 0;
+        while (it.hasNext()) {
+            X509Certificate cert = (X509Certificate) it.next();
 
-			// I could be fancy and parse out the CN field from the
-			// certificate's subject, but these names don't actually matter
-			// at all - I think they just have to be unique.
-			String cn = Certificates.getCN( cert );
-			String alias = cn + "_" + count;
-			ks.setCertificateEntry( alias, cert );
-			count++;
-		}
-	}
+            // I could be fancy and parse out the CN field from the
+            // certificate's subject, but these names don't actually matter
+            // at all - I think they just have to be unique.
+            String cn = Certificates.getCN(cert);
+            String alias = cn + "_" + count;
+            ks.setCertificateEntry(alias, cert);
+            count++;
+        }
+    }
 
 
 }

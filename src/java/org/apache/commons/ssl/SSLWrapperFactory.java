@@ -41,71 +41,67 @@ import java.io.IOException;
  * @author <a href="mailto:juliusdavies@cucbc.com">juliusdavies@cucbc.com</a>
  * @since 19-Sep-2006
  */
-public interface SSLWrapperFactory
-{
+public interface SSLWrapperFactory {
 
-	/**
-	 * Wraps an SSLSSocket.
-	 * @param s  SSLSocket to wrap.
-	 * @return The new wrapped SSLSocket.
-	 * @throws IOException if wrapping failed
-	 */
-	public SSLSocket wrap( SSLSocket s ) throws IOException;
+    /**
+     * Wraps an SSLSSocket.
+     *
+     * @param s SSLSocket to wrap.
+     * @return The new wrapped SSLSocket.
+     * @throws IOException if wrapping failed
+     */
+    public SSLSocket wrap(SSLSocket s) throws IOException;
 
-	/**
-	 * Wraps an SSLServerSocket. 
-	 *
-	 * @param s The SSLServerSocket to wrap.
-	 * @param ssl  The SSL object that created the SSLServerSocket.
-	 *             This way some important commons-ssl config can be applied
-	               to the returned socket.
-	 * @return The new wrapped SSLServerSocket.
-	 * @throws IOException if wrapping failed
-	 */
-	public SSLServerSocket wrap( SSLServerSocket s, SSL ssl )
-			throws IOException;
+    /**
+     * Wraps an SSLServerSocket.
+     *
+     * @param s   The SSLServerSocket to wrap.
+     * @param ssl The SSL object that created the SSLServerSocket.
+     *            This way some important commons-ssl config can be applied
+     *            to the returned socket.
+     * @return The new wrapped SSLServerSocket.
+     * @throws IOException if wrapping failed
+     */
+    public SSLServerSocket wrap(SSLServerSocket s, SSL ssl)
+        throws IOException;
 
 
-	/**
-	 * NO_WRAP doesn't wrap the SSLSocket.  It does wrap the SSLServerSocket
-	 * so that we can do the usual housekeeping after accept() that we like to
-	 * do on every socket.  E.g. setSoTimeout, setEnabledProtocols,
-	 * setEnabledCiphers, setUseClientMode, and the hostname verifier (which
-	 * should be very rare on SSLServerSockets!).
-	 */
-	public final static SSLWrapperFactory NO_WRAP = new SSLWrapperFactory()
-	{
-		// Notice!  No wrapping!
-		public SSLSocket wrap( SSLSocket s ) { return s; }
+    /**
+     * NO_WRAP doesn't wrap the SSLSocket.  It does wrap the SSLServerSocket
+     * so that we can do the usual housekeeping after accept() that we like to
+     * do on every socket.  E.g. setSoTimeout, setEnabledProtocols,
+     * setEnabledCiphers, setUseClientMode, and the hostname verifier (which
+     * should be very rare on SSLServerSockets!).
+     */
+    public final static SSLWrapperFactory NO_WRAP = new SSLWrapperFactory() {
+        // Notice!  No wrapping!
+        public SSLSocket wrap(SSLSocket s) { return s; }
 
-		// We still wrap the ServerSocket, but we don't wrap the result of the
-		// the accept() call.
-		public SSLServerSocket wrap( SSLServerSocket s, SSL ssl )
-				throws IOException
-		{
-			// Can't wrap with Java 1.3 because SSLServerSocket's constructor has
-			// default access instead of protected access in Java 1.3.
-			boolean java13 = JavaImpl.isJava13();
-			return java13 ? s : new SSLServerSocketWrapper( s, ssl, this );
-		}
-	};
+        // We still wrap the ServerSocket, but we don't wrap the result of the
+        // the accept() call.
+        public SSLServerSocket wrap(SSLServerSocket s, SSL ssl)
+            throws IOException {
+            // Can't wrap with Java 1.3 because SSLServerSocket's constructor has
+            // default access instead of protected access in Java 1.3.
+            boolean java13 = JavaImpl.isJava13();
+            return java13 ? s : new SSLServerSocketWrapper(s, ssl, this);
+        }
+    };
 
-	/**
-	 * DUMB_WRAP is useful to make sure that wrapping the sockets doesn't break
-	 * anything.  It doesn't actually do anything interesting in its wrapped
-	 * implementations.
-	 */
-	public final static SSLWrapperFactory DUMB_WRAP = new SSLWrapperFactory()
-	{
-		public SSLSocket wrap( SSLSocket s ) { return new SSLSocketWrapper( s ); }
+    /**
+     * DUMB_WRAP is useful to make sure that wrapping the sockets doesn't break
+     * anything.  It doesn't actually do anything interesting in its wrapped
+     * implementations.
+     */
+    public final static SSLWrapperFactory DUMB_WRAP = new SSLWrapperFactory() {
+        public SSLSocket wrap(SSLSocket s) { return new SSLSocketWrapper(s); }
 
-		public SSLServerSocket wrap( SSLServerSocket s, SSL ssl )
-				throws IOException
-		{
-			// Can't wrap with Java 1.3 because SSLServerSocket's constructor has
-			// default access instead of protected access in Java 1.3.
-			boolean java13 = JavaImpl.isJava13();
-			return java13 ? s : new SSLServerSocketWrapper( s, ssl, this );
+        public SSLServerSocket wrap(SSLServerSocket s, SSL ssl)
+            throws IOException {
+            // Can't wrap with Java 1.3 because SSLServerSocket's constructor has
+            // default access instead of protected access in Java 1.3.
+            boolean java13 = JavaImpl.isJava13();
+            return java13 ? s : new SSLServerSocketWrapper( s, ssl, this );
 		}
 	};
 

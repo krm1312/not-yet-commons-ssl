@@ -44,74 +44,63 @@ import java.util.TreeMap;
  * @author <a href="mailto:juliusdavies@cucbc.com">juliusdavies@cucbc.com</a>
  * @since 13-Aug-2006
  */
-public class PEMItem
-{
-	public final static String DEK_INFO = "dek-info";
+public class PEMItem {
+    public final static String DEK_INFO = "dek-info";
 
-	private final byte[] derBytes;
-	public final String pemType;
-	public final Map properties;
+    private final byte[] derBytes;
+    public final String pemType;
+    public final Map properties;
 
-	public final String dekInfo;
-	public final byte[] iv;
-	public final String cipher;
-	public final boolean des2;
-	public final String mode;
-	public final int keySizeInBits;
+    public final String dekInfo;
+    public final byte[] iv;
+    public final String cipher;
+    public final boolean des2;
+    public final String mode;
+    public final int keySizeInBits;
 
-	public PEMItem( byte[] derBytes, String type )
-	{
-		this( derBytes, type, null );
-	}
+    public PEMItem(byte[] derBytes, String type) {
+        this(derBytes, type, null);
+    }
 
-	public PEMItem( byte[] derBytes, String type, Map properties )
-	{
-		this.derBytes = derBytes;
-		this.pemType = type;
-		if ( properties == null )
-		{
-			properties = new TreeMap(); // empty map
-		}
-		this.properties = Collections.unmodifiableMap( properties );
-		String di = (String) properties.get( DEK_INFO );
-		String diCipher = "";
-		String diIV = "";
-		if ( di != null )
-		{
-			StringTokenizer st = new StringTokenizer( di, "," );
-			if ( st.hasMoreTokens() )
-			{
-				diCipher = st.nextToken().trim().toLowerCase();
-			}
-			if ( st.hasMoreTokens() )
-			{
-				diIV = st.nextToken().trim().toLowerCase();
-			}
-		}
-		this.dekInfo = diCipher;
-		this.iv = Hex.decode( diIV );
-		if ( !"".equals( diCipher ) )
-		{
-			OpenSSL.CipherInfo cipherInfo = OpenSSL.lookup( diCipher );
-			this.cipher = cipherInfo.javaCipher;
-			this.mode = cipherInfo.blockMode;
-			this.keySizeInBits = cipherInfo.keySize;
-			this.des2 = cipherInfo.des2;			
-		}
-		else
-		{
-			this.mode = "";
-			cipher = "UNKNOWN";
-			keySizeInBits = -1;
-			des2 = false;
-		}
-	}
+    public PEMItem(byte[] derBytes, String type, Map properties) {
+        this.derBytes = derBytes;
+        this.pemType = type;
+        if (properties == null) {
+            properties = new TreeMap(); // empty map
+        }
+        this.properties = Collections.unmodifiableMap(properties);
+        String di = (String) properties.get(DEK_INFO);
+        String diCipher = "";
+        String diIV = "";
+        if (di != null) {
+            StringTokenizer st = new StringTokenizer(di, ",");
+            if (st.hasMoreTokens()) {
+                diCipher = st.nextToken().trim().toLowerCase();
+            }
+            if (st.hasMoreTokens()) {
+                diIV = st.nextToken().trim().toLowerCase();
+            }
+        }
+        this.dekInfo = diCipher;
+        this.iv = Hex.decode(diIV);
+        if (!"".equals(diCipher)) {
+            OpenSSL.CipherInfo cipherInfo = OpenSSL.lookup(diCipher);
+            this.cipher = cipherInfo.javaCipher;
+            this.mode = cipherInfo.blockMode;
+            this.keySizeInBits = cipherInfo.keySize;
+            this.des2 = cipherInfo.des2;
+        } else {
+            this.mode = "";
+            cipher = "UNKNOWN";
+            keySizeInBits = -1;
+            des2 = false;
+        }
+    }
 
-	public byte[] getDerBytes()
-	{
-		byte[] b = new byte[derBytes.length];
-		System.arraycopy( derBytes, 0, b, 0, derBytes.length );
-		return b;
-	}
+    public byte[] getDerBytes() {
+        byte[] b = new byte[derBytes.length];
+        System.arraycopy(derBytes, 0, b, 0, derBytes.length);
+        return b;
+    }
 
 }

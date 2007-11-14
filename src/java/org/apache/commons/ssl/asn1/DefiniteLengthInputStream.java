@@ -1,22 +1,19 @@
 package org.apache.commons.ssl.asn1;
 
 import java.io.EOFException;
-import java.io.InputStream;
 import java.io.IOException;
+import java.io.InputStream;
 
 class DefiniteLengthInputStream
-        extends LimitedInputStream
-{
-    private int               _length;
+    extends LimitedInputStream {
+    private int _length;
 
     DefiniteLengthInputStream(
         InputStream in,
-        int         length)
-    {
+        int length) {
         super(in);
 
-        if (length < 0)
-        {
+        if (length < 0) {
             throw new IllegalArgumentException("negative lengths not allowed");
         }
 
@@ -24,14 +21,11 @@ class DefiniteLengthInputStream
     }
 
     public int read()
-        throws IOException
-    {
-        if (_length > 0)
-        {
+        throws IOException {
+        if (_length > 0) {
             int b = _in.read();
 
-            if (b < 0)
-            {
+            if (b < 0) {
                 throw new EOFException();
             }
 
@@ -45,10 +39,8 @@ class DefiniteLengthInputStream
     }
 
     public int read(byte[] buf, int off, int len)
-        throws IOException
-    {
-        if (_length > 0)
-        {
+        throws IOException {
+        if (_length > 0) {
             int toRead = Math.min(len, _length);
             int numRead = _in.read(buf, off, toRead);
 
@@ -65,19 +57,15 @@ class DefiniteLengthInputStream
     }
 
     byte[] toByteArray()
-        throws IOException
-    {
+        throws IOException {
         byte[] bytes = new byte[_length];
 
-        if (_length > 0)
-        {
+        if (_length > 0) {
             int pos = 0;
-            do
-            {
+            do {
                 int read = _in.read(bytes, pos, _length - pos);
 
-                if (read < 0)
-                {
+                if (read < 0) {
                     throw new EOFException();
                 }
 

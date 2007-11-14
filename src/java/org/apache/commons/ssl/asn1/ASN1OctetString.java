@@ -11,52 +11,45 @@ import java.util.Vector;
 
 public abstract class ASN1OctetString
     extends ASN1Object
-    implements ASN1OctetStringParser
-{
-    byte[]  string;
+    implements ASN1OctetStringParser {
+    byte[] string;
 
     /**
      * return an Octet String from a tagged object.
      *
-     * @param obj the tagged object holding the object we want.
+     * @param obj      the tagged object holding the object we want.
      * @param explicit true if the object is meant to be explicitly
-     *              tagged false otherwise.
-     * @exception IllegalArgumentException if the tagged object cannot
-     *              be converted.
+     *                 tagged false otherwise.
+     * @throws IllegalArgumentException if the tagged object cannot
+     *                                  be converted.
      */
     public static ASN1OctetString getInstance(
-        ASN1TaggedObject    obj,
-        boolean             explicit)
-    {
+        ASN1TaggedObject obj,
+        boolean explicit) {
         return getInstance(obj.getObject());
     }
-    
+
     /**
      * return an Octet String from the given object.
      *
      * @param obj the object we want converted.
-     * @exception IllegalArgumentException if the object cannot be converted.
+     * @throws IllegalArgumentException if the object cannot be converted.
      */
     public static ASN1OctetString getInstance(
-        Object  obj)
-    {
-        if (obj == null || obj instanceof ASN1OctetString)
-        {
-            return (ASN1OctetString)obj;
+        Object obj) {
+        if (obj == null || obj instanceof ASN1OctetString) {
+            return (ASN1OctetString) obj;
         }
 
-        if (obj instanceof ASN1TaggedObject)
-        {
-            return getInstance(((ASN1TaggedObject)obj).getObject());
+        if (obj instanceof ASN1TaggedObject) {
+            return getInstance(((ASN1TaggedObject) obj).getObject());
         }
 
-        if (obj instanceof ASN1Sequence)
-        {
-            Vector      v = new Vector();
-            Enumeration e = ((ASN1Sequence)obj).getObjects();
+        if (obj instanceof ASN1Sequence) {
+            Vector v = new Vector();
+            Enumeration e = ((ASN1Sequence) obj).getObjects();
 
-            while (e.hasMoreElements())
-            {
+            while (e.hasMoreElements()) {
                 v.addElement(e.nextElement());
             }
 
@@ -66,56 +59,45 @@ public abstract class ASN1OctetString
         throw new IllegalArgumentException("illegal object in getInstance: " + obj.getClass().getName());
     }
 
-    /**
-     * @param string the octets making up the octet string.
-     */
+    /** @param string the octets making up the octet string. */
     public ASN1OctetString(
-        byte[]  string)
-    {
+        byte[] string) {
         this.string = string;
     }
 
     public ASN1OctetString(
-        DEREncodable obj)
-    {
-        try
-        {
-            ByteArrayOutputStream   bOut = new ByteArrayOutputStream();
-            DEROutputStream         dOut = new DEROutputStream(bOut);
+        DEREncodable obj) {
+        try {
+            ByteArrayOutputStream bOut = new ByteArrayOutputStream();
+            DEROutputStream dOut = new DEROutputStream(bOut);
 
             dOut.writeObject(obj);
             dOut.close();
 
             this.string = bOut.toByteArray();
         }
-        catch (IOException e)
-        {
+        catch (IOException e) {
             throw new IllegalArgumentException("Error processing object : " + e.toString());
         }
     }
 
-    public InputStream getOctetStream()
-    {
+    public InputStream getOctetStream() {
         return new ByteArrayInputStream(string);
     }
 
-    public ASN1OctetStringParser parser()
-    {
+    public ASN1OctetStringParser parser() {
         return this;
     }
 
-    public byte[] getOctets()
-    {
+    public byte[] getOctets() {
         return string;
     }
 
-    public int hashCode()
-    {
-        byte[]  b = this.getOctets();
-        int     value = 0;
+    public int hashCode() {
+        byte[] b = this.getOctets();
+        int value = 0;
 
-        for (int i = 0; i != b.length; i++)
-        {
+        for (int i = 0; i != b.length; i++) {
             value ^= (b[i] & 0xff) << (i % 4);
         }
 
@@ -123,27 +105,22 @@ public abstract class ASN1OctetString
     }
 
     boolean asn1Equals(
-        DERObject  o)
-    {
-        if (!(o instanceof ASN1OctetString))
-        {
+        DERObject o) {
+        if (!(o instanceof ASN1OctetString)) {
             return false;
         }
 
-        ASN1OctetString  other = (ASN1OctetString)o;
+        ASN1OctetString other = (ASN1OctetString) o;
 
         byte[] b1 = other.string;
         byte[] b2 = this.string;
 
-        if (b1.length != b2.length)
-        {
+        if (b1.length != b2.length) {
             return false;
         }
 
-        for (int i = 0; i != b1.length; i++)
-        {
-            if (b1[i] != b2[i])
-            {
+        for (int i = 0; i != b1.length; i++) {
+            if (b1[i] != b2[i]) {
                 return false;
             }
         }
@@ -154,8 +131,7 @@ public abstract class ASN1OctetString
     abstract void encode(DEROutputStream out)
         throws IOException;
 
-    public String toString()
-    {
-      return "#"+Hex.encode(string);
+    public String toString() {
+        return "#" + Hex.encode(string);
     }
 }

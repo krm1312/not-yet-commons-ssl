@@ -39,14 +39,13 @@ import java.security.GeneralSecurityException;
  * @author <a href="mailto:juliusdavies@cucbc.com">juliusdavies@cucbc.com</a>
  * @since 16-Nov-2005
  */
-public class ProbablyBadPasswordException extends GeneralSecurityException
-{
-	public ProbablyBadPasswordException() { super(); }
+public class ProbablyBadPasswordException extends GeneralSecurityException {
+    public ProbablyBadPasswordException() { super(); }
 
-	public ProbablyBadPasswordException( String s ) { super( s ); }
+    public ProbablyBadPasswordException(String s) { super(s); }
 
-	// Need to wait for Java 5.0 !
-	// public ProbablyBadPasswordException( Throwable t ) { super( t ); }
-	// public ProbablyBadPasswordException( String s, Throwable t ) { super( s, t ); }
+    // Need to wait for Java 5.0 !
+    // public ProbablyBadPasswordException( Throwable t ) { super( t ); }
+    // public ProbablyBadPasswordException( String s, Throwable t ) { super( s, t ); }
 
 }

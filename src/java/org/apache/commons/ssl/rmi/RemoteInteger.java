@@ -40,7 +40,6 @@ import java.rmi.RemoteException;
  * @author <a href="mailto:juliusdavies@cucbc.com">juliusdavies@cucbc.com</a>
  * @since 22-Feb-2007
  */
-public interface RemoteInteger extends Remote
-{
-	public int getInt() throws RemoteException;
+public interface RemoteInteger extends Remote {
+    public int getInt() throws RemoteException;
 }

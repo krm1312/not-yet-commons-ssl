@@ -6,25 +6,22 @@ import java.io.InputStream;
 import java.io.OutputStream;
 
 public abstract class DERGenerator
-    extends ASN1Generator
-{       
-    private boolean      _tagged = false;
-    private boolean      _isExplicit;
-    private int          _tagNo;
-    
+    extends ASN1Generator {
+    private boolean _tagged = false;
+    private boolean _isExplicit;
+    private int _tagNo;
+
     protected DERGenerator(
-        OutputStream out)
-    {
+        OutputStream out) {
         super(out);
     }
 
     public DERGenerator(
         OutputStream out,
-        int          tagNo,
-        boolean      isExplicit)
-    { 
+        int tagNo,
+        boolean isExplicit) {
         super(out);
-        
+
         _tagged = true;
         _isExplicit = isExplicit;
         _tagNo = tagNo;
@@ -32,98 +29,79 @@ public abstract class DERGenerator
 
     private void writeLength(
         OutputStream out,
-        int          length)
-        throws IOException
-    {
-        if (length > 127)
-        {
+        int length)
+        throws IOException {
+        if (length > 127) {
             int size = 1;
             int val = length;
 
-            while ((val >>>= 8) != 0)
-            {
+            while ((val >>>= 8) != 0) {
                 size++;
             }
 
-            out.write((byte)(size | 0x80));
+            out.write((byte) (size | 0x80));
 
-            for (int i = (size - 1) * 8; i >= 0; i -= 8)
-            {
-                out.write((byte)(length >> i));
+            for (int i = (size - 1) * 8; i >= 0; i -= 8) {
+                out.write((byte) (length >> i));
             }
-        }
-        else
-        {
-            out.write((byte)length);
+        } else {
+            out.write((byte) length);
         }
     }
 
     void writeDEREncoded(
         OutputStream out,
-        int          tag,
-        byte[]       bytes)
-        throws IOException
-    {
+        int tag,
+        byte[] bytes)
+        throws IOException {
         out.write(tag);
         writeLength(out, bytes.length);
         out.write(bytes);
     }
 
     void writeDEREncoded(
-        int       tag,
-        byte[]    bytes)
-        throws IOException
-    {
-        if (_tagged)
-        {
+        int tag,
+        byte[] bytes)
+        throws IOException {
+        if (_tagged) {
             int tagNum = _tagNo | DERTags.TAGGED;
-            
-            if (_isExplicit)
-            {
+
+            if (_isExplicit) {
                 int newTag = _tagNo | DERTags.CONSTRUCTED | DERTags.TAGGED;
 
                 ByteArrayOutputStream bOut = new ByteArrayOutputStream();
-                
+
                 writeDEREncoded(bOut, tag, bytes);
-                
+
                 writeDEREncoded(_out, newTag, bOut.toByteArray());
-            }
-            else
-            {   
-                if ((tag & DERTags.CONSTRUCTED) != 0)
-                {
+            } else {
+                if ((tag & DERTags.CONSTRUCTED) != 0) {
                     writeDEREncoded(_out, tagNum | DERTags.CONSTRUCTED, bytes);
-                }
-                else
-                {
+                } else {
                     writeDEREncoded(_out, tagNum, bytes);
                 }
             }
-        }
-        else
-        {
+        } else {
             writeDEREncoded(_out, tag, bytes);
         }
     }
-    
+
     void writeDEREncoded(
         OutputStream out,
-        int          tag,
-        InputStream  in)
-        throws IOException
-    {
+        int tag,
+        InputStream in)
+        throws IOException {
         out.write(tag);
-        
+
         ByteArrayOutputStream bOut = new ByteArrayOutputStream();
-        
+
         int b = 0;
-        while ((b = in.read()) >= 0)
-        {
+        while ((b = in.read()) >= 0) {
             bOut.write(b);
         }
-        
+
         byte[] bytes = bOut.toByteArray();
-        
+
         writeLength(out, bytes.length);
         out.write(bytes);
     }

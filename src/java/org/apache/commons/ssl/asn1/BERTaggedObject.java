@@ -9,29 +9,26 @@ import java.util.Enumeration;
  * rules (as with sequences).
  */
 public class BERTaggedObject
-    extends DERTaggedObject
-{
+    extends DERTaggedObject {
     /**
      * @param tagNo the tag number for this object.
-     * @param obj the tagged object.
+     * @param obj   the tagged object.
      */
     public BERTaggedObject(
-        int             tagNo,
-        DEREncodable    obj)
-    {
+        int tagNo,
+        DEREncodable obj) {
         super(tagNo, obj);
     }
 
     /**
      * @param explicit true if an explicitly tagged object.
-     * @param tagNo the tag number for this object.
-     * @param obj the tagged object.
+     * @param tagNo    the tag number for this object.
+     * @param obj      the tagged object.
      */
     public BERTaggedObject(
-        boolean         explicit,
-        int             tagNo,
-        DEREncodable    obj)
-    {
+        boolean explicit,
+        int tagNo,
+        DEREncodable obj) {
         super(explicit, tagNo, obj);
     }
 
@@ -40,79 +37,57 @@ public class BERTaggedObject
      * length sequence.
      */
     public BERTaggedObject(
-        int             tagNo)
-    {
+        int tagNo) {
         super(false, tagNo, new BERSequence());
     }
 
     void encode(
-        DEROutputStream  out)
-        throws IOException
-    {
-        if (out instanceof ASN1OutputStream || out instanceof BEROutputStream)
-        {
+        DEROutputStream out)
+        throws IOException {
+        if (out instanceof ASN1OutputStream || out instanceof BEROutputStream) {
             out.write(CONSTRUCTED | TAGGED | tagNo);
             out.write(0x80);
 
-            if (!empty)
-            {
-                if (!explicit)
-                {
-                    if (obj instanceof ASN1OctetString)
-                    {
-                        Enumeration  e;
+            if (!empty) {
+                if (!explicit) {
+                    if (obj instanceof ASN1OctetString) {
+                        Enumeration e;
 
-                        if (obj instanceof BERConstructedOctetString)
-                        {
-                            e = ((BERConstructedOctetString)obj).getObjects();
-                        }
-                        else
-                        {
-                            ASN1OctetString             octs = (ASN1OctetString)obj;
-                            BERConstructedOctetString   berO = new BERConstructedOctetString(octs.getOctets());
+                        if (obj instanceof BERConstructedOctetString) {
+                            e = ((BERConstructedOctetString) obj).getObjects();
+                        } else {
+                            ASN1OctetString octs = (ASN1OctetString) obj;
+                            BERConstructedOctetString berO = new BERConstructedOctetString(octs.getOctets());
 
                             e = berO.getObjects();
                         }
 
-                        while (e.hasMoreElements())
-                        {
+                        while (e.hasMoreElements()) {
                             out.writeObject(e.nextElement());
                         }
-                    }
-                    else if (obj instanceof ASN1Sequence)
-                    {
-                        Enumeration  e = ((ASN1Sequence)obj).getObjects();
+                    } else if (obj instanceof ASN1Sequence) {
+                        Enumeration e = ((ASN1Sequence) obj).getObjects();
 
-                        while (e.hasMoreElements())
-                        {
+                        while (e.hasMoreElements()) {
                             out.writeObject(e.nextElement());
                         }
-                    }
-                    else if (obj instanceof ASN1Set)
-                    {
-                        Enumeration  e = ((ASN1Set)obj).getObjects();
+                    } else if (obj instanceof ASN1Set) {
+                        Enumeration e = ((ASN1Set) obj).getObjects();
 
-                        while (e.hasMoreElements())
-                        {
+                        while (e.hasMoreElements()) {
                             out.writeObject(e.nextElement());
                         }
-                    }
-                    else
-                    {
+                    } else {
                         throw new RuntimeException("not implemented: " + obj.getClass().getName());
                     }
-                }
-                else
-                {
+                } else {
                     out.writeObject(obj);
                 }
             }
 
             out.write(0x00);
             out.write(0x00);
-        }
-        else
-        {
+        } else {
             super.encode(out);
         }
     }

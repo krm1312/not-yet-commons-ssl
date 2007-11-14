@@ -44,32 +44,26 @@ import java.util.Date;
  * @since 22-Feb-2007
  */
 public class DateRMI extends UnicastRemoteObject
-		implements Remote, Serializable, RemoteDate
-{
-	private Date d;
+    implements Remote, Serializable, RemoteDate {
+    private Date d;
 
-	public DateRMI() throws RemoteException
-	{
-		super();
-		this.d = new Date();
-	}
+    public DateRMI() throws RemoteException {
+        super();
+        this.d = new Date();
+    }
 
-	public Date getDate() throws RemoteException
-	{
-		return d;
-	}
+    public Date getDate() throws RemoteException {
+        return d;
+    }
 
-	public boolean equals( Object o )
-	{
-		RemoteDate rd = (RemoteDate) o;
-		try
-		{
-			return d.equals( rd.getDate() );
-		}
-		catch ( RemoteException re )
-		{
-			return false;
-		}
-	}
+    public boolean equals(Object o) {
+        RemoteDate rd = (RemoteDate) o;
+        try {
+            return d.equals(rd.getDate());
+        }
+        catch (RemoteException re) {
+            return false;
+        }
+    }
 
 }

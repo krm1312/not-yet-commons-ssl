@@ -41,7 +41,6 @@ import java.util.Date;
  * @author <a href="mailto:juliusdavies@cucbc.com">juliusdavies@cucbc.com</a>
  * @since 22-Feb-2007
  */
-public interface RemoteDate extends Remote
-{
-	public Date getDate() throws RemoteException;
+public interface RemoteDate extends Remote {
+    public Date getDate() throws RemoteException;
 }

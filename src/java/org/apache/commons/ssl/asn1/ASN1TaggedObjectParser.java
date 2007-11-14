@@ -3,10 +3,9 @@ package org.apache.commons.ssl.asn1;
 import java.io.IOException;
 
 public interface ASN1TaggedObjectParser
-    extends DEREncodable
-{
+    extends DEREncodable {
     public int getTagNo();
-    
+
     public DEREncodable getObjectParser(int tag, boolean isExplicit)
         throws IOException;
 }

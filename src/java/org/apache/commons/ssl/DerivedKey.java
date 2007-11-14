@@ -37,15 +37,13 @@ package org.apache.commons.ssl;
  * @author <a href="mailto:juliusdavies@cucbc.com">juliusdavies@cucbc.com</a>
  * @since 7-Nov-2006
  */
-public class DerivedKey
-{
-	public final byte[] key;
-	public final byte[] iv;
+public class DerivedKey {
+    public final byte[] key;
+    public final byte[] iv;
 
-	DerivedKey( byte[] key, byte[] iv )
-	{
-		this.key = key;
-		this.iv = iv;
-	}
+    DerivedKey(byte[] key, byte[] iv) {
+        this.key = key;
+        this.iv = iv;
+    }
 
 }

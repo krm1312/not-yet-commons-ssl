@@ -42,71 +42,58 @@ import java.security.cert.X509Certificate;
  * @author <a href="mailto:juliusdavies@cucbc.com">juliusdavies@cucbc.com</a>
  * @since 30-Jun-2006
  */
-public class Java13TrustManagerWrapper implements X509TrustManager
-{
+public class Java13TrustManagerWrapper implements X509TrustManager {
 
-	private final X509TrustManager trustManager;
-	private final TrustChain trustChain;
-	private final SSL ssl;
+    private final X509TrustManager trustManager;
+    private final TrustChain trustChain;
+    private final SSL ssl;
 
-	public Java13TrustManagerWrapper( X509TrustManager m, TrustChain tc, SSL h )
-	{
-		this.trustManager = m;
-		this.trustChain = tc;
-		this.ssl = h;
-	}
+    public Java13TrustManagerWrapper(X509TrustManager m, TrustChain tc, SSL h) {
+        this.trustManager = m;
+        this.trustChain = tc;
+        this.ssl = h;
+    }
 
-	public boolean isClientTrusted( X509Certificate[] chain )
-	{
-		ssl.setCurrentClientChain( chain );
-		boolean firstTest = trustManager.isClientTrusted( chain );
-		return test( firstTest, chain );
-	}
+    public boolean isClientTrusted(X509Certificate[] chain) {
+        ssl.setCurrentClientChain(chain);
+        boolean firstTest = trustManager.isClientTrusted(chain);
+        return test(firstTest, chain);
+    }
 
-	public boolean isServerTrusted( X509Certificate[] chain )
-	{
-		ssl.setCurrentServerChain( chain );
-		boolean firstTest = trustManager.isServerTrusted( chain );
-		return test( firstTest, chain );
-	}
+    public boolean isServerTrusted(X509Certificate[] chain) {
+        ssl.setCurrentServerChain(chain);
+        boolean firstTest = trustManager.isServerTrusted(chain);
+        return test(firstTest, chain);
+    }
 
-	public X509Certificate[] getAcceptedIssuers()
-	{
-		return trustManager.getAcceptedIssuers();
-	}
+    public X509Certificate[] getAcceptedIssuers() {
+        return trustManager.getAcceptedIssuers();
+    }
 
-	private boolean test( boolean firstTest, X509Certificate[] chain )
-	{
-		// Even if the first test failed, we might still be okay as long as
-		// this SSLServer or SSLClient is setup to trust all certificates.
-		if ( !firstTest )
-		{
-			if ( !trustChain.contains( TrustMaterial.TRUST_ALL ) )
-			{
-				return false;
-			}
-		}
+    private boolean test(boolean firstTest, X509Certificate[] chain) {
+        // Even if the first test failed, we might still be okay as long as
+        // this SSLServer or SSLClient is setup to trust all certificates.
+        if (!firstTest) {
+            if (!trustChain.contains(TrustMaterial.TRUST_ALL)) {
+                return false;
+            }
+        }
 
-		try
-		{
-			for ( int i = 0; i < chain.length; i++ )
-			{
-				X509Certificate c = chain[ i ];
-				if ( ssl.getCheckExpiry() )
-				{
-					c.checkValidity();
-				}
-				if ( ssl.getCheckCRL() )
-				{
-					Certificates.checkCRL( c );
-				}
-			}
-			return true;
-		}
-		catch ( CertificateException ce )
-		{
-			return false;
-		}
-	}
+        try {
+            for (int i = 0; i < chain.length; i++) {
+                X509Certificate c = chain[i];
+                if (ssl.getCheckExpiry()) {
+                    c.checkValidity();
+                }
+                if (ssl.getCheckCRL()) {
+                    Certificates.checkCRL(c);
+                }
+            }
+            return true;
+        }
+        catch (CertificateException ce) {
+            return false;
+        }
+    }
 
 }

@@ -50,9 +50,9 @@ import java.util.StringTokenizer;
  * based encryption).  Compatible with "openssl enc" unix utility.  An OpenSSL
  * compatible cipher name must be specified along with the password (try "man enc" on a
  * unix box to see what's possible).  Some examples:
- *                  <ul><li>des, des3, des-ede3-cbc
- *                  <li>aes128, aes192, aes256, aes-256-cbc
- *                  <li>rc2, rc4, bf</ul>
+ * <ul><li>des, des3, des-ede3-cbc
+ * <li>aes128, aes192, aes256, aes-256-cbc
+ * <li>rc2, rc4, bf</ul>
  * <pre>
  * <em style="color: green;">// Encrypt!</em>
  * byte[] encryptedData = OpenSSL.encrypt( "des3", password, data );
@@ -395,7 +395,7 @@ public class OpenSSL {
             dk, cipherInfo.des2, null, true);
         return new CipherInputStream(encrypted, c);
     }
-    
+
     public static byte[] encrypt(String cipher, byte[] key, byte[] iv,
                                  byte[] data)
         throws IOException, GeneralSecurityException {

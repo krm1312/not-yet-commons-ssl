@@ -43,48 +43,40 @@ import java.security.cert.X509Certificate;
  * @author <a href="mailto:juliusdavies@cucbc.com">juliusdavies@cucbc.com</a>
  * @since 30-Mar-2006
  */
-public class Java14KeyManagerWrapper implements X509KeyManager
-{
-	private final X509KeyManager keyManager;
-	// private final KeyMaterial keyMaterial;
-	// private final SSL ssl;
+public class Java14KeyManagerWrapper implements X509KeyManager {
+    private final X509KeyManager keyManager;
+    // private final KeyMaterial keyMaterial;
+    // private final SSL ssl;
 
-	public Java14KeyManagerWrapper( X509KeyManager m, KeyMaterial km, SSL h )
-	{
-		this.keyManager = m;
-		// this.keyMaterial = km;
-		// this.ssl = h;
-	}
+    public Java14KeyManagerWrapper(X509KeyManager m, KeyMaterial km, SSL h) {
+        this.keyManager = m;
+        // this.keyMaterial = km;
+        // this.ssl = h;
+    }
 
-	public String chooseClientAlias( String[] keyType, Principal[] issuers,
-	                                 Socket socket )
-	{
-		return keyManager.chooseClientAlias( keyType, issuers, socket );
-	}
+    public String chooseClientAlias(String[] keyType, Principal[] issuers,
+                                    Socket socket) {
+        return keyManager.chooseClientAlias(keyType, issuers, socket);
+    }
 
-	public String chooseServerAlias( String keyType, Principal[] issuers,
-	                                 Socket socket )
-	{
-		return keyManager.chooseServerAlias( keyType, issuers, socket );
-	}
+    public String chooseServerAlias(String keyType, Principal[] issuers,
+                                    Socket socket) {
+        return keyManager.chooseServerAlias(keyType, issuers, socket);
+    }
 
-	public X509Certificate[] getCertificateChain( String alias )
-	{
-		return keyManager.getCertificateChain( alias );
-	}
+    public X509Certificate[] getCertificateChain(String alias) {
+        return keyManager.getCertificateChain(alias);
+    }
 
-	public String[] getClientAliases( String keyType, Principal[] issuers )
-	{
-		return keyManager.getClientAliases( keyType, issuers );
-	}
+    public String[] getClientAliases(String keyType, Principal[] issuers) {
+        return keyManager.getClientAliases(keyType, issuers);
+    }
 
-	public PrivateKey getPrivateKey( String alias )
-	{
-		return keyManager.getPrivateKey( alias );
-	}
+    public PrivateKey getPrivateKey(String alias) {
+        return keyManager.getPrivateKey(alias);
+    }
 
-	public String[] getServerAliases( String keyType, Principal[] issuers )
-	{
-		return keyManager.getServerAliases( keyType, issuers );
-	}
+    public String[] getServerAliases(String keyType, Principal[] issuers) {
+        return keyManager.getServerAliases(keyType, issuers);
+    }
 }
