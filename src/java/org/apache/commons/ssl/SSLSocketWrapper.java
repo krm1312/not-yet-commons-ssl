@@ -1,5 +1,5 @@
 /*
- * $HeadURL:  $
+ * $HeadURL$
  * $Revision$
  * $Date$
  *

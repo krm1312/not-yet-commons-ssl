@@ -1,7 +1,7 @@
 /*
- * $HeadURL:  $
- * $Revision: 113 $
- * $Date: 2007-11-12 19:17:53 -0800 (Mon, 12 Nov 2007) $
+ * $HeadURL$
+ * $Revision$
+ * $Date$
  *
  * ====================================================================
  * Licensed to the Apache Software Foundation (ASF) under one
