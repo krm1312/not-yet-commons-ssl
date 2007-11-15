@@ -54,8 +54,7 @@ import java.util.jar.JarFile;
  * @since 14-Nov-2007
  */
 public class Version {
-    public static final String HEAD_URLS = "$HeadURL$";
-    public static final String HEAD_URL = "http://juliusdavies.ca/svn/not-yet-commons-ssl/branches/commons-ssl-0.4.5/Version.java";
+    public static final String HEAD_URL = "$HeadURL$";
     public static final String VERSION;
     public static final String COMPILE_TIME;
 
