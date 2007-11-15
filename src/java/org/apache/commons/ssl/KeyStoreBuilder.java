@@ -618,8 +618,8 @@ public class KeyStoreBuilder {
         }
         jks.flush();
         jks.close();
-        System.out.println("Successfuly wrote: [" + f.getPath() + "]" );
-	}
+        System.out.println("Successfuly wrote: [" + f.getPath() + "]");
+    }
 
 
 }

@@ -42,16 +42,56 @@ import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
 /**
+ * Extracts tagged version from a subversion $HeadURL$ property, and prints it
+ * out nicely on standard out.
+ * <p/>
+ * e.g. If this version came from /tags/commons-ssl-0_3_9/, then Version.java
+ * will print:  "Version: 0.3.9" on standard out.
+ *
  * @author Credit Union Central of British Columbia
  * @author <a href="http://www.cucbc.com/">www.cucbc.com</a>
  * @author <a href="mailto:juliusdavies@cucbc.com">juliusdavies@cucbc.com</a>
- * @since 22-Feb-2007
+ * @since 14-Nov-2007
  */
 public class Version {
-    public static final String VERSION = "$Name$";
+    public static final String HEAD_URLS = "$HeadURL$";
+    public static final String HEAD_URL = "http://juliusdavies.ca/svn/not-yet-commons-ssl/branches/commons-ssl-0.4.5/Version.java";
+    public static final String VERSION;
     public static final String COMPILE_TIME;
 
     static {
+        // Try to extract a clean version number from svn's HeadURL property:
+        String v = "UNKNOWN";
+        boolean fromBranch = false;
+        int x = HEAD_URL.lastIndexOf("/tags/");
+        if (x >= 0) {
+            int y = HEAD_URL.indexOf("/", x + "/tags/".length());
+            if (y >= 0) {
+                v = HEAD_URL.substring(x + "/tags/".length(), y);
+            }
+            v = v.replace('_', '.');
+            v = v.replace('-', '.');
+        } else if (HEAD_URL.indexOf("/trunk/") >= 0) {
+            v = "trunk";
+        } else if (HEAD_URL.indexOf("/branches/") >= 0) {
+            fromBranch = true;
+            x = HEAD_URL.indexOf("/branches/");
+            int y = HEAD_URL.indexOf("/", x + "/branches/".length());
+            if (y >= 0) {
+                v = HEAD_URL.substring(x + "/branches/".length(), y);
+            }
+            v = v.replace('_', '.');
+            v = v.replace('-', '.');
+        }
+
+        String V = v.toUpperCase();
+        x = V.indexOf("COMMONS.SSL.");
+        if (x >= 0) {
+            v = v.substring(x + "commons.ssl.".length());
+        }
+        VERSION = fromBranch ? "***Branch*** " + v : v;
+
+        // Try to calculate when jar file was compiled:
         String s;
         try {
             s = CompileTime.getCompileTimeString(Version.class);
@@ -63,11 +103,13 @@ public class Version {
     }
 
     public static String versionString() {
+        String v;
         if (COMPILE_TIME != null) {
-            return CompileTime.formatVersion(VERSION, COMPILE_TIME);
+            v = CompileTime.formatVersion(VERSION, COMPILE_TIME);
         } else {
-            return VERSION;
+            v = VERSION;
         }
+        return "Version: " + v;
     }
 
     public static void main(String[] args) {
@@ -145,7 +187,7 @@ public class Version {
         public static String formatVersion(String version, String compileTime) {
             StringBuffer buf = new StringBuffer();
             buf.append(version);
-            buf.append(" compiled=[");
+            buf.append("   Compiled: [");
             buf.append(compileTime);
             buf.append("]");
             return buf.toString();

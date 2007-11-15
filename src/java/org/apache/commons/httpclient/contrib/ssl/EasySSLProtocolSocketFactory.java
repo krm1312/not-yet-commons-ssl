@@ -81,23 +81,22 @@ import java.security.GeneralSecurityException;
  *         </p>
  */
 
-public class EasySSLProtocolSocketFactory extends HttpSecureProtocol
-{
-	
-	/**
-	 * Constructor for EasySSLProtocolSocketFactory.
-	 * @throws GeneralSecurityException   GeneralSecurityException
-	 * @throws IOException                IOException
-	 */
-	public EasySSLProtocolSocketFactory()
-			throws GeneralSecurityException, IOException
-	{
-		super();
-		super.useDefaultJavaCiphers();
-		super.setTrustMaterial( TrustMaterial.TRUST_ALL );
-		super.setCheckHostname( false );
-		super.setCheckExpiry( false );
-		super.setCheckCRL( false );
+public class EasySSLProtocolSocketFactory extends HttpSecureProtocol {
+
+    /**
+     * Constructor for EasySSLProtocolSocketFactory.
+     *
+     * @throws GeneralSecurityException GeneralSecurityException
+     * @throws IOException              IOException
+     */
+    public EasySSLProtocolSocketFactory()
+        throws GeneralSecurityException, IOException {
+        super();
+        super.useDefaultJavaCiphers();
+        super.setTrustMaterial(TrustMaterial.TRUST_ALL);
+        super.setCheckHostname(false);
+        super.setCheckExpiry(false);
+        super.setCheckCRL(false );
 	}
 
 }

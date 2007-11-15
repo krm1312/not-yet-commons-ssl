@@ -150,53 +150,47 @@ import java.security.GeneralSecurityException;
  *         </p>
  */
 
-public class AuthSSLProtocolSocketFactory extends HttpSecureProtocol
-{
+public class AuthSSLProtocolSocketFactory extends HttpSecureProtocol {
 
-	/**
-	 * Constructor for AuthSSLProtocolSocketFactory. Either a keystore or truststore file
-	 * must be given. Otherwise SSL context initialization error will result.
-	 *
-	 * @param keystoreUrl        URL of the keystore file. May be <tt>null</tt> if HTTPS client
-	 *                           authentication is not to be used.
-	 * @param keystorePassword   Password to unlock the keystore. IMPORTANT: this implementation
-	 *                           assumes that the same password is used to protect the key and the keystore itself.
-	 * @param truststoreUrl      URL of the truststore file. May be <tt>null</tt> if HTTPS server
-	 *                           authentication is not to be used.
-	 * @param truststorePassword Password to unlock the truststore.
-	 */
-	public AuthSSLProtocolSocketFactory( final URL keystoreUrl,
-	                                     final String keystorePassword,
-	                                     final URL truststoreUrl,
-	                                     final String truststorePassword )
-			throws GeneralSecurityException, IOException
-	{
+    /**
+     * Constructor for AuthSSLProtocolSocketFactory. Either a keystore or truststore file
+     * must be given. Otherwise SSL context initialization error will result.
+     *
+     * @param keystoreUrl        URL of the keystore file. May be <tt>null</tt> if HTTPS client
+     *                           authentication is not to be used.
+     * @param keystorePassword   Password to unlock the keystore. IMPORTANT: this implementation
+     *                           assumes that the same password is used to protect the key and the keystore itself.
+     * @param truststoreUrl      URL of the truststore file. May be <tt>null</tt> if HTTPS server
+     *                           authentication is not to be used.
+     * @param truststorePassword Password to unlock the truststore.
+     */
+    public AuthSSLProtocolSocketFactory(final URL keystoreUrl,
+                                        final String keystorePassword,
+                                        final URL truststoreUrl,
+                                        final String truststorePassword)
+        throws GeneralSecurityException, IOException {
 
-		super();
+        super();
 
-		// prepare key material
-		if ( keystoreUrl != null )
-		{
-			char[] ksPass = null;
-			if ( keystorePassword != null )
-			{
-				ksPass = keystorePassword.toCharArray();
-			}
-			KeyMaterial km = new KeyMaterial( keystoreUrl, ksPass );
-			super.setKeyMaterial( km );
-		}
+        // prepare key material
+        if (keystoreUrl != null) {
+            char[] ksPass = null;
+            if (keystorePassword != null) {
+                ksPass = keystorePassword.toCharArray();
+            }
+            KeyMaterial km = new KeyMaterial(keystoreUrl, ksPass);
+            super.setKeyMaterial(km);
+        }
 
-		// prepare trust material1
-		if ( truststoreUrl != null )
-		{
-			char[] tsPass = null;
-			if ( truststorePassword != null )
-			{
-				tsPass = truststorePassword.toCharArray();
-			}
-			TrustMaterial tm = new KeyMaterial( truststoreUrl, tsPass );
-			super.setTrustMaterial( tm );
-		}
-	}
+        // prepare trust material1
+        if (truststoreUrl != null) {
+            char[] tsPass = null;
+            if (truststorePassword != null) {
+                tsPass = truststorePassword.toCharArray();
+            }
+            TrustMaterial tm = new KeyMaterial(truststoreUrl, tsPass);
+            super.setTrustMaterial(tm);
+        }
+    }
 
 }

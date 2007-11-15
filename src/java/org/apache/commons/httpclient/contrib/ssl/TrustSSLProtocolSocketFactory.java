@@ -156,47 +156,44 @@ import java.security.cert.CertificateException;
  * @since 17-Feb-2006
  */
 
-public class TrustSSLProtocolSocketFactory extends HttpSecureProtocol
-{
+public class TrustSSLProtocolSocketFactory extends HttpSecureProtocol {
 
-	/**
-	 * @param pathToTrustStore Path to either a ".jks" Java Key Store, or a
-	 *                         ".pem" base64 encoded certificate.  If it's a
-	 *                         ".pem" base64 certificate, the file must start
-	 *                         with "------BEGIN CERTIFICATE-----", and must end
-	 *                         with "-------END CERTIFICATE--------".
-	 */
-	public TrustSSLProtocolSocketFactory( String pathToTrustStore )
-			throws GeneralSecurityException, IOException
-	{
-		this( pathToTrustStore, null );
-	}
+    /**
+     * @param pathToTrustStore Path to either a ".jks" Java Key Store, or a
+     *                         ".pem" base64 encoded certificate.  If it's a
+     *                         ".pem" base64 certificate, the file must start
+     *                         with "------BEGIN CERTIFICATE-----", and must end
+     *                         with "-------END CERTIFICATE--------".
+     */
+    public TrustSSLProtocolSocketFactory(String pathToTrustStore)
+        throws GeneralSecurityException, IOException {
+        this(pathToTrustStore, null);
+    }
 
-	/**
-	 * @param pathToTrustStore Path to either a ".jks" Java Key Store, or a
-	 *                         ".pem" base64 encoded certificate.  If it's a
-	 *                         ".pem" base64 certificate, the file must start
-	 *                         with "------BEGIN CERTIFICATE-----", and must end
-	 *                         with "-------END CERTIFICATE--------".
-	 * @param password         Password to open the ".jks" file.  If "truststore"
-	 *                         is a ".pem" file, then password can be null; if
-	 *                         password isn't null and we're using a ".pem" file,
-	 *                         then technically, this becomes the password to
-	 *                         open up the special in-memory keystore we create
-	 *                         to hold the ".pem" file, but it's not important at
-	 *                         all.
-	 * @throws CertificateException
-	 * @throws KeyStoreException
-	 * @throws IOException
-	 * @throws NoSuchAlgorithmException
-	 * @throws KeyManagementException
-	 */
-	public TrustSSLProtocolSocketFactory( String pathToTrustStore, char[] password )
-			throws GeneralSecurityException, IOException
-	{
-		super();
-		KeyMaterial km = new KeyMaterial( pathToTrustStore, password );
-		super.setTrustMaterial( km );
-	}
+    /**
+     * @param pathToTrustStore Path to either a ".jks" Java Key Store, or a
+     *                         ".pem" base64 encoded certificate.  If it's a
+     *                         ".pem" base64 certificate, the file must start
+     *                         with "------BEGIN CERTIFICATE-----", and must end
+     *                         with "-------END CERTIFICATE--------".
+     * @param password         Password to open the ".jks" file.  If "truststore"
+     *                         is a ".pem" file, then password can be null; if
+     *                         password isn't null and we're using a ".pem" file,
+     *                         then technically, this becomes the password to
+     *                         open up the special in-memory keystore we create
+     *                         to hold the ".pem" file, but it's not important at
+     *                         all.
+     * @throws CertificateException
+     * @throws KeyStoreException
+     * @throws IOException
+     * @throws NoSuchAlgorithmException
+     * @throws KeyManagementException
+     */
+    public TrustSSLProtocolSocketFactory(String pathToTrustStore, char[] password)
+        throws GeneralSecurityException, IOException {
+        super();
+        KeyMaterial km = new KeyMaterial(pathToTrustStore, password);
+        super.setTrustMaterial(km);
+    }
 
 }
