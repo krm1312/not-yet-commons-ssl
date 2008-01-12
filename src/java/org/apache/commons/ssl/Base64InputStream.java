@@ -31,6 +31,8 @@
 
 package org.apache.commons.ssl;
 
+import org.apache.commons.ssl.util.ReadLine;
+
 import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -46,12 +48,13 @@ public class Base64InputStream extends FilterInputStream {
         System.getProperty("line.separator").getBytes();
 
     final boolean decodeMode;
-
+    final ReadLine readLine;
     byte[] currentLine = null;
     int pos = 0;
 
     public Base64InputStream(InputStream base64, boolean decodeMode) {
         super(base64);
+        this.readLine = new ReadLine(in);
         this.decodeMode = decodeMode;
     }
 
@@ -95,11 +98,9 @@ public class Base64InputStream extends FilterInputStream {
     private void getLine() throws IOException {
         if (currentLine == null) {
             if (decodeMode) {
-                String line = Util.readLine(in);
+                byte[] line = readLine.nextAsBytes(100);
                 if (line != null) {
-                    byte[] b = line.getBytes();
-                    currentLine = Base64.decodeBase64(b);
-                    pos = 0;
+                    currentLine = Base64.decodeBase64(line);
                 }
             } else {
                 // It will expand to 64 bytes (16 * 4) after base64 encoding!
@@ -113,6 +114,7 @@ public class Base64InputStream extends FilterInputStream {
                     System.arraycopy(LINE_ENDING, 0, currentLine, b.length, lfLen);
                 }
             }
+            pos = 0;
         }
     }
 

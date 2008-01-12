@@ -31,6 +31,8 @@
 
 package org.apache.commons.ssl;
 
+import org.apache.commons.ssl.util.ByteArrayReadLine;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -55,7 +57,7 @@ public class PEMUtil {
 
     public static byte[] encode(Collection items) throws IOException {
         final byte[] LINE_SEPARATOR_BYTES = LINE_SEPARATOR.getBytes("UTF-8");
-        ByteArrayOutputStream out = new ByteArrayOutputStream(4096);
+        ByteArrayOutputStream out = new ByteArrayOutputStream(8192);
         Iterator it = items.iterator();
         while (it.hasNext()) {
             PEMItem item = (PEMItem) it.next();
@@ -89,7 +91,8 @@ public class PEMUtil {
     public static List decode(byte[] pemBytes) {
         LinkedList pemItems = new LinkedList();
         ByteArrayInputStream in = new ByteArrayInputStream(pemBytes);
-        String line = Util.readLine(in);
+        ByteArrayReadLine readLine = new ByteArrayReadLine(in);
+        String line = readLine.next();
         while (line != null) {
             int len = 0;
             byte[] decoded;
@@ -97,14 +100,14 @@ public class PEMUtil {
             Map properties = new HashMap();
             String type = "[unknown]";
             while (line != null && !beginBase64(line)) {
-                line = Util.readLine(in);
+                line = readLine.next();
             }
             if (line != null) {
                 String upperLine = line.toUpperCase();
                 int x = upperLine.indexOf("-BEGIN") + "-BEGIN".length();
                 int y = upperLine.indexOf("-", x);
                 type = upperLine.substring(x, y).trim();
-                line = Util.readLine(in);
+                line = readLine.next();
             }
             while (line != null && !endBase64(line)) {
                 line = Util.trim(line);
@@ -124,10 +127,10 @@ public class PEMUtil {
                         len += rawBinary.length;
                     }
                 }
-                line = Util.readLine(in);
+                line = readLine.next();
             }
             if (line != null) {
-                line = Util.readLine(in);
+                line = readLine.next();
             }
 
             if (!listOfByteArrays.isEmpty()) {

@@ -31,6 +31,8 @@
 
 package org.apache.commons.ssl;
 
+import org.apache.commons.ssl.util.ReadLine;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InterruptedIOException;
@@ -82,7 +84,8 @@ public class SSLProxyServer {
             try {
                 in = s.getInputStream();
                 out = s.getOutputStream();
-                String line = Util.readLine(in);
+                ReadLine readLine = new ReadLine(in);
+                String line = readLine.next();
                 line = line.trim();
                 String connect = line.substring(0, "CONNECT".length());
                 InetSocketAddress addr = null;

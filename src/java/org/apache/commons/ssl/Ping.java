@@ -31,6 +31,8 @@
 
 package org.apache.commons.ssl;
 
+import org.apache.commons.ssl.util.ReadLine;
+
 import javax.net.ssl.SSLSocket;
 import java.io.File;
 import java.io.InputStream;
@@ -180,7 +182,8 @@ public class Ping {
                     out.write(line3.getBytes());
                     out.flush();
 
-                    String read1 = Util.readLine(in);
+                    ReadLine readLine = new ReadLine(in);
+                    String read1 = readLine.next();
                     if (read1.startsWith("HTTP/1.1 200")) {
                         int avail = in.available();
                         in.skip(avail);
@@ -199,10 +202,10 @@ public class Ping {
                         System.out.println("Server returned unexpected proxy response!");
                         System.out.println("=============================================");
                         System.out.println(read1);
-                        String line = Util.readLine(in);
+                        String line = readLine.next();
                         while (line != null) {
                             System.out.println(line);
-                            line = Util.readLine(in);
+                            line = readLine.next();
                         }
                         System.exit(1);
                     }

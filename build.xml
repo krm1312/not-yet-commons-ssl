@@ -15,6 +15,8 @@
 
   <property name="httpclient-jar" value="commons-httpclient-3.0.jar"/>
   <property name="log4j-jar" value="log4j-1.2.13.jar"/>
+  <property name="junit-jar" value="junit-3.8.1.jar"/>
+
   <property name="src" location="./src/java"/>
   <property name="build" location="./build"/>
   <property name="lib" location="./lib"/>
@@ -23,11 +25,61 @@
   <property name="javadocs" value="${build}/javadocs"/>
   <property name="rmic.includes" value="**/*RMI.class"/>
 
+  <property name="test-src" location="./src/test"/>
+  <property name="test-classes" value="${build}/test-classes"/>
+  <property name="test-jar-file" value="${ant.project.name}-tests.jar"/>
+  <property name="test.report.dir" value="${build}/test-report"/>   
+
   <path id="compile-classpath">
     <pathelement location="${classes}"/>
+    <pathelement location="${test-classes}"/>            
     <pathelement location="${lib}/${httpclient-jar}"/>
     <pathelement location="${lib}/${log4j-jar}"/>
+    <pathelement location="${lib}/${junit-jar}"/>
   </path>
+
+  <target name="test-jar" depends="jar">
+    <mkdir dir="${test-classes}"/>
+    <javac
+      includeAntRuntime="false"
+      destdir="${test-classes}"
+      debug="true"
+      optimize="false"
+      srcdir="${test-src}"
+    >
+      <classpath refid="compile-classpath"/>
+    </javac>
+    <copy todir="${test-classes}">
+      <fileset dir="${test-src}" excludes="**/*.java"/>
+    </copy>
+    <jar
+      basedir="${test-classes}"
+      destfile="${build}/${test-jar-file}"
+      index="true"
+      whenempty="create"
+    />      
+  </target>
+
+  <target name="test" depends="test-jar">
+      <mkdir dir="${test.report.dir}"/>
+      <junit printsummary="on" haltonfailure="false" errorProperty="junit.failed"
+        failureProperty="junit.failed" fork="on" forkMode="perBatch"
+        timeout="600000" showoutput="on">
+        <syspropertyset><propertyref builtin="commandline"/></syspropertyset>
+        <formatter type="xml"/>
+        <classpath refid="compile-classpath"/>
+        <batchtest todir="${test.report.dir}">
+          <fileset dir="${test-src}" includes="**/Test*.java"/>
+        </batchtest>
+      </junit>
+      <junitreport todir="${test.report.dir}">
+        <fileset dir="${test.report.dir}">
+          <include name="TEST-*.xml"/>
+        </fileset>
+        <report todir="${test.report.dir}"/>
+      </junitreport>
+      <fail message="JUnit tests failed." if="test.failed"/>
+  </target>
 
   <target name="init">
     <tstamp>
@@ -44,7 +96,6 @@
       debug="true"
       optimize="false"
       srcdir="${src}"
-      excludes="${javac.exclude}"
     >
       <classpath refid="compile-classpath"/>
     </javac>
@@ -69,8 +120,8 @@
       duplicate="fail"
     >
       <manifest>
-        <attribute name="Built-By" value="cucbc.com"/>
-        <attribute name="Created-By" value="cucbc.com"/>
+        <attribute name="Built-By" value="Julius Davies"/>
+        <attribute name="Created-By" value="Julius Davies"/>
         <attribute name="Main-Class" value="org.apache.commons.ssl.Ping"/>
       </manifest>
      </jar>

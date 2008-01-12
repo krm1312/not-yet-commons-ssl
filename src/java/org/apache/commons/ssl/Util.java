@@ -31,6 +31,8 @@
 
 package org.apache.commons.ssl;
 
+import org.apache.commons.ssl.util.ByteArrayReadLine;
+
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -98,7 +100,7 @@ public class Util {
     public static void pipeStream(InputStream in, OutputStream out,
                                   boolean autoClose)
         throws IOException {
-        byte[] buf = new byte[4096];
+        byte[] buf = new byte[8192];
         IOException ioe = null;
         try {
             int bytesRead = in.read(buf);
@@ -295,40 +297,6 @@ public class Util {
         return args;
     }
 
-    public static String readLine(final InputStream in) throws IOException {
-        StringBuffer buf = new StringBuffer(64);
-        int b = in.read();
-        while (b != -1) {
-            char c = (char) b;
-            if (c == '\n' || c == '\r') {
-                if (buf.length() >= 1) {
-                    return buf.toString();
-                }
-            } else {
-                buf.append(c);
-            }
-            b = in.read();
-        }
-        return buf.length() >= 1 ? buf.toString() : null;
-    }
-
-    public static String readLine(final ByteArrayInputStream in) {
-        StringBuffer buf = new StringBuffer(64);
-        int b = in.read();
-        while (b != -1) {
-            char c = (char) b;
-            if (c == '\n' || c == '\r') {
-                if (buf.length() >= 1) {
-                    return buf.toString();
-                }
-            } else {
-                buf.append(c);
-            }
-            b = in.read();
-        }
-        return buf.length() >= 1 ? buf.toString() : null;
-    }
-
     public static HostPort toAddress(final String target,
                                      final int defaultPort)
         throws UnknownHostException {
@@ -380,21 +348,23 @@ public class Util {
 
     public static void main(String[] args) throws Exception {
         String s = "line1\n\rline2\n\rline3";
-        InputStream in = new ByteArrayInputStream(s.getBytes());
-        String line = readLine(in);
+        ByteArrayInputStream in = new ByteArrayInputStream(s.getBytes());
+        ByteArrayReadLine readLine = new ByteArrayReadLine(in);
+        String line = readLine.next();
         while (line != null) {
             System.out.println(line);
-            line = readLine(in);
+            line = readLine.next();
         }
 
         System.out.println("--------- test 2 ----------");
 
         s = "line1\n\rline2\n\rline3\n\r\n\r";
         in = new ByteArrayInputStream(s.getBytes());
-        line = readLine(in);
+        readLine = new ByteArrayReadLine(in);
+        line = readLine.next();
         while (line != null) {
             System.out.println(line);
-            line = readLine(in);
+            line = readLine.next();
         }
 
     }

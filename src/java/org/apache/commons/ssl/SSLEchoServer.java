@@ -31,6 +31,8 @@
 
 package org.apache.commons.ssl;
 
+import org.apache.commons.ssl.util.ReadLine;
+
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLSession;
@@ -104,7 +106,8 @@ public class SSLEchoServer {
 
                 in = s.getInputStream();
                 out = s.getOutputStream();
-                String line = Util.readLine(in);
+                ReadLine readLine = new ReadLine(in);
+                String line = readLine.next();
                 if (line != null && line.indexOf("HTTP") > 0) {
                     out.write("HTTP/1.1 200 OK\r\n\r\n".getBytes());
                     out.flush();
@@ -113,7 +116,7 @@ public class SSLEchoServer {
                     String echo = "ECHO:>" + line + "\n";
                     out.write(echo.getBytes());
                     out.flush();
-                    line = Util.readLine(in);
+                    line = readLine.next();
                 }
             }
             catch (IOException ioe) {

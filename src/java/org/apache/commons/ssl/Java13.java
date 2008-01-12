@@ -80,7 +80,7 @@ public final class Java13 extends JavaImpl {
             Class[] sig = {String.class};
             String[] args = {"DES/CBC/PKCS5Padding"};
             Method m = c.getMethod("getInstance", sig);
-            m.invoke(null, args);
+            m.invoke(null, (Object[]) args);
         }
         catch (Exception e) {
             try {

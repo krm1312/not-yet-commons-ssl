@@ -35,10 +35,7 @@ import org.apache.commons.ssl.util.Hex;
 
 import javax.crypto.Cipher;
 import javax.crypto.CipherInputStream;
-import java.io.ByteArrayInputStream;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.security.GeneralSecurityException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -711,9 +708,10 @@ public class OpenSSL {
 
         // in = encrypt( args[ 1 ], pwdAsBytes, in, true );
 
-        Util.pipeStream(in, System.out, false);
-        byte[] output = Util.streamToBytes(in);
-        System.out.write(output);
+        in = new BufferedInputStream(in);
+        BufferedOutputStream bufOut = new BufferedOutputStream( System.out );
+        Util.pipeStream(in, bufOut, false);
+        bufOut.flush();
         System.out.flush();
     }
 
