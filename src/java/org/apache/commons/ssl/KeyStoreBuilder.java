@@ -34,7 +34,6 @@ package org.apache.commons.ssl;
 import org.apache.commons.ssl.asn1.ASN1EncodableVector;
 import org.apache.commons.ssl.asn1.DERInteger;
 import org.apache.commons.ssl.asn1.DERSequence;
-import org.apache.commons.ssl.util.Hex;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -95,13 +94,28 @@ public class KeyStoreBuilder {
         NoSuchAlgorithmException, InvalidKeyException,
         NoSuchProviderException, ProbablyBadPasswordException,
         UnrecoverableKeyException {
-        BuildResult br1 = parse(jksOrCerts, password);
+        return build(jksOrCerts, privateKey, password, null);
+    }
+
+
+    public static KeyStore build(byte[] jksOrCerts, byte[] privateKey,
+                                 char[] jksPassword, char[] aliasPassword)
+        throws IOException, CertificateException, KeyStoreException,
+        NoSuchAlgorithmException, InvalidKeyException,
+        NoSuchProviderException, ProbablyBadPasswordException,
+        UnrecoverableKeyException {
+
+        if ( aliasPassword == null || aliasPassword.length <= 0 ) {
+            aliasPassword = jksPassword;
+        }
+
+        BuildResult br1 = parse(jksOrCerts, jksPassword, aliasPassword);
         BuildResult br2 = null;
         KeyStore jks = null;
         if (br1.jks != null) {
             jks = br1.jks;
         } else if (privateKey != null && privateKey.length > 0) {
-            br2 = parse(privateKey, password);
+            br2 = parse(privateKey, jksPassword, aliasPassword);
             if (br2.jks != null) {
                 jks = br2.jks;
             }
@@ -112,7 +126,7 @@ public class KeyStoreBuilder {
         // and a JKS file!).
         if (jks != null) {
             // Make sure the keystore we found is not corrupt.
-            validate(jks, password);
+            validate(jks, aliasPassword);
             return jks;
         }
 
@@ -153,9 +167,9 @@ public class KeyStoreBuilder {
                 alias = alias.replace(' ', '_');
             }
 
-            KeyStore ks = KeyStore.getInstance("jks");
-            ks.load(null, password);
-            ks.setKeyEntry(alias, key, password, chain);
+            KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
+            ks.load(null, jksPassword);
+            ks.setKeyEntry(alias, key, aliasPassword, chain);
             return ks;
         }
     }
@@ -205,7 +219,7 @@ public class KeyStoreBuilder {
         return theOne;
     }
 
-    public static void validate(KeyStore jks, char[] password)
+    public static void validate(KeyStore jks, char[] keyPassword)
         throws CertificateException, KeyStoreException,
         NoSuchAlgorithmException, InvalidKeyException,
         NoSuchProviderException, UnrecoverableKeyException {
@@ -225,7 +239,7 @@ public class KeyStoreBuilder {
         if (privateKeyAlias == null) {
             throw new KeyStoreException("No private keys found in keystore!");
         }
-        PrivateKey key = (PrivateKey) jks.getKey(privateKeyAlias, password);
+        PrivateKey key = (PrivateKey) jks.getKey(privateKeyAlias, keyPassword);
         Certificate[] chain = jks.getCertificateChain(privateKeyAlias);
         X509Certificate[] x509Chain = Certificates.x509ifyChain(chain);
         X509Certificate theOne = buildChain(key, x509Chain);
@@ -235,7 +249,7 @@ public class KeyStoreBuilder {
         if (theOne != null) {
             x509Chain = Certificates.trimChain(x509Chain);
             jks.deleteEntry(privateKeyAlias);
-            jks.setKeyEntry(privateKeyAlias, key, password, x509Chain);
+            jks.setKeyEntry(privateKeyAlias, key, keyPassword, x509Chain);
         }
     }
 
@@ -253,21 +267,24 @@ public class KeyStoreBuilder {
                 this.chain = (X509Certificate[]) chain;
             } else {
                 X509Certificate[] x509 = new X509Certificate[chain.length];
-                System.arraycopy(chain, 0, x509, 0, chain.length);
+                for ( int i = 0; i < x509.length; i++ ) {
+                    x509[i] = (X509Certificate) chain[i];
+                }
                 this.chain = x509;
             }
         }
     }
 
 
-    public static BuildResult parse(byte[] stuff, char[] password)
+    public static BuildResult parse(byte[] stuff, char[] jksPass,
+                                    char[] keyPass)
         throws IOException, CertificateException, KeyStoreException,
         ProbablyBadPasswordException {
         CertificateFactory cf = CertificateFactory.getInstance("X.509");
         Key key = null;
         Certificate[] chain = null;
         try {
-            PKCS8Key pkcs8Key = new PKCS8Key(stuff, password);
+            PKCS8Key pkcs8Key = new PKCS8Key(stuff, jksPass);
             key = pkcs8Key.getPrivateKey();
         }
         catch (ProbablyBadPasswordException pbpe) {
@@ -300,12 +317,6 @@ public class KeyStoreBuilder {
 
         boolean isProbablyPKCS12 = false;
         boolean isASN = false;
-        boolean isProbablyJKS = stuff.length >= 4 &&
-                                stuff[0] == (byte) 0xFE &&
-                                stuff[1] == (byte) 0xED &&
-                                stuff[2] == (byte) 0xFE &&
-                                stuff[3] == (byte) 0xED;
-
         ASN1Structure asn1 = null;
         try {
             asn1 = ASN1Util.analyze(stuff);
@@ -321,146 +332,112 @@ public class KeyStoreBuilder {
         }
 
         ByteArrayInputStream stuffStream = new ByteArrayInputStream(stuff);
-        if (isProbablyJKS) {
-            try {
-                return tryJKS("jks", stuffStream, password);
+        BuildResult br = tryJKS(KeyStore.getDefaultType(), stuffStream, jksPass, keyPass);
+        if (br == null) {
+            br = tryJKS("jks", stuffStream, jksPass, keyPass);
+            if (br == null) {
+                br = tryJKS("jceks", stuffStream, jksPass, keyPass);
+                if (br == null) {
+                    br = tryJKS("BKS", stuffStream, jksPass, keyPass);
+                }
             }
-            catch (ProbablyBadPasswordException pbpe) {
-                throw pbpe;
-            }
-            catch (GeneralSecurityException gse) {
-                // jks didn't work.
-            }
-            catch (IOException ioe) {
-                // jks didn't work.
-            }
+        }
+        if (br != null) {
+            return br;
         }
         if (isASN) {
             if (isProbablyPKCS12) {
-                try {
-                    return tryJKS("pkcs12", stuffStream, password);
-                }
-                catch (ProbablyBadPasswordException pbpe) {
-                    throw pbpe;
-                }
-                catch (GeneralSecurityException gse) {
-                    // pkcs12 didn't work.
-                }
-                catch (IOException ioe) {
-                    // pkcs12 didn't work.
-                }
-            } else {
-                // Okay, it's ASN.1, but it's not PKCS12.  Only one possible
-                // interesting things remains:  X.509.
-                stuffStream.reset();
+                return tryJKS("pkcs12", stuffStream, jksPass, null);
+            }
+        } else {
+            // Okay, it's ASN.1, but it's not PKCS12.  Only one possible
+            // interesting things remains:  X.509.
+            stuffStream.reset();
 
-                try {
-                    certificates = new LinkedList();
-                    Collection certs = cf.generateCertificates(stuffStream);
-                    it = certs.iterator();
-                    while (it.hasNext()) {
-                        X509Certificate x509 = (X509Certificate) it.next();
-                        certificates.add(x509);
-                    }
-                    chain = toChain(certificates);
-                    if (chain != null && chain.length > 0) {
-                        return new BuildResult(null, chain, null);
-                    }
+            try {
+                certificates = new LinkedList();
+                Collection certs = cf.generateCertificates(stuffStream);
+                it = certs.iterator();
+                while (it.hasNext()) {
+                    X509Certificate x509 = (X509Certificate) it.next();
+                    certificates.add(x509);
                 }
-                catch (CertificateException ce) {
-                    // oh well
+                chain = toChain(certificates);
+                if (chain != null && chain.length > 0) {
+                    return new BuildResult(null, chain, null);
                 }
+            }
+            catch (CertificateException ce) {
+                // oh well
+            }
 
-                stuffStream.reset();
-                // Okay, still no luck.  Maybe it's an ASN.1 DER stream
-                // containing only a single certificate?  (I don't completely
-                // trust CertificateFactory.generateCertificates).
-                try {
-                    Certificate c = cf.generateCertificate(stuffStream);
-                    X509Certificate x509 = (X509Certificate) c;
-                    chain = toChain(Collections.singleton(x509));
-                    if (chain != null && chain.length > 0) {
-                        return new BuildResult(null, chain, null);
-                    }
+            stuffStream.reset();
+            // Okay, still no luck.  Maybe it's an ASN.1 DER stream
+            // containing only a single certificate?  (I don't completely
+            // trust CertificateFactory.generateCertificates).
+            try {
+                Certificate c = cf.generateCertificate(stuffStream);
+                X509Certificate x509 = (X509Certificate) c;
+                chain = toChain(Collections.singleton(x509));
+                if (chain != null && chain.length > 0) {
+                    return new BuildResult(null, chain, null);
                 }
-                catch (CertificateException ce) {
-                    // oh well
-                }
+            }
+            catch (CertificateException ce) {
+                // oh well
             }
         }
 
-        if (!isProbablyJKS) {
-            String hex = Hex.encode(stuff, 0, 4);
-            try {
-                BuildResult br = tryJKS("jks", stuffStream, password);
-                // no exception thrown, so must be JKS.
-                System.out.println("Please report bug!");
-                System.out.println("JKS usually start with binary FE ED FE ED, but this JKS started with: [" + hex + "]");
-                return br;
-            }
-            catch (ProbablyBadPasswordException pbpe) {
-                System.out.println("Please report bug!");
-                System.out.println("JKS usually start with binary FE ED FE ED, but this JKS started with: [" + hex + "]");
-                throw pbpe;
-            }
-            catch (GeneralSecurityException gse) {
-                // jks didn't work.
-            }
-            catch (IOException ioe) {
-                // jks didn't work.
-            }
-        }
-
-        if (!isProbablyPKCS12) {
-            try {
-                BuildResult br = tryJKS("pkcs12", stuffStream, password);
-                // no exception thrown, so must be PKCS12.
-                System.out.println("Please report bug!");
-                System.out.println("PKCS12 detection failed to realize this was PKCS12!");
-                System.out.println(asn1);
-                return br;
-            }
-            catch (ProbablyBadPasswordException pbpe) {
-                System.out.println("Please report bug!");
-                System.out.println("PKCS12 detection failed to realize this was PKCS12!");
-                System.out.println(asn1);
-                throw pbpe;
-            }
-            catch (GeneralSecurityException gse) {
-                // pkcs12 didn't work.
-            }
-            catch (IOException ioe) {
-                // pkcs12 didn't work.
-            }
+        br = tryJKS("pkcs12", stuffStream, jksPass, null);
+        if ( br != null ) {
+            // no exception thrown, so must be PKCS12.
+            System.out.println("Please report bug!");
+            System.out.println("PKCS12 detection failed to realize this was PKCS12!");
+            System.out.println(asn1);
+            return br;
         }
         throw new KeyStoreException("failed to extract any certificates or private keys - maybe bad password?");
     }
 
     private static BuildResult tryJKS(String keystoreType,
                                       ByteArrayInputStream in,
-                                      char[] password)
-        throws GeneralSecurityException, IOException {
+                                      char[] jksPassword, char[] keyPassword)
+        throws ProbablyBadPasswordException {
         in.reset();
+        if (keyPassword == null || keyPassword.length <= 0) {
+            keyPassword = jksPassword;
+        }
+
         keystoreType = keystoreType.trim().toLowerCase();
-        boolean isPKCS12 = "pkcs12".equals(keystoreType);
-        KeyStore jksKeyStore = KeyStore.getInstance(keystoreType);
+        boolean isPKCS12 = "pkcs12".equalsIgnoreCase(keystoreType);
         try {
             Key key = null;
             Certificate[] chain = null;
-            jksKeyStore.load(in, password);
+            UnrecoverableKeyException uke = null;
+            KeyStore jksKeyStore = KeyStore.getInstance(keystoreType);
+            jksKeyStore.load(in, jksPassword);
             Enumeration en = jksKeyStore.aliases();
             while (en.hasMoreElements()) {
                 String alias = (String) en.nextElement();
                 if (jksKeyStore.isKeyEntry(alias)) {
-                    key = jksKeyStore.getKey(alias, password);
-                    if (key != null && key instanceof PrivateKey) {
-                        chain = jksKeyStore.getCertificateChain(alias);
-                        break;
+                    try {
+                        key = jksKeyStore.getKey(alias, keyPassword);
+                        if (key != null && key instanceof PrivateKey) {
+                            chain = jksKeyStore.getCertificateChain(alias);
+                            break;
+                        }
+                    } catch (UnrecoverableKeyException e) {
+                        uke = e;  // We might throw this one later. 
+                    } catch (GeneralSecurityException gse) {
+                        // Swallow... keep looping.
                     }
                 }
                 if (isPKCS12 && en.hasMoreElements()) {
                     System.out.println("what kind of weird pkcs12 file has more than one alias?");
                 }
+            }
+            if (key == null && uke != null) {
+                throw new ProbablyBadPasswordException("Probably bad JKS-Key password: " + uke);
             }
             if (isPKCS12) {
                 // PKCS12 is supposed to be just a key and a chain, anyway.
@@ -468,12 +445,14 @@ public class KeyStoreBuilder {
             }
             return new BuildResult(key, chain, jksKeyStore);
         }
+        catch ( ProbablyBadPasswordException pbpe ) {
+            throw pbpe;
+        }
         catch (GeneralSecurityException gse) {
-            throw gse;
+            // swallow it, return null
+            return null;
         }
         catch (IOException ioe) {
-            ioe.printStackTrace();
-
             String msg = ioe.getMessage();
             msg = msg != null ? msg.trim().toLowerCase() : "";
             if (isPKCS12) {
@@ -489,8 +468,8 @@ public class KeyStoreBuilder {
                     throw new ProbablyBadPasswordException("Probably bad JKS password: " + ioe);
                 }
             }
-            ioe.printStackTrace();
-            throw ioe;
+            // swallow it, return null.
+            return null;
         }
     }
 

@@ -60,6 +60,11 @@ public class KeyMaterial extends TrustMaterial {
         this(Util.streamToBytes(jks), password);
     }
 
+    public KeyMaterial(InputStream jks, char[] jksPass, char[] keyPass)
+        throws GeneralSecurityException, IOException {
+        this(Util.streamToBytes(jks), jksPass, keyPass);
+    }    
+
     public KeyMaterial(InputStream jks, InputStream key, char[] password)
         throws GeneralSecurityException, IOException {
         this(jks != null ? Util.streamToBytes(jks) : null,
@@ -67,9 +72,22 @@ public class KeyMaterial extends TrustMaterial {
             password);
     }
 
+    public KeyMaterial(InputStream jks, InputStream key, char[] jksPass,
+                       char[] keyPass)
+        throws GeneralSecurityException, IOException {
+        this(jks != null ? Util.streamToBytes(jks) : null,
+            key != null ? Util.streamToBytes(key) : null,
+            jksPass, keyPass);
+    }    
+
     public KeyMaterial(String pathToJksFile, char[] password)
         throws GeneralSecurityException, IOException {
         this(new File(pathToJksFile), password);
+    }
+
+    public KeyMaterial(String pathToJksFile, char[] jksPass, char[] keyPass)
+        throws GeneralSecurityException, IOException {
+        this(new File(pathToJksFile), jksPass, keyPass);
     }
 
     public KeyMaterial(String pathToCerts, String pathToKey, char[] password)
@@ -79,9 +97,22 @@ public class KeyMaterial extends TrustMaterial {
             password);
     }
 
+    public KeyMaterial(String pathToCerts, String pathToKey, char[] jksPass,
+                       char[] keyPass)
+        throws GeneralSecurityException, IOException {
+        this(pathToCerts != null ? new File(pathToCerts) : null,
+            pathToKey != null ? new File(pathToKey) : null,
+            jksPass, keyPass);
+    }
+    
     public KeyMaterial(File jksFile, char[] password)
         throws GeneralSecurityException, IOException {
         this(new FileInputStream(jksFile), password);
+    }
+
+    public KeyMaterial(File jksFile, char[] jksPass, char[] keyPass)
+        throws GeneralSecurityException, IOException {
+        this(new FileInputStream(jksFile), jksPass, keyPass);
     }
 
     public KeyMaterial(File certsFile, File keyFile, char[] password)
@@ -91,10 +122,22 @@ public class KeyMaterial extends TrustMaterial {
             password);
     }
 
+    public KeyMaterial(File certsFile, File keyFile, char[] jksPass,
+                       char[] keyPass)
+        throws GeneralSecurityException, IOException {
+        this(certsFile != null ? new FileInputStream(certsFile) : null,
+            keyFile != null ? new FileInputStream(keyFile) : null,
+            jksPass, keyPass);
+    }
 
     public KeyMaterial(URL urlToJKS, char[] password)
         throws GeneralSecurityException, IOException {
         this(urlToJKS.openStream(), password);
+    }
+
+    public KeyMaterial(URL urlToJKS, char[] jksPass, char[] keyPass)
+        throws GeneralSecurityException, IOException {
+        this(urlToJKS.openStream(), jksPass, keyPass);
     }
 
     public KeyMaterial(URL urlToCerts, URL urlToKey, char[] password)
@@ -102,16 +145,34 @@ public class KeyMaterial extends TrustMaterial {
         this(urlToCerts.openStream(), urlToKey.openStream(), password);
     }
 
+    public KeyMaterial(URL urlToCerts, URL urlToKey, char[] jksPass,
+                       char[] keyPass)
+        throws GeneralSecurityException, IOException {
+        this(urlToCerts.openStream(), urlToKey.openStream(), jksPass, keyPass);
+    }    
+
     public KeyMaterial(byte[] jks, char[] password)
         throws GeneralSecurityException, IOException {
-        this(jks, null, password);
+        this(jks, (byte[]) null, password);
+    }
+
+    public KeyMaterial(byte[] jks, char[] jksPass, char[] keyPass)
+        throws GeneralSecurityException, IOException {
+        this(jks, null, jksPass, keyPass);
     }
 
     public KeyMaterial(byte[] jksOrCerts, byte[] key, char[] password)
         throws GeneralSecurityException, IOException {
+        this(jksOrCerts,key,password,password);
+    }
+
+
+    public KeyMaterial(byte[] jksOrCerts, byte[] key, char[] jksPass,
+                       char[] keyPass)
+        throws GeneralSecurityException, IOException {
         // We're not a simple trust type, so set "simpleTrustType" value to 0.
         // Only TRUST_ALL and TRUST_THIS_JVM are simple trust types.
-        super(KeyStoreBuilder.build(jksOrCerts, key, password), 0);
+        super(KeyStoreBuilder.build(jksOrCerts, key, jksPass, keyPass), 0);
         KeyStore ks = getKeyStore();
         Enumeration en = ks.aliases();
         String myAlias = null;
@@ -142,7 +203,7 @@ public class KeyMaterial extends TrustMaterial {
             myChain = X509CertificateChainBuilder.buildPath(myChain[0], myChain);
         }
         this.associatedChain = myChain;
-        this.keyManagerFactory = JavaImpl.newKeyManagerFactory(ks, password);
+        this.keyManagerFactory = JavaImpl.newKeyManagerFactory(ks, keyPass);
     }
 
     public Object[] getKeyManagers() {
@@ -167,14 +228,25 @@ public class KeyMaterial extends TrustMaterial {
             System.out.println("Usage2:  java org.apache.commons.ssl.KeyMaterial [password] [private-key] [cert-chain]");
             System.exit(1);
         }
-        char[] password = args[0].toCharArray();
+        char[] jksPass = args[0].toCharArray();
+        char[] keyPass = jksPass;
         String path1 = args[1];
         String path2 = null;
         if (args.length >= 3) {
             path2 = args[2];
         }
+        if ( args.length >= 4 ) {
+            keyPass = args[3].toCharArray();
+        } else if ( path2 != null ) {
+            File f = new File(path2);
+            if ( !f.exists() ) {
+                // Hmmm... maybe it's a password.
+                keyPass = path2.toCharArray();
+                path2 = null;
+            }
+        }
 
-        KeyMaterial km = new KeyMaterial(path1, path2, password);
+        KeyMaterial km = new KeyMaterial(path1, path2, jksPass, keyPass);
         System.out.println(km);
     }
 

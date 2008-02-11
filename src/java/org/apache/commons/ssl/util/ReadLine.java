@@ -34,7 +34,7 @@ public class ReadLine {
                     case '\n':
                     case '\r':
                         lines--;
-                        if (lines == 0 && buf.length() > 0) {
+                        if (lines < 1 && buf.length() > 0) {
                             return buf.toString();
                         }
                         break;

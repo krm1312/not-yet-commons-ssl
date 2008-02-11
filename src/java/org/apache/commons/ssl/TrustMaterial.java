@@ -39,6 +39,7 @@ import java.net.URL;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
+import java.security.PublicKey;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.Collection;
@@ -204,13 +205,14 @@ public class TrustMaterial extends TrustChain {
     public TrustMaterial(byte[] jks, char[] password)
         throws GeneralSecurityException, IOException {
 
-        KeyStoreBuilder.BuildResult br = KeyStoreBuilder.parse(jks, password);
+        KeyStoreBuilder.BuildResult br;
+        br = KeyStoreBuilder.parse(jks, password, null);
         if (br.jks != null) {
             // If we've been given a keystore, just use that.
             this.jks = br.jks;
         } else {
             // Otherwise we need to build a keystore from what we were given.
-            KeyStore ks = KeyStore.getInstance("jks");
+            KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
             if (br.chain != null && br.chain.length > 0) {
                 ks.load(null, password);
                 loadCerts(ks, Arrays.asList(br.chain));
@@ -266,6 +268,30 @@ public class TrustMaterial extends TrustChain {
             ks.setCertificateEntry(alias, cert);
             count++;
         }
+    }
+
+    public static void main( String[] args ) throws Exception {
+        String path = args[0];
+        char[] pass = null;
+        if ( args.length >= 2 ) {
+            pass = args[1].toCharArray();
+        }
+        KeyMaterial km = new KeyMaterial(path,pass);
+        X509Certificate[] certs = km.getAssociatedCertificateChain();
+
+        Iterator it = Arrays.asList(certs).iterator();
+        while ( it.hasNext() ) {
+            X509Certificate cert = (X509Certificate) it.next();
+            PublicKey key = cert.getPublicKey();
+            try {
+                cert.verify( key );
+                System.out.println(Certificates.getCN(cert) + " self-signed!" );
+            } catch ( Exception e ) {
+                e.printStackTrace(System.out);
+            }
+
+        }
+
     }
 
 
