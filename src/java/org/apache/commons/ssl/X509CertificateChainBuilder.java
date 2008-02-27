@@ -35,6 +35,7 @@ import java.io.FileInputStream;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
+import java.security.PublicKey;
 import java.security.SignatureException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
@@ -131,35 +132,57 @@ public class X509CertificateChainBuilder {
             // gets added, then nodeAdded will be changed to "true".
             nodeAdded = false;
             X509Certificate top = (X509Certificate) path.getLast();
-            try {
-                top.verify(top.getPublicKey());
+            if (isSelfSigned(top)) {
                 // We're self-signed, so we're done!
                 break;
             }
-            catch (SignatureException se) {
-                // Not self-signed.  Let's see if we're signed by anyone in the
-                // collection.
-                Iterator it = certificates.iterator();
-                while (it.hasNext()) {
-                    X509Certificate x509 = (X509Certificate) it.next();
-                    try {
-                        top.verify(x509.getPublicKey());
-                        // No exception thrown, so we're signed by this guy!
-                        path.add(x509);
-                        nodeAdded = true;
-                        it.remove(); // Not interested in this guy anymore!
-                        break;
-                    }
-                    catch (SignatureException se2) {
-                        // Not signed by this guy, let's try the next guy.
-                    }
+
+            // Not self-signed.  Let's see if we're signed by anyone in the
+            // collection.
+            Iterator it = certificates.iterator();
+            while (it.hasNext()) {
+                X509Certificate x509 = (X509Certificate) it.next();
+                if (verify(top, x509.getPublicKey())) {
+                    // We're signed by this guy!  Add him to the chain we're
+                    // building up.
+                    path.add(x509);
+                    nodeAdded = true;
+                    it.remove(); // Not interested in this guy anymore!
+                    break;
                 }
+                // Not signed by this guy, let's try the next guy.
             }
         }
-
         X509Certificate[] results = new X509Certificate[path.size()];
         path.toArray(results);
         return results;
+    }
+
+    public static boolean isSelfSigned(X509Certificate cert)
+        throws CertificateException, InvalidKeyException,
+        NoSuchAlgorithmException, NoSuchProviderException {
+
+        return verify(cert, cert.getPublicKey());
+    }
+
+    public static boolean verify(X509Certificate cert, PublicKey key)
+        throws CertificateException, InvalidKeyException,
+        NoSuchAlgorithmException, NoSuchProviderException {
+
+        String sigAlg = cert.getSigAlgName();
+        String keyAlg = key.getAlgorithm();
+        sigAlg = sigAlg != null ? sigAlg.trim().toUpperCase() : "";
+        keyAlg = keyAlg != null ? keyAlg.trim().toUpperCase() : "";
+        if (keyAlg.length() >= 2 && sigAlg.endsWith(keyAlg)) {
+            try {
+                cert.verify(key);
+                return true;
+            } catch (SignatureException se) {
+                return false;
+            }
+        } else {
+            return false;
+        }
     }
 
     public static void main(String[] args) throws Exception {
