@@ -42,6 +42,9 @@ public class OpenSSLTest {
         if ("CVS".equalsIgnoreCase(name)) {
             return;
         }
+        if (".svn".equalsIgnoreCase(name)) {
+            return;
+        }
         if (name.toUpperCase().startsWith("README")) {
             return;
         }
