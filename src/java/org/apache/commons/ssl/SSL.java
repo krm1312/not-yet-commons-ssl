@@ -286,7 +286,8 @@ public class SSL {
 
     public X509Certificate[] getAssociatedCertificateChain() {
         if (keyMaterial != null) {
-            return keyMaterial.getAssociatedCertificateChain();
+            List list = keyMaterial.getAssociatedCertificateChains();
+            return (X509Certificate[]) list.get(0);
         } else {
             return null;
         }

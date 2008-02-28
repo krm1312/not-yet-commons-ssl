@@ -99,23 +99,23 @@ public class KeyStoreBuilder {
 
 
     public static KeyStore build(byte[] jksOrCerts, byte[] privateKey,
-                                 char[] jksPassword, char[] aliasPassword)
+                                 char[] jksPassword, char[] keyPassword)
         throws IOException, CertificateException, KeyStoreException,
         NoSuchAlgorithmException, InvalidKeyException,
         NoSuchProviderException, ProbablyBadPasswordException,
         UnrecoverableKeyException {
 
-        if ( aliasPassword == null || aliasPassword.length <= 0 ) {
-            aliasPassword = jksPassword;
+        if (keyPassword == null || keyPassword.length <= 0) {
+            keyPassword = jksPassword;
         }
 
-        BuildResult br1 = parse(jksOrCerts, jksPassword, aliasPassword);
+        BuildResult br1 = parse(jksOrCerts, jksPassword, keyPassword);
         BuildResult br2 = null;
         KeyStore jks = null;
         if (br1.jks != null) {
             jks = br1.jks;
         } else if (privateKey != null && privateKey.length > 0) {
-            br2 = parse(privateKey, jksPassword, aliasPassword);
+            br2 = parse(privateKey, jksPassword, keyPassword);
             if (br2.jks != null) {
                 jks = br2.jks;
             }
@@ -126,50 +126,57 @@ public class KeyStoreBuilder {
         // and a JKS file!).
         if (jks != null) {
             // Make sure the keystore we found is not corrupt.
-            validate(jks, aliasPassword);
-            return jks;
+            br1 = validate(jks, keyPassword);
+            if (br1 == null) {
+                return jks;
+            }
         }
 
-        Key key = br1.key;
-        X509Certificate[] chain = br1.chain;
-        boolean atLeastOneNotSet = key == null || chain == null;
+        List keys = br1.keys;
+        List chains = br1.chains;
+        boolean atLeastOneNotSet = keys == null || chains == null;
         if (atLeastOneNotSet && br2 != null) {
-            if (br2.key != null) {
+            if (br2.keys != null) {
                 // Notice that the key from build-result-2 gets priority over the
                 // key from build-result-1 (if both had valid keys).
-                key = br2.key;
+                keys = br2.keys;
             }
-            if (chain == null) {
-                chain = br2.chain;
+            if (chains == null) {
+                chains = br2.chains;
             }
         }
 
-        atLeastOneNotSet = key == null || chain == null;
+        atLeastOneNotSet = keys == null || chains == null;
         if (atLeastOneNotSet) {
             String missing = "";
-            if (key == null) {
+            if (keys == null) {
                 missing = " [Private key missing (bad password?)]";
             }
-            if (chain == null) {
+            if (chains == null) {
                 missing += " [Certificate chain missing]";
             }
             throw new KeyStoreException("Can't build keystore:" + missing);
         } else {
-
-            X509Certificate theOne = buildChain(key, chain);
-            String alias = "alias";
-            // The theOne is not null, then our chain was probably altered.
-            // Need to trim out the newly introduced null entries at the end of
-            // our chain.
-            if (theOne != null) {
-                chain = Certificates.trimChain(chain);
-                alias = Certificates.getCN(theOne);
-                alias = alias.replace(' ', '_');
-            }
-
             KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
             ks.load(null, jksPassword);
-            ks.setKeyEntry(alias, key, aliasPassword, chain);
+            Iterator keysIt = keys.iterator();
+            Iterator chainsIt = chains.iterator();
+            int i = 1;
+            while (keysIt.hasNext()) {
+                Key key = (Key) keysIt.next();
+                Certificate[] c = (Certificate[]) chainsIt.next();
+                X509Certificate theOne = buildChain(key, c);
+                String alias = "alias_" + i++;
+                // The theOne is not null, then our chain was probably altered.
+                // Need to trim out the newly introduced null entries at the end of
+                // our chain.
+                if (theOne != null) {
+                    c = Certificates.trimChain(c);
+                    alias = Certificates.getCN(theOne);
+                    alias = alias.replace(' ', '_');
+                }
+                ks.setKeyEntry(alias, key, keyPassword, c);
+            }
             return ks;
         }
     }
@@ -219,59 +226,80 @@ public class KeyStoreBuilder {
         return theOne;
     }
 
-    public static void validate(KeyStore jks, char[] keyPassword)
+    public static BuildResult validate(KeyStore jks, char[] keyPass)
         throws CertificateException, KeyStoreException,
         NoSuchAlgorithmException, InvalidKeyException,
         NoSuchProviderException, UnrecoverableKeyException {
         Enumeration en = jks.aliases();
-        String privateKeyAlias = null;
+        boolean atLeastOneSuccess = false;
+        boolean atLeastOneFailure = false;
+
+        List keys = new LinkedList();
+        List chains = new LinkedList();
         while (en.hasMoreElements()) {
             String alias = (String) en.nextElement();
-            boolean isKey = jks.isKeyEntry(alias);
-            if (isKey) {
-                if (privateKeyAlias != null) {
-                    throw new KeyStoreException("Only 1 private key per keystore allowed for Commons-SSL");
-                } else {
-                    privateKeyAlias = alias;
+            if (jks.isKeyEntry(alias)) {
+                try {
+                    PrivateKey key = (PrivateKey) jks.getKey(alias, keyPass);
+                    // No Exception thrown, so we're good!
+                    atLeastOneSuccess = true;
+                    Certificate[] chain = jks.getCertificateChain(alias);
+                    X509Certificate[] c;
+                    if (chain != null) {
+                        c = Certificates.x509ifyChain(chain);
+                        X509Certificate theOne = buildChain(key, c);
+                        // The theOne is not null, then our chain was probably
+                        // altered.  Need to trim out the newly introduced null
+                        // entries at the end of our chain.
+                        if (theOne != null) {
+                            c = (X509Certificate[]) Certificates.trimChain(c);
+                            jks.deleteEntry(alias);
+                            jks.setKeyEntry(alias, key, keyPass, c);
+                        }
+                        keys.add(key);
+                        chains.add(c);
+                    }
+                } catch (GeneralSecurityException gse) {
+                    atLeastOneFailure = true;
+                    // This is not the key you're looking for.
                 }
             }
         }
-        if (privateKeyAlias == null) {
+        if (!atLeastOneSuccess) {
             throw new KeyStoreException("No private keys found in keystore!");
         }
-        PrivateKey key = (PrivateKey) jks.getKey(privateKeyAlias, keyPassword);
-        Certificate[] chain = jks.getCertificateChain(privateKeyAlias);
-        X509Certificate[] x509Chain = Certificates.x509ifyChain(chain);
-        X509Certificate theOne = buildChain(key, x509Chain);
-        // The theOne is not null, then our chain was probably altered.
-        // Need to trim out the newly introduced null entries at the end of
-        // our chain.
-        if (theOne != null) {
-            x509Chain = Certificates.trimChain(x509Chain);
-            jks.deleteEntry(privateKeyAlias);
-            jks.setKeyEntry(privateKeyAlias, key, keyPassword, x509Chain);
-        }
+        // The idea is a bit hacky:  if we return null, all is cool.  If
+        // we return a list, we're telling upstairs to abandon the JKS and
+        // build a new one from the BuildResults we provide.
+        // (Sun's builtin SSL refuses to deal with keystores where not all
+        // keys can be decrypted).
+        return atLeastOneFailure ? new BuildResult(keys, chains, null) : null;
     }
 
     protected static class BuildResult {
-        protected final Key key;
-        protected final X509Certificate[] chain;
+        protected final List keys;
+        protected final List chains;
         protected final KeyStore jks;
 
-        protected BuildResult(Key key, Certificate[] chain, KeyStore jks) {
-            this.key = key;
+        protected BuildResult(List keys, List chains, KeyStore jks) {
+            this.keys = Collections.unmodifiableList(keys);
             this.jks = jks;
-            if (chain == null) {
-                this.chain = null;
-            } else if (chain instanceof X509Certificate[]) {
-                this.chain = (X509Certificate[]) chain;
-            } else {
-                X509Certificate[] x509 = new X509Certificate[chain.length];
-                for ( int i = 0; i < x509.length; i++ ) {
-                    x509[i] = (X509Certificate) chain[i];
+            List x509Chains = new LinkedList();
+            if (chains != null) {
+                Iterator it = chains.iterator();
+                while (it.hasNext()) {
+                    Certificate[] chain = (Certificate[]) it.next();
+                    if (chain != null && chain.length > 0) {
+                        int len = chain.length;
+                        X509Certificate[] x509 = new X509Certificate[len];
+                        for (int i = 0; i < x509.length; i++) {
+                            x509[i] = (X509Certificate) chain[i];
+                        }
+                        x509Chains.add(x509);
+                    }
                 }
-                this.chain = x509;
             }
+            this.chains = Collections.unmodifiableList(x509Chains);
         }
     }
 
@@ -312,7 +340,9 @@ public class KeyStoreBuilder {
         }
 
         if (chain != null || key != null) {
-            return new BuildResult(key, chain, null);
+            List chains = Collections.singletonList(chain);
+            List keys = Collections.singletonList(key);
+            return new BuildResult(keys, chains, null);
         }
 
         boolean isProbablyPKCS12 = false;
@@ -364,7 +394,8 @@ public class KeyStoreBuilder {
                 }
                 chain = toChain(certificates);
                 if (chain != null && chain.length > 0) {
-                    return new BuildResult(null, chain, null);
+                    List chains = Collections.singletonList(chain);
+                    return new BuildResult(null, chains, null);
                 }
             }
             catch (CertificateException ce) {
@@ -380,7 +411,8 @@ public class KeyStoreBuilder {
                 X509Certificate x509 = (X509Certificate) c;
                 chain = toChain(Collections.singleton(x509));
                 if (chain != null && chain.length > 0) {
-                    return new BuildResult(null, chain, null);
+                    List chains = Collections.singletonList(chain);
+                    return new BuildResult(null, chains, null);
                 }
             }
             catch (CertificateException ce) {
@@ -389,7 +421,7 @@ public class KeyStoreBuilder {
         }
 
         br = tryJKS("pkcs12", stuffStream, jksPass, null);
-        if ( br != null ) {
+        if (br != null) {
             // no exception thrown, so must be PKCS12.
             System.out.println("Please report bug!");
             System.out.println("PKCS12 detection failed to realize this was PKCS12!");
@@ -443,9 +475,12 @@ public class KeyStoreBuilder {
                 // PKCS12 is supposed to be just a key and a chain, anyway.
                 jksKeyStore = null;
             }
-            return new BuildResult(key, chain, jksKeyStore);
+
+            List keys = Collections.singletonList(key);
+            List chains = Collections.singletonList(chain);
+            return new BuildResult(keys, chains, jksKeyStore);
         }
-        catch ( ProbablyBadPasswordException pbpe ) {
+        catch (ProbablyBadPasswordException pbpe) {
             throw pbpe;
         }
         catch (GeneralSecurityException gse) {

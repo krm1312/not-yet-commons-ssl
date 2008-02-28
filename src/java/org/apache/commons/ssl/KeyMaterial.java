@@ -42,7 +42,11 @@ import java.security.KeyStoreException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
+import java.util.Collections;
 import java.util.Enumeration;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
 
 /**
  * @author Credit Union Central of British Columbia
@@ -52,8 +56,8 @@ import java.util.Enumeration;
  */
 public class KeyMaterial extends TrustMaterial {
     private final Object keyManagerFactory;
-    private final String alias;
-    private final X509Certificate[] associatedChain;
+    private final List aliases;
+    private final List associatedChains;
 
     public KeyMaterial(InputStream jks, char[] password)
         throws GeneralSecurityException, IOException {
@@ -63,7 +67,7 @@ public class KeyMaterial extends TrustMaterial {
     public KeyMaterial(InputStream jks, char[] jksPass, char[] keyPass)
         throws GeneralSecurityException, IOException {
         this(Util.streamToBytes(jks), jksPass, keyPass);
-    }    
+    }
 
     public KeyMaterial(InputStream jks, InputStream key, char[] password)
         throws GeneralSecurityException, IOException {
@@ -78,7 +82,7 @@ public class KeyMaterial extends TrustMaterial {
         this(jks != null ? Util.streamToBytes(jks) : null,
             key != null ? Util.streamToBytes(key) : null,
             jksPass, keyPass);
-    }    
+    }
 
     public KeyMaterial(String pathToJksFile, char[] password)
         throws GeneralSecurityException, IOException {
@@ -104,7 +108,7 @@ public class KeyMaterial extends TrustMaterial {
             pathToKey != null ? new File(pathToKey) : null,
             jksPass, keyPass);
     }
-    
+
     public KeyMaterial(File jksFile, char[] password)
         throws GeneralSecurityException, IOException {
         this(new FileInputStream(jksFile), password);
@@ -149,7 +153,7 @@ public class KeyMaterial extends TrustMaterial {
                        char[] keyPass)
         throws GeneralSecurityException, IOException {
         this(urlToCerts.openStream(), urlToKey.openStream(), jksPass, keyPass);
-    }    
+    }
 
     public KeyMaterial(byte[] jks, char[] password)
         throws GeneralSecurityException, IOException {
@@ -163,7 +167,7 @@ public class KeyMaterial extends TrustMaterial {
 
     public KeyMaterial(byte[] jksOrCerts, byte[] key, char[] password)
         throws GeneralSecurityException, IOException {
-        this(jksOrCerts,key,password,password);
+        this(jksOrCerts, key, password, password);
     }
 
 
@@ -175,34 +179,41 @@ public class KeyMaterial extends TrustMaterial {
         super(KeyStoreBuilder.build(jksOrCerts, key, jksPass, keyPass), 0);
         KeyStore ks = getKeyStore();
         Enumeration en = ks.aliases();
-        String myAlias = null;
-        X509Certificate[] myChain;
+        List myAliases = new LinkedList();
+        List myChains = new LinkedList();
         while (en.hasMoreElements()) {
+            X509Certificate[] c; // chain
             String alias = (String) en.nextElement();
             if (ks.isKeyEntry(alias)) {
-                if (myAlias != null) {
-                    throw new KeyStoreException("commons-ssl KeyMaterial only supports keystores with a single private key.");
+                try {
+                    ks.getKey(alias, keyPass);
+                    // No Exception thrown, so we're good!
+                    myAliases.add(alias);
+                    Certificate[] chain = ks.getCertificateChain(alias);
+                    if (chain != null) {
+                        c = Certificates.x509ifyChain(chain);
+                        // Cleanup chain to remove any spurious entries.
+                        if (c != null) {
+                            X509Certificate l = c[0]; // The leaf node.
+                            c = X509CertificateChainBuilder.buildPath(l, c);
+                        }
+                        myChains.add(c);
+                    } else {
+                        throw new KeyStoreException("Could not find KeyMaterial's associated certificate chain with alis=[" + alias + "]");
+                    }
+
+                } catch (GeneralSecurityException gse) {
+                    // oh well, we can't use that KeyStore alias.
                 }
-                myAlias = alias;
             }
         }
-        if (myAlias != null) {
-            Certificate[] chain = ks.getCertificateChain(myAlias);
-            if (chain != null) {
-                myChain = Certificates.x509ifyChain(chain);
-            } else {
-                // is password wrong?
-                throw new KeyStoreException("Could not find KeyMaterial's associated certificate chain!");
-            }
-        } else {
+        if (myAliases.isEmpty()) {
             throw new KeyStoreException("KeyMaterial provided does not contain any keys!");
         }
-        this.alias = myAlias;
-        // Cleanup chain to remove any spurious entries.
-        if (myChain != null) {
-            myChain = X509CertificateChainBuilder.buildPath(myChain[0], myChain);
-        }
-        this.associatedChain = myChain;
+        this.aliases = Collections.unmodifiableList(myAliases);
+        this.associatedChains = Collections.unmodifiableList(myChains);
+
+System.out.println( "Aliases: " + aliases );        
         this.keyManagerFactory = JavaImpl.newKeyManagerFactory(ks, keyPass);
     }
 
@@ -210,16 +221,16 @@ public class KeyMaterial extends TrustMaterial {
         return JavaImpl.getKeyManagers(keyManagerFactory);
     }
 
-    public X509Certificate[] getAssociatedCertificateChain() {
-        return associatedChain;
+    public List getAssociatedCertificateChains() {
+        return associatedChains;
     }
 
     public KeyStore getKeyStore() {
         return super.getKeyStore();
     }
 
-    public String getAlias() {
-        return alias;
+    public List getAliases() {
+        return aliases;
     }
 
     public static void main(String[] args) throws Exception {
@@ -235,11 +246,11 @@ public class KeyMaterial extends TrustMaterial {
         if (args.length >= 3) {
             path2 = args[2];
         }
-        if ( args.length >= 4 ) {
+        if (args.length >= 4) {
             keyPass = args[3].toCharArray();
-        } else if ( path2 != null ) {
+        } else if (path2 != null) {
             File f = new File(path2);
-            if ( !f.exists() ) {
+            if (!f.exists()) {
                 // Hmmm... maybe it's a password.
                 keyPass = path2.toCharArray();
                 path2 = null;
@@ -251,20 +262,27 @@ public class KeyMaterial extends TrustMaterial {
     }
 
     public String toString() {
-        X509Certificate[] certs = getAssociatedCertificateChain();
-        StringBuffer buf = new StringBuffer(1024);
-        buf.append("Alias: ");
-        buf.append(alias);
-        buf.append('\n');
-        if (certs != null) {
-            for (int i = 0; i < certs.length; i++) {
-                buf.append(Certificates.toString(certs[i]));
-                try {
-                    buf.append(Certificates.toPEMString(certs[i]));
-                }
-                catch (CertificateEncodingException cee) {
-                    buf.append(cee.toString());
-                    buf.append('\n');
+        List chains = getAssociatedCertificateChains();
+        List aliases = getAliases();
+        Iterator it = chains.iterator();
+        Iterator aliasesIt = aliases.iterator();
+        StringBuffer buf = new StringBuffer(8192);
+        while (it.hasNext()) {
+            X509Certificate[] certs = (X509Certificate[]) it.next();
+            String alias = (String) aliasesIt.next();
+            buf.append("Alias: ");
+            buf.append(alias);
+            buf.append('\n');
+            if (certs != null) {
+                for (int i = 0; i < certs.length; i++) {
+                    buf.append(Certificates.toString(certs[i]));
+                    try {
+                        buf.append(Certificates.toPEMString(certs[i]));
+                    }
+                    catch (CertificateEncodingException cee) {
+                        buf.append(cee.toString());
+                        buf.append('\n');
+                    }
                 }
             }
         }

@@ -550,7 +550,7 @@ public class Certificates {
      * @param chain X509Certificate[] chain to trim
      * @return Shrunk array with all trailing null entries removed.
      */
-    public static X509Certificate[] trimChain(X509Certificate[] chain) {
+    public static Certificate[] trimChain(Certificate[] chain) {
         for (int i = 0; i < chain.length; i++) {
             if (chain[i] == null) {
                 X509Certificate[] newChain = new X509Certificate[i];

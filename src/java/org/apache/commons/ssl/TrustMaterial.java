@@ -39,7 +39,7 @@ import java.net.URL;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
-import java.security.PublicKey;
+import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.Collection;
@@ -57,10 +57,14 @@ public class TrustMaterial extends TrustChain {
     final static int SIMPLE_TRUST_TYPE_TRUST_ALL = 1;
     final static int SIMPLE_TRUST_TYPE_TRUST_THIS_JVM = 2;
 
-    /** Might be null if "$JAVA_HOME/jre/lib/security/cacerts" doesn't exist. */
+    /**
+     * Might be null if "$JAVA_HOME/jre/lib/security/cacerts" doesn't exist.
+     */
     public final static TrustMaterial CACERTS;
 
-    /** Might be null if "$JAVA_HOME/jre/lib/security/jssecacerts" doesn't exist. */
+    /**
+     * Might be null if "$JAVA_HOME/jre/lib/security/jssecacerts" doesn't exist.
+     */
     public final static TrustMaterial JSSE_CACERTS;
 
     /**
@@ -213,9 +217,12 @@ public class TrustMaterial extends TrustChain {
         } else {
             // Otherwise we need to build a keystore from what we were given.
             KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
-            if (br.chain != null && br.chain.length > 0) {
-                ks.load(null, password);
-                loadCerts(ks, Arrays.asList(br.chain));
+            if (br.chains != null && !br.chains.isEmpty()) {
+                Certificate[] c = (Certificate[]) br.chains.get(0);
+                if (c.length > 0) {
+                    ks.load(null, password);
+                    loadCerts(ks, Arrays.asList(c));
+                }
             }
             this.jks = ks;
         }
@@ -269,30 +276,5 @@ public class TrustMaterial extends TrustChain {
             count++;
         }
     }
-
-    public static void main( String[] args ) throws Exception {
-        String path = args[0];
-        char[] pass = null;
-        if ( args.length >= 2 ) {
-            pass = args[1].toCharArray();
-        }
-        KeyMaterial km = new KeyMaterial(path,pass);
-        X509Certificate[] certs = km.getAssociatedCertificateChain();
-
-        Iterator it = Arrays.asList(certs).iterator();
-        while ( it.hasNext() ) {
-            X509Certificate cert = (X509Certificate) it.next();
-            PublicKey key = cert.getPublicKey();
-            try {
-                cert.verify( key );
-                System.out.println(Certificates.getCN(cert) + " self-signed!" );
-            } catch ( Exception e ) {
-                e.printStackTrace(System.out);
-            }
-
-        }
-
-    }
-
 
 }
