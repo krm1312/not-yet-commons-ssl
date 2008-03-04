@@ -259,7 +259,7 @@ public class Ping {
             catch (Exception e) {
                 socketException = e;
             }
-            trustException = testTrust(ssl, sslCipher);
+            trustException = testTrust(ssl, sslCipher, trustChain);
             hostnameException = testHostname(ssl);
             crlException = testCRL(ssl);
             expiryException = testExpiry(ssl);
@@ -315,7 +315,8 @@ public class Ping {
         }
     }
 
-    private static Exception testTrust(SSLClient ssl, String cipher) {
+    private static Exception testTrust(SSLClient ssl, String cipher,
+                                       TrustChain tc) {
         try {
             X509Certificate[] chain = ssl.getCurrentServerChain();
             String authType = Util.cipherToAuthType(cipher);
@@ -324,7 +325,10 @@ public class Ping {
                 authType = "RSA";
             }
             if (chain != null) {
-                Object[] trustManagers = TrustMaterial.DEFAULT.getTrustManagers();
+                if (tc == null) {
+                    tc = TrustMaterial.DEFAULT;
+                }
+                Object[] trustManagers = tc.getTrustManagers();
                 for (int i = 0; i < trustManagers.length; i++) {
                     JavaImpl.testTrust(trustManagers[i], chain, authType);
                 }

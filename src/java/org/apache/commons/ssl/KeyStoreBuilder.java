@@ -362,6 +362,7 @@ public class KeyStoreBuilder {
         }
 
         ByteArrayInputStream stuffStream = new ByteArrayInputStream(stuff);
+        // Try default keystore... then try others.
         BuildResult br = tryJKS(KeyStore.getDefaultType(), stuffStream, jksPass, keyPass);
         if (br == null) {
             br = tryJKS("jks", stuffStream, jksPass, keyPass);
@@ -553,12 +554,25 @@ public class KeyStoreBuilder {
 
         KeyStore ks = build(bytes1, bytes2, password);
         Enumeration en = ks.aliases();
-        String alias = null;
+        String alias = "keystorebuilder";
+
+        // We're going to assume that the biggest key is the one we want
+        // to convert to PKCS8 (PEM).  That's until someone figures out a
+        // better way to deal with this annoying situation (more than 1
+        // key in the KeyStore).
+        int biggestKey = 0;
         while (en.hasMoreElements()) {
-            if (alias == null) {
-                alias = (String) en.nextElement();
-            } else {
-                System.out.println("Generated keystore contains more than 1 alias!?!?");
+            String s = (String) en.nextElement();
+            try {
+                PrivateKey pk = (PrivateKey) ks.getKey(s, password);
+                byte[] encoded = pk.getEncoded();
+                int len = encoded != null ? encoded.length : 0;
+                if (len >= biggestKey) {
+                    biggestKey = len;
+                    alias = s;
+                }
+            } catch (Exception e) {
+                // oh well, try next one.
             }
         }
 

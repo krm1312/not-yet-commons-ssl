@@ -202,5 +202,18 @@ public class TrustChain {
         return getCertificates().isEmpty();
     }
 
+    protected boolean containsTrustAll() {
+        Iterator it = trustMaterial.iterator();
+        while (it.hasNext()) {
+            TrustChain tc = (TrustChain) it.next();
+            if (tc == this) {
+                continue;
+            }
+            if (tc.containsTrustAll()) {
+                return true;
+            }
+        }
+        return false;
+    }
 
 }

@@ -80,7 +80,12 @@ public class Java14TrustManagerWrapper implements X509TrustManager {
     }
 
     public X509Certificate[] getAcceptedIssuers() {
-        return trustManager.getAcceptedIssuers();
+        if (trustChain.containsTrustAll()) {
+            // Counter-intuitively, this means we accept all issuers.
+            return new X509Certificate[0];
+        } else {
+            return trustManager.getAcceptedIssuers();
+        }
     }
 
     private void testShouldWeThrow(CertificateException checkException,

@@ -59,9 +59,13 @@ public class SSLEchoServer {
         }
 
         SSLServer ssl = new SSLServer();
-        // ssl.setCheckExpiry( false );
-        // ssl.setNeedClientAuth( true );
-        ssl.addTrustMaterial(TrustMaterial.TRUST_ALL);
+        ssl.setTrustMaterial(TrustMaterial.TRUST_ALL);
+        ssl.setCheckExpiry(false);
+        ssl.setCheckCRL(false);
+        ssl.setCheckHostname(false);
+        ssl.setWantClientAuth(true);
+        ssl.useDefaultJavaCiphers();
+
         SSLServerSocket ss = (SSLServerSocket) ssl.createServerSocket(port, 3);
         System.out.println("SSL Echo server listening on port: " + port);
         while (true) {
@@ -102,6 +106,7 @@ public class SSLEchoServer {
                 }
                 catch (SSLPeerUnverifiedException sslpue) {
                     // oh well, no client cert for us
+                    System.out.println(sslpue);
                 }
 
                 in = s.getInputStream();

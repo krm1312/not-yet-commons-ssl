@@ -277,4 +277,12 @@ public class TrustMaterial extends TrustChain {
         }
     }
 
+    protected boolean containsTrustAll() {
+        boolean yes = this.simpleTrustType == SIMPLE_TRUST_TYPE_TRUST_ALL;
+        if ( !yes ) {
+            yes = super.containsTrustAll();
+        }
+        return yes;
+    }
+
 }

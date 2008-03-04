@@ -67,7 +67,12 @@ public class Java13TrustManagerWrapper implements X509TrustManager {
     }
 
     public X509Certificate[] getAcceptedIssuers() {
-        return trustManager.getAcceptedIssuers();
+        if ( trustChain.containsTrustAll()) {
+            // This means we accept all issuers.
+            return new X509Certificate[0];
+        } else {
+            return trustManager.getAcceptedIssuers();
+        }
     }
 
     private boolean test(boolean firstTest, X509Certificate[] chain) {
@@ -78,7 +83,6 @@ public class Java13TrustManagerWrapper implements X509TrustManager {
                 return false;
             }
         }
-
         try {
             for (int i = 0; i < chain.length; i++) {
                 X509Certificate c = chain[i];

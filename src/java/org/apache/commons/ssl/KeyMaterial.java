@@ -212,8 +212,6 @@ public class KeyMaterial extends TrustMaterial {
         }
         this.aliases = Collections.unmodifiableList(myAliases);
         this.associatedChains = Collections.unmodifiableList(myChains);
-
-System.out.println( "Aliases: " + aliases );        
         this.keyManagerFactory = JavaImpl.newKeyManagerFactory(ks, keyPass);
     }
 
