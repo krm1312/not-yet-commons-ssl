@@ -106,7 +106,7 @@ public class Ping {
                 parseException.printStackTrace(System.out);
                 System.out.println();
             }
-            System.out.println("Usage:  java -jar not-yet-commons-ssl-0.3.9.jar [options]");
+            System.out.println("Usage:  java -jar not-yet-commons-ssl-" + Version.VERSION + ".jar [options]");
             System.out.println(Version.versionString());
             System.out.println("Options:   (*=required)");
             Iterator it = ARGS.iterator();
