@@ -80,7 +80,7 @@ public class Ping {
     private static File clientCert;
     private static File certChain;
     private static char[] password;
-    private static TrustChain trustChain = new TrustChain();
+    private static TrustChain trustChain = null;
 
     static {
         ARGS = Collections.unmodifiableSortedSet(ARGS);
@@ -160,7 +160,7 @@ public class Ping {
                     ssl.setKeyMaterial(km);
                 }
 
-                if (!trustChain.isEmpty()) {
+                if (trustChain != null) {
                     ssl.addTrustMaterial(trustChain);
                 }
 
@@ -453,6 +453,9 @@ public class Ping {
                 for (int i = 0; i < values.length; i++) {
                     File f = new File(values[i]);
                     if (f.exists()) {
+                        if (trustChain == null) {
+                            trustChain = new TrustChain();
+                        }
                         TrustMaterial tm = new TrustMaterial(f);
                         trustChain.addTrustMaterial(tm);
                     }
