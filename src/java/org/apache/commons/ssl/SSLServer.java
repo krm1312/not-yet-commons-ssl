@@ -46,6 +46,7 @@ import java.security.cert.X509Certificate;
 import java.util.Collection;
 import java.util.List;
 import java.util.Properties;
+import java.util.Map;
 
 /**
  * @author Credit Union Central of British Columbia
@@ -143,6 +144,8 @@ public class SSLServer extends SSLServerSocketFactory {
         }
         return success;
     }
+
+    public void setDnsOverride(Map m) { ssl.setDnsOverride(m); }
 
     public void addTrustMaterial(TrustChain trustChain)
         throws NoSuchAlgorithmException, KeyStoreException,

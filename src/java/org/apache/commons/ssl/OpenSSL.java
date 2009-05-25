@@ -135,7 +135,7 @@ public class OpenSSL {
                 InputStream head = new ByteArrayInputStream(saltLine);
                 // Need to put that 16 byte "saltLine" back into the Stream.
                 encrypted = new ComboInputStream(head, encrypted);
-                encrypted = new Base64InputStream(encrypted, true);
+                encrypted = new Base64InputStream(encrypted);
                 saltLine = Util.streamToBytes(encrypted, 16);
 
                 if (saltLine.length >= 8) {
@@ -345,7 +345,7 @@ public class OpenSSL {
             cipherStream = new ComboInputStream(head, cipherStream);
         }
         if (toBase64) {
-            cipherStream = new Base64InputStream(cipherStream, false);
+            cipherStream = new Base64InputStream(cipherStream, true);
         }
         return cipherStream;
     }
@@ -368,7 +368,7 @@ public class OpenSSL {
             InputStream head = new ByteArrayInputStream(firstLine);
             // Need to put that 16 byte "firstLine" back into the Stream.
             encrypted = new ComboInputStream(head, encrypted);
-            encrypted = new Base64InputStream(encrypted, true);
+            encrypted = new Base64InputStream(encrypted);
         } else {
             // Encrypted data wasn't base64.  Need to put the "firstLine" we
             // extracted back into the stream.
@@ -433,7 +433,7 @@ public class OpenSSL {
 
         InputStream cipherStream = new CipherInputStream(data, c);
         if (toBase64) {
-            cipherStream = new Base64InputStream(cipherStream, false);
+            cipherStream = new Base64InputStream(cipherStream, true);
         }
         return cipherStream;
     }

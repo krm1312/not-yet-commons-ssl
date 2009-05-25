@@ -45,6 +45,7 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author Credit Union Central of British Columbia
@@ -77,6 +78,8 @@ public class SSLClient extends SSLSocketFactory {
         KeyManagementException, IOException, CertificateException {
         ssl.setKeyMaterial(keyMaterial);
     }
+
+    public void setDnsOverride(Map m) { ssl.setDnsOverride(m); }    
 
     public void addAllowedName(String s) { ssl.addAllowedName(s); }
 

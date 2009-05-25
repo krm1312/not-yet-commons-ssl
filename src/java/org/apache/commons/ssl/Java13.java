@@ -205,9 +205,9 @@ public final class Java13 extends JavaImpl {
         throws IOException {
         // Connect Timeout ignored for Java 1.3
         SSLSocketFactory sf = ssl.getSSLSocketFactory();
-        SSLSocket s = (SSLSocket) connectSocket(null, sf, remoteHost,
-            remotePort, localHost,
-            localPort, -1);
+        SSLSocket s = (SSLSocket) connectSocket(
+                null, sf, remoteHost, remotePort, localHost, localPort, -1, ssl
+        );
         ssl.doPreConnectSocketStuff(s);
         ssl.doPostConnectSocketStuff(s, remoteHost);
         return s;
@@ -216,8 +216,11 @@ public final class Java13 extends JavaImpl {
     protected final Socket connectSocket(Socket s, SocketFactory sf,
                                          String remoteHost, int remotePort,
                                          InetAddress localHost, int localPort,
-                                         int timeout)
+                                         int timeout, SSL ssl)
         throws IOException {
+
+        remoteHost = ssl.dnsOverride(remoteHost);
+
         // Connect Timeout ignored for Java 1.3
         if (s == null) {
             if (sf == null) {

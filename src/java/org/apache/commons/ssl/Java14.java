@@ -155,7 +155,7 @@ public final class Java14 extends JavaImpl {
         throws IOException {
         SSLSocket s = buildSocket(ssl);
         s = (SSLSocket) connectSocket(s, null, remoteHost, remotePort,
-            localHost, localPort, timeout);
+            localHost, localPort, timeout, ssl);
         ssl.doPostConnectSocketStuff(s, remoteHost);
         return s;
     }
@@ -163,7 +163,7 @@ public final class Java14 extends JavaImpl {
     protected final Socket connectSocket(Socket s, SocketFactory sf,
                                          String remoteHost, int remotePort,
                                          InetAddress localHost, int localPort,
-                                         int timeout)
+                                         int timeout, SSL ssl)
         throws IOException {
         if (s == null) {
             if (sf == null) {
@@ -172,6 +172,9 @@ public final class Java14 extends JavaImpl {
                 s = sf.createSocket();
             }
         }
+
+        String orig = remoteHost;
+        remoteHost = ssl.dnsOverride(remoteHost);
         InetSocketAddress dest = new InetSocketAddress(remoteHost, remotePort);
         InetSocketAddress src = new InetSocketAddress(localHost, localPort);
         s.bind(src);

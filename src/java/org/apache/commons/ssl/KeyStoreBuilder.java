@@ -133,20 +133,20 @@ public class KeyStoreBuilder {
         }
 
         List keys = br1.keys;
-        List chains = br1.chains;
-        boolean atLeastOneNotSet = keys == null || chains == null;
+        List chains = br1.chains;        
+        boolean atLeastOneNotSet = keys == null || chains == null || keys.isEmpty() || chains.isEmpty();
         if (atLeastOneNotSet && br2 != null) {
-            if (br2.keys != null) {
+            if (br2.keys != null && !br2.keys.isEmpty()) {
                 // Notice that the key from build-result-2 gets priority over the
                 // key from build-result-1 (if both had valid keys).
                 keys = br2.keys;
             }
-            if (chains == null) {
+            if (chains == null || chains.isEmpty()) {
                 chains = br2.chains;
             }
         }
 
-        atLeastOneNotSet = keys == null || chains == null;
+        atLeastOneNotSet = keys == null || chains == null || keys.isEmpty() || chains.isEmpty();
         if (atLeastOneNotSet) {
             String missing = "";
             if (keys == null) {
@@ -162,7 +162,7 @@ public class KeyStoreBuilder {
             Iterator keysIt = keys.iterator();
             Iterator chainsIt = chains.iterator();
             int i = 1;
-            while (keysIt.hasNext()) {
+            while (keysIt.hasNext() && chainsIt.hasNext()) {
                 Key key = (Key) keysIt.next();
                 Certificate[] c = (Certificate[]) chainsIt.next();
                 X509Certificate theOne = buildChain(key, c);
@@ -282,7 +282,11 @@ public class KeyStoreBuilder {
         protected final KeyStore jks;
 
         protected BuildResult(List keys, List chains, KeyStore jks) {
-            this.keys = Collections.unmodifiableList(keys);
+            if (keys == null || keys.isEmpty()) {
+                this.keys = null;
+            } else {
+                this.keys = Collections.unmodifiableList(keys);
+            }
             this.jks = jks;
             List x509Chains = new LinkedList();
             if (chains != null) {
@@ -299,7 +303,11 @@ public class KeyStoreBuilder {
                     }
                 }
             }
-            this.chains = Collections.unmodifiableList(x509Chains);
+            if (x509Chains == null || x509Chains.isEmpty()) {
+                this.chains = null;
+            } else {
+                this.chains = Collections.unmodifiableList(x509Chains);
+            }
         }
     }
 
@@ -340,8 +348,8 @@ public class KeyStoreBuilder {
         }
 
         if (chain != null || key != null) {
-            List chains = Collections.singletonList(chain);
-            List keys = Collections.singletonList(key);
+            List chains = chain != null ? Collections.singletonList(chain) : null;
+            List keys = key != null ? Collections.singletonList(key) : null;
             return new BuildResult(keys, chains, null);
         }
 

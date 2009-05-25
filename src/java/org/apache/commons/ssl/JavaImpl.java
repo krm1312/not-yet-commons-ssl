@@ -126,7 +126,7 @@ public abstract class JavaImpl {
     protected abstract Socket connectSocket(Socket s, SocketFactory sf,
                                             String remoteHost, int remotePort,
                                             InetAddress localHost, int localPort,
-                                            int timeout)
+                                            int timeout, SSL ssl)
         throws IOException;
 
     protected abstract SSLServerSocket buildServerSocket(SSL ssl)
@@ -208,10 +208,10 @@ public abstract class JavaImpl {
     protected static Socket connect(Socket s, SocketFactory sf,
                                     String remoteHost, int remotePort,
                                     InetAddress localHost, int localPort,
-                                    int timeout)
+                                    int timeout, SSL ssl)
         throws IOException {
         return HANDLER.connectSocket(s, sf, remoteHost, remotePort, localHost,
-            localPort, timeout);
+            localPort, timeout, ssl);
     }
 
     public static SSLServerSocket createServerSocket(SSL ssl)

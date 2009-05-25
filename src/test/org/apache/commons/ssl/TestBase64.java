@@ -65,10 +65,10 @@ public class TestBase64 extends TestCase {
             random.nextBytes(buf);
 
             ByteArrayInputStream in = new ByteArrayInputStream( buf );
-            Base64InputStream base64 = new Base64InputStream(in,false);
+            Base64InputStream base64 = new Base64InputStream(in,true);
             byte[] enc = Util.streamToBytes(base64);
             in = new ByteArrayInputStream( enc );
-            base64 = new Base64InputStream(in,true);
+            base64 = new Base64InputStream(in);
             byte[] dec = Util.streamToBytes(base64);
 
             boolean result = Arrays.equals(buf, dec);
@@ -84,10 +84,10 @@ public class TestBase64 extends TestCase {
             random.nextBytes(buf);
 
             ByteArrayInputStream in = new ByteArrayInputStream( buf );
-            Base64InputStream base64 = new Base64InputStream(in,false);
+            Base64InputStream base64 = new Base64InputStream(in,true);
             byte[] enc = Util.streamToBytes(base64);
             in = new ByteArrayInputStream( enc );
-            base64 = new Base64InputStream(in,true);
+            base64 = new Base64InputStream(in);
             byte[] dec = Util.streamToBytes(base64);
 
             boolean result = Arrays.equals(buf, dec);

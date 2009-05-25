@@ -506,7 +506,7 @@ public class RMISocketFactoryImpl extends RMISocketFactory {
         // have made it this far).  Maybe plain socket will work in these three
         // cases.
         sf = plainClient;
-        s = JavaImpl.connect(null, sf, host, port, local, 0, 15000);
+        s = JavaImpl.connect(null, sf, host, port, local, 0, 15000, null);
         if (soTimeout != Integer.MIN_VALUE) {
             s.setSoTimeout(soTimeout);
         }

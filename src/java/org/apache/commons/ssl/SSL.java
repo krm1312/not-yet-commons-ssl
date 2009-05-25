@@ -48,17 +48,7 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Properties;
-import java.util.SortedSet;
-import java.util.TreeSet;
+import java.util.*;
 
 /**
  * Not thread-safe.  (But who would ever share this thing across multiple
@@ -136,6 +126,7 @@ public class SSL {
     private boolean wantClientAuth = true;
     private boolean needClientAuth = false;
     private SSLWrapperFactory sslWrapperFactory = SSLWrapperFactory.NO_WRAP;
+    private Map dnsOverride;
 
     protected final boolean usingSystemProperties;
 
@@ -225,6 +216,20 @@ public class SSL {
             // wrapping RuntimeException will be thrown.
             init();
         }
+    }
+
+    String dnsOverride(String host) {
+        if (dnsOverride != null && dnsOverride.containsKey(host)) {
+            String override = (String) dnsOverride.get(host);
+            if (override != null && !"".equals(override.trim())) {
+                return override;
+            }
+        }
+        return host;
+    }
+
+    public void setDnsOverride(Map m) {
+        this.dnsOverride = m;
     }
 
     public SSLContext getSSLContext()
