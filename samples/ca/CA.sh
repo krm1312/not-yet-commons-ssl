@@ -2,7 +2,7 @@
 
 echo
 echo "WARNING:  This script creates fake test SSL certificates that expire after 2038."
-echo "          Because of date/time issues on 32 bit unix with dates after 2028, this"
+echo "          Because of date/time issues on 32 bit unix with dates after 2038, this"
 echo "          script can only be run on 64 bit unix machines."
 echo
 
