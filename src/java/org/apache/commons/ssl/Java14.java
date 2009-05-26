@@ -105,10 +105,6 @@ public final class Java14 extends JavaImpl {
         String alg = KeyManagerFactory.getDefaultAlgorithm();
         KeyManagerFactory kmf = KeyManagerFactory.getInstance(alg);
         kmf.init(ks, password);
-        // overwrite password
-        for (int i = 0; i < password.length; i++) {
-            password[i] = '*';
-        }
         return kmf;
     }
 

@@ -276,7 +276,7 @@ public class KeyStoreBuilder {
         return atLeastOneFailure ? new BuildResult(keys, chains, null) : null;
     }
 
-    protected static class BuildResult {
+    public static class BuildResult {
         protected final List keys;
         protected final List chains;
         protected final KeyStore jks;

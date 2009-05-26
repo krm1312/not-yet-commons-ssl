@@ -243,12 +243,6 @@ public class TrustMaterial extends TrustChain {
             throw new KeyStoreException("TrustMaterial couldn't load any certificates to trust!");
         }
 
-        // overwrite password
-        if (password != null && !(this instanceof KeyMaterial)) {
-            for (int i = 0; i < password.length; i++) {
-                password[i] = '*';
-            }
-        }
         addTrustMaterial(this);
 
         // We're not a simple trust type, so set value to 0.
