@@ -16,6 +16,7 @@
   <property name="httpclient-jar" value="commons-httpclient-3.0.jar"/>
   <property name="log4j-jar" value="log4j-1.2.13.jar"/>
   <property name="junit-jar" value="junit-3.8.1.jar"/>
+  <property name="bc-jar" value="bcprov-jdk16-143.jar"/>
 
   <property name="src" location="./src/java"/>
   <property name="build" location="./build"/>
@@ -36,6 +37,7 @@
     <pathelement location="${lib}/${httpclient-jar}"/>
     <pathelement location="${lib}/${log4j-jar}"/>
     <pathelement location="${lib}/${junit-jar}"/>
+    <pathelement location="${lib}/${bc-jar}"/>
   </path>
 
   <target name="test-jar" depends="jar">

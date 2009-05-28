@@ -520,7 +520,7 @@ public class Base64 {
         // Two forms of EOF as far as base64 decoder is concerned:  actual
         // EOF (-1) and first time '=' character is encountered in stream.
         // This approach makes the '=' padding characters completely optional.
-        if (eof && modulus != 0) {
+        if (eof && modulus != 0 && buf != null) {
             x = x << 6;
             switch (modulus) {
                 case 2:
