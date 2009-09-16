@@ -31,41 +31,23 @@
 
 package org.apache.commons.ssl;
 
-import org.apache.commons.ssl.asn1.ASN1EncodableVector;
-import org.apache.commons.ssl.asn1.ASN1OutputStream;
-import org.apache.commons.ssl.asn1.DEREncodable;
-import org.apache.commons.ssl.asn1.DERInteger;
-import org.apache.commons.ssl.asn1.DERNull;
-import org.apache.commons.ssl.asn1.DERObjectIdentifier;
-import org.apache.commons.ssl.asn1.DEROctetString;
-import org.apache.commons.ssl.asn1.DERSequence;
+import org.apache.commons.ssl.asn1.*;
 
-import javax.crypto.BadPaddingException;
-import javax.crypto.Cipher;
-import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.Mac;
-import javax.crypto.NoSuchPaddingException;
-import javax.crypto.SecretKey;
+import javax.crypto.*;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.RC2ParameterSpec;
 import javax.crypto.spec.RC5ParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.math.BigInteger;
-import java.security.GeneralSecurityException;
-import java.security.InvalidAlgorithmParameterException;
-import java.security.InvalidKeyException;
-import java.security.KeyFactory;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.security.PrivateKey;
+import java.security.*;
+import java.security.interfaces.DSAParams;
+import java.security.interfaces.DSAPrivateKey;
+import java.security.interfaces.RSAPrivateCrtKey;
+import java.security.spec.DSAPublicKeySpec;
 import java.security.spec.KeySpec;
 import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.RSAPublicKeySpec;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
@@ -316,6 +298,29 @@ public class PKCS8Key {
 
     public PrivateKey getPrivateKey() {
         return privateKey;
+    }
+
+    public PublicKey getPublicKey() throws GeneralSecurityException {
+        if (privateKey instanceof DSAPrivateKey) {
+            DSAPrivateKey dsa = (DSAPrivateKey) privateKey;
+            DSAParams params = dsa.getParams();
+            BigInteger g = params.getG();
+            BigInteger p = params.getP();
+            BigInteger q = params.getQ();
+            BigInteger x = dsa.getX();
+            BigInteger y = q.modPow( x, p );
+            DSAPublicKeySpec dsaKeySpec = new DSAPublicKeySpec(y, p, q, g);
+            return KeyFactory.getInstance("DSA").generatePublic(dsaKeySpec);
+        } else if (privateKey instanceof RSAPrivateCrtKey) {
+            RSAPrivateCrtKey rsa = (RSAPrivateCrtKey) privateKey;
+            RSAPublicKeySpec rsaKeySpec = new RSAPublicKeySpec(
+                    rsa.getModulus(),
+                    rsa.getPublicExponent()
+            );
+            return KeyFactory.getInstance("RSA").generatePublic(rsaKeySpec);
+        } else {
+            throw new GeneralSecurityException("Not an RSA or DSA key");
+        }
     }
 
     public static class DecryptResult {

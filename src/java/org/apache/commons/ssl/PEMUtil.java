@@ -38,13 +38,10 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.security.interfaces.RSAPrivateCrtKey;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.security.interfaces.RSAPublicKey;
+import java.security.interfaces.DSAPublicKey;
+import java.security.PublicKey;
+import java.util.*;
 
 /**
  * @author Credit Union Central of British Columbia
@@ -237,5 +234,17 @@ public class PEMUtil {
         return buf.toString();
     }
 
+    public static String toPem(PublicKey key) throws IOException {
+        PEMItem item = null;
+        if (key instanceof RSAPublicKey) {
+            item = new PEMItem(key.getEncoded(), "PUBLIC KEY");
+        } else if (key instanceof DSAPublicKey) {
+            item = new PEMItem(key.getEncoded(), "PUBLIC KEY");
+        } else {
+            throw new IOException("Not an RSA or DSA key");
+        }
+        byte[] pem = encode(Collections.singleton(item));
+        return new String(pem, "UTF-8");
+    }
 
 }
