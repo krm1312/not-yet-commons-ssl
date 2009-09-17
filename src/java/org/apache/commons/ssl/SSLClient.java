@@ -43,8 +43,6 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
-import java.util.Collection;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -79,13 +77,9 @@ public class SSLClient extends SSLSocketFactory {
         ssl.setKeyMaterial(keyMaterial);
     }
 
+    public void setIsSecure(boolean b) { ssl.setIsSecure(b); }
+
     public void setDnsOverride(Map m) { ssl.setDnsOverride(m); }    
-
-    public void addAllowedName(String s) { ssl.addAllowedName(s); }
-
-    public void addAllowedNames(Collection c) { ssl.addAllowedNames(c); }
-
-    public void clearAllowedNames() { ssl.clearAllowedNames(); }
 
     public void setCheckCRL(boolean b) { ssl.setCheckCRL(b); }
 
@@ -125,7 +119,7 @@ public class SSLClient extends SSLSocketFactory {
 
     public void setUseClientMode(boolean b) { ssl.setUseClientMode(b); }
 
-    public List getAllowedNames() { return ssl.getAllowedNames(); }
+    public boolean isSecure() { return ssl.isSecure(); }
 
     public X509Certificate[] getAssociatedCertificateChain() {
         return ssl.getAssociatedCertificateChain();

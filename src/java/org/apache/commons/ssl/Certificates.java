@@ -31,42 +31,19 @@
 
 package org.apache.commons.ssl;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.Serializable;
-import java.io.UnsupportedEncodingException;
+import javax.net.ssl.HttpsURLConnection;
+import java.io.*;
 import java.math.BigInteger;
 import java.net.URL;
+import java.net.URLConnection;
+import java.net.HttpURLConnection;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.security.cert.CRL;
-import java.security.cert.CRLException;
-import java.security.cert.Certificate;
-import java.security.cert.CertificateEncodingException;
-import java.security.cert.CertificateException;
-import java.security.cert.CertificateFactory;
-import java.security.cert.CertificateParsingException;
-import java.security.cert.X509Certificate;
-import java.security.cert.X509Extension;
+import java.security.cert.*;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
-import java.util.StringTokenizer;
+import java.util.*;
+import java.lang.reflect.Method;
 
 /**
  * @author Credit Union Central of British Columbia
@@ -397,13 +374,44 @@ public class Certificates {
             if (tempCRLFile == null) {
                 try {
                     // log.info( "Trying to load CRL [" + urlString + "]" );
+
+                    // java.net.URL blocks forever by default, so CRL-checking
+                    // is freezing some systems.  Below we go to great pains
+                    // to enforce timeouts for CRL-checking (5 seconds).
                     URL url = new URL(urlString);
+                    URLConnection urlConn = url.openConnection();
+                    if (urlConn instanceof HttpsURLConnection) {
+
+                        // HTTPS sites will use special CRLSocket.getInstance() SocketFactory
+                        // that is configured to timeout after 5 seconds:
+                        HttpsURLConnection httpsConn = (HttpsURLConnection) urlConn;
+                        httpsConn.setSSLSocketFactory(CRLSocket.getSecureInstance());
+
+                    } else if (urlConn instanceof HttpURLConnection) {
+
+                        // HTTP timeouts can only be set on Java 1.5 and up.  :-(
+                        // The code required to set it for Java 1.4 and Java 1.3 is just too painful.
+                        HttpURLConnection httpConn = (HttpURLConnection) urlConn;
+                        try {
+                            // Java 1.5 and up support these, so using reflection.  UGH!!!
+                            Class c = httpConn.getClass();
+                            Method setConnTimeOut = c.getDeclaredMethod("setConnectTimeout", Integer.TYPE);
+                            Method setReadTimeout = c.getDeclaredMethod("setReadTimeout", Integer.TYPE);
+                            setConnTimeOut.invoke(httpConn, 5000);
+                            setReadTimeout.invoke(httpConn, 5000);
+                        } catch (NoSuchMethodException nsme) {
+                            // oh well, java 1.4 users can suffer.
+                        } catch (Exception e) {
+                            throw new RuntimeException("can't set timeout", e);
+                        }
+                    }
+
                     File tempFile = File.createTempFile("crl", ".tmp");
                     tempFile.deleteOnExit();
 
                     OutputStream out = new FileOutputStream(tempFile);
                     out = new BufferedOutputStream(out);
-                    InputStream in = new BufferedInputStream(url.openStream());
+                    InputStream in = new BufferedInputStream(urlConn.getInputStream());
                     try {
                         Util.pipeStream(in, out);
                     }

@@ -156,6 +156,19 @@ public final class Java14 extends JavaImpl {
         return s;
     }
 
+
+    protected final Socket buildPlainSocket(
+            SSL ssl, String remoteHost, int remotePort, InetAddress localHost, int localPort, int timeout
+    ) throws IOException {
+        Socket s = SocketFactory.getDefault().createSocket();
+        ssl.doPreConnectSocketStuff(s);
+        s = connectSocket(
+                s, null, remoteHost, remotePort, localHost, localPort, timeout, ssl
+        );
+        ssl.doPostConnectSocketStuff(s, remoteHost);
+        return s;
+    }
+    
     protected final Socket connectSocket(Socket s, SocketFactory sf,
                                          String remoteHost, int remotePort,
                                          InetAddress localHost, int localPort,

@@ -43,10 +43,8 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
-import java.util.Collection;
-import java.util.List;
-import java.util.Properties;
 import java.util.Map;
+import java.util.Properties;
 
 /**
  * @author Credit Union Central of British Columbia
@@ -165,12 +163,6 @@ public class SSLServer extends SSLServerSocketFactory {
         ssl.setKeyMaterial(keyMaterial);
     }
 
-    public void addAllowedName(String s) { ssl.addAllowedName(s); }
-
-    public void addAllowedNames(Collection c) { ssl.addAllowedNames(c); }
-
-    public void clearAllowedNames() { ssl.clearAllowedNames(); }
-
     public void setCheckCRL(boolean b) { ssl.setCheckCRL(b); }
 
     public void setCheckExpiry(boolean b) { ssl.setCheckExpiry(b); }
@@ -208,8 +200,6 @@ public class SSLServer extends SSLServerSocketFactory {
     public void setWantClientAuth(boolean b) { ssl.setWantClientAuth(b); }
 
     public void setUseClientMode(boolean b) { ssl.setUseClientMode(b); }
-
-    public List getAllowedNames() { return ssl.getAllowedNames(); }
 
     public X509Certificate[] getAssociatedCertificateChain() {
         return ssl.getAssociatedCertificateChain();

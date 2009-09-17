@@ -113,15 +113,17 @@ public abstract class JavaImpl {
     protected abstract SSLSocketFactory buildSSLSocketFactory(Object ssl);
 
     protected abstract SSLServerSocketFactory buildSSLServerSocketFactory(Object ssl);
-
+    
     protected abstract SSLSocket buildSocket(SSL ssl)
         throws IOException;
 
-    protected abstract SSLSocket buildSocket(SSL ssl, String remoteHost,
-                                             int remotePort,
-                                             InetAddress localHost,
-                                             int localPort, int connectTimeout)
-        throws IOException;
+    protected abstract SSLSocket buildSocket(
+            SSL ssl, String remoteHost, int remotePort, InetAddress localHost, int localPort, int connectTimeout
+    ) throws IOException;
+
+    protected abstract Socket buildPlainSocket(
+            SSL ssl, String remoteHost, int remotePort, InetAddress localHost, int localPort, int connectTimeout
+    ) throws IOException;
 
     protected abstract Socket connectSocket(Socket s, SocketFactory sf,
                                             String remoteHost, int remotePort,
@@ -204,6 +206,15 @@ public abstract class JavaImpl {
         return HANDLER.buildSocket(ssl, remoteHost, remotePort, localHost,
             localPort, connectTimeout);
     }
+
+    public static Socket createPlainSocket(
+            SSL ssl, String remoteHost, int remotePort, InetAddress localHost, int localPort,
+            int connectTimeout
+    ) throws IOException {
+        return HANDLER.buildPlainSocket(
+                ssl, remoteHost, remotePort, localHost, localPort, connectTimeout
+        );
+    }    
 
     protected static Socket connect(Socket s, SocketFactory sf,
                                     String remoteHost, int remotePort,

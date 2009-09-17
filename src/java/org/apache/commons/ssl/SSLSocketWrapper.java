@@ -38,6 +38,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetAddress;
+import java.net.Socket;
 import java.net.SocketAddress;
 import java.net.SocketException;
 import java.nio.channels.SocketChannel;
@@ -49,79 +50,161 @@ import java.nio.channels.SocketChannel;
  * @since 16-Aug-2006
  */
 public class SSLSocketWrapper extends SSLSocket {
-    protected SSLSocket s;
+    protected Socket s;
 
-    public SSLSocketWrapper(SSLSocket s) {
+    public SSLSocketWrapper(Socket s) {
         this.s = s;
     }
 
     /* javax.net.ssl.SSLSocket */
 
     public void addHandshakeCompletedListener(HandshakeCompletedListener hcl) {
-        s.addHandshakeCompletedListener(hcl);
+        if (s instanceof SSLSocket) {
+            ((SSLSocket) s).addHandshakeCompletedListener(hcl);
+        }
     }
 
     public void removeHandshakeCompletedListener(HandshakeCompletedListener hcl) {
-        s.removeHandshakeCompletedListener(hcl);
+        if (s instanceof SSLSocket) {
+            ((SSLSocket) s).removeHandshakeCompletedListener(hcl);
+        }
     }
 
     public String[] getSupportedCipherSuites() {
-        return s.getSupportedCipherSuites();
+        if (s instanceof SSLSocket) {
+            return ((SSLSocket) s).getSupportedCipherSuites();
+        } else {
+            return null;
+        }
     }
 
     public boolean getEnableSessionCreation() {
-        return s.getEnableSessionCreation();
+        if (s instanceof SSLSocket) {
+            return ((SSLSocket) s).getEnableSessionCreation();
+        } else {
+            return false;
+        }
     }
 
     public String[] getEnabledCipherSuites() {
-        return s.getEnabledCipherSuites();
+        if (s instanceof SSLSocket) {
+            return ((SSLSocket) s).getEnabledCipherSuites();
+        } else {
+            return null;
+        }
     }
 
-    public String[] getSupportedProtocols() { return s.getSupportedProtocols(); }
+    public String[] getSupportedProtocols() {
+        if (s instanceof SSLSocket) {
+            return ((SSLSocket) s).getSupportedProtocols();
+        } else {
+            return null;
+        }
+    }
 
-    public String[] getEnabledProtocols() { return s.getEnabledProtocols(); }
+    public String[] getEnabledProtocols() {
+        if (s instanceof SSLSocket) {
+            return ((SSLSocket) s).getEnabledProtocols();
+        } else {
+            return null;
+        }
+    }
 
-    public SSLSession getSession() { return s.getSession(); }
+    public SSLSession getSession() {
+        if (s instanceof SSLSocket) {
+            return ((SSLSocket) s).getSession();
+        } else {
+            return null;
+        }
+    }
 
-    public boolean getUseClientMode() { return s.getUseClientMode(); }
+    public boolean getUseClientMode() {
+        if (s instanceof SSLSocket) {
+            return ((SSLSocket) s).getUseClientMode();
+        } else {
+            return false;
+        }
+    }
 
-    public boolean getNeedClientAuth() { return s.getNeedClientAuth(); }
+    public boolean getNeedClientAuth() {
+        if (s instanceof SSLSocket) {
+            return ((SSLSocket) s).getNeedClientAuth();
+        } else {
+            return false;
+        }
+    }
 
-    public boolean getWantClientAuth() { return s.getWantClientAuth(); }
+    public boolean getWantClientAuth() {
+        if (s instanceof SSLSocket) {
+            return ((SSLSocket) s).getWantClientAuth();
+        } else {
+            return false;
+        }
+    }
 
     public void setEnabledCipherSuites(String[] cs) {
-        s.setEnabledCipherSuites(cs);
+        if (s instanceof SSLSocket) {
+            ((SSLSocket) s).setEnabledCipherSuites(cs);
+        }
     }
 
     public void setEnabledProtocols(String[] ep) {
-        s.setEnabledProtocols(ep);
+        if (s instanceof SSLSocket) {
+            ((SSLSocket) s).setEnabledProtocols(ep);
+        }
     }
 
-    public void startHandshake() throws IOException { s.startHandshake(); }
+    public void startHandshake() throws IOException {
+        if (s instanceof SSLSocket) {
+            ((SSLSocket) s).startHandshake();
+        }
+    }
 
-    public void setUseClientMode(boolean b) { s.setUseClientMode(b); }
+    public void setUseClientMode(boolean b) {
+        if (s instanceof SSLSocket) {
+            ((SSLSocket) s).setUseClientMode(b);
+        }
+    }
 
-    public void setNeedClientAuth(boolean b) { s.setNeedClientAuth(b); }
+    public void setNeedClientAuth(boolean b) {
+        if (s instanceof SSLSocket) {
+            ((SSLSocket) s).setNeedClientAuth(b);
+        }
+    }
 
-    public void setWantClientAuth(boolean b) { s.setWantClientAuth(b); }
+    public void setWantClientAuth(boolean b) {
+        if (s instanceof SSLSocket) {
+            ((SSLSocket) s).setWantClientAuth(b);
+        }
+    }
 
     public void setEnableSessionCreation(boolean b) {
-        s.setEnableSessionCreation(b);
+        if (s instanceof SSLSocket) {
+            ((SSLSocket) s).setEnableSessionCreation(b);
+        }
     }
 
     /* java.net.Socket */
 
-    public SocketChannel getChannel() { return s.getChannel(); }
+    public SocketChannel getChannel() {
+        return s.getChannel();
+    }
 
-    public InetAddress getInetAddress() { return s.getInetAddress(); }
+    public InetAddress getInetAddress() {
+        return s.getInetAddress();
+    }
 
     public boolean getKeepAlive() throws SocketException {
         return s.getKeepAlive();
     }
 
-    public InetAddress getLocalAddress() { return s.getLocalAddress(); }
+    public InetAddress getLocalAddress() {
+        return s.getLocalAddress();
+    }
 
-    public int getLocalPort() { return s.getLocalPort(); }
+    public int getLocalPort() {
+        return s.getLocalPort();
+    }
 
     public SocketAddress getLocalSocketAddress() {
         return s.getLocalSocketAddress();
@@ -131,7 +214,9 @@ public class SSLSocketWrapper extends SSLSocket {
         return s.getOOBInline();
     }
 
-    public int getPort() { return s.getPort(); }
+    public int getPort() {
+        return s.getPort();
+    }
 
     public int getReceiveBufferSize() throws SocketException {
         return s.getReceiveBufferSize();
@@ -149,9 +234,13 @@ public class SSLSocketWrapper extends SSLSocket {
         return s.getSendBufferSize();
     }
 
-    public int getSoLinger() throws SocketException { return s.getSoLinger(); }
+    public int getSoLinger() throws SocketException {
+        return s.getSoLinger();
+    }
 
-    public int getSoTimeout() throws SocketException { return s.getSoTimeout(); }
+    public int getSoTimeout() throws SocketException {
+        return s.getSoTimeout();
+    }
 
     public boolean getTcpNoDelay() throws SocketException {
         return s.getTcpNoDelay();
@@ -161,15 +250,25 @@ public class SSLSocketWrapper extends SSLSocket {
         return s.getTrafficClass();
     }
 
-    public boolean isBound() { return s.isBound(); }
+    public boolean isBound() {
+        return s.isBound();
+    }
 
-    public boolean isClosed() { return s.isClosed(); }
+    public boolean isClosed() {
+        return s.isClosed();
+    }
 
-    public boolean isConnected() { return s.isConnected(); }
+    public boolean isConnected() {
+        return s.isConnected();
+    }
 
-    public boolean isInputShutdown() { return s.isInputShutdown(); }
+    public boolean isInputShutdown() {
+        return s.isInputShutdown();
+    }
 
-    public boolean isOutputShutdown() { return s.isOutputShutdown(); }
+    public boolean isOutputShutdown() {
+        return s.isOutputShutdown();
+    }
 
     public void sendUrgentData(int data) throws IOException {
         s.sendUrgentData(data);
@@ -211,11 +310,17 @@ public class SSLSocketWrapper extends SSLSocket {
         s.setTrafficClass(tc);
     }
 
-    public void shutdownInput() throws IOException { s.shutdownInput(); }
+    public void shutdownInput() throws IOException {
+        s.shutdownInput();
+    }
 
-    public void shutdownOutput() throws IOException { s.shutdownOutput(); }
+    public void shutdownOutput() throws IOException {
+        s.shutdownOutput();
+    }
 
-    public String toString() { return s.toString(); }
+    public String toString() {
+        return s.toString();
+    }
 
     /*  Java 1.5
      public void setPerformancePreferences(int connectionTime, int latency, int bandwidth)

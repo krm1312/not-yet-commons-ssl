@@ -31,11 +31,8 @@
 
 package org.apache.commons.ssl;
 
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLServerSocket;
-import javax.net.ssl.SSLServerSocketFactory;
-import javax.net.ssl.SSLSocket;
-import javax.net.ssl.SSLSocketFactory;
+import javax.net.SocketFactory;
+import javax.net.ssl.*;
 import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
@@ -61,7 +58,7 @@ import java.util.*;
  */
 public class SSL {
     private final static String[] KNOWN_PROTOCOLS =
-        {"TLSv1", "SSLv3", "SSLv2", "SSLv2Hello"};
+            {"TLSv1", "SSLv3", "SSLv2", "SSLv2Hello"};
 
     // SUPPORTED_CIPHERS_ARRAY is initialized in the static constructor.
     private final static String[] SUPPORTED_CIPHERS;
@@ -108,8 +105,8 @@ public class SSL {
     private SSLSocketFactory socketFactory = null;
     private SSLServerSocketFactory serverSocketFactory = null;
     private HostnameVerifier hostnameVerifier = HostnameVerifier.DEFAULT;
+    private boolean isSecure = true;  // if false, the client-style operations only create plain sockets.
     private boolean checkHostname = true;
-    private final ArrayList allowedNames = new ArrayList();
     private boolean checkCRL = true;
     private boolean checkExpiry = true;
     private boolean useClientMode = false;
@@ -131,7 +128,7 @@ public class SSL {
     protected final boolean usingSystemProperties;
 
     public SSL()
-        throws GeneralSecurityException, IOException {
+            throws GeneralSecurityException, IOException {
         boolean usingSysProps = false;
         Properties props = System.getProperties();
         boolean ksSet = props.containsKey("javax.net.ssl.keyStore");
@@ -202,8 +199,8 @@ public class SSL {
     }
 
     private void dirtyAndReloadIfYoung()
-        throws NoSuchAlgorithmException, KeyStoreException,
-        KeyManagementException, IOException, CertificateException {
+            throws NoSuchAlgorithmException, KeyStoreException,
+            KeyManagementException, IOException, CertificateException {
         dirty();
         if (initCount >= 0 && initCount <= 5) {
             // The first five init's we do early (before any sockets are
@@ -232,8 +229,16 @@ public class SSL {
         this.dnsOverride = m;
     }
 
+    public void setIsSecure(boolean b) {
+        this.isSecure = b;
+    }
+
+    public boolean isSecure() {
+        return isSecure;
+    }
+
     public SSLContext getSSLContext()
-        throws GeneralSecurityException, IOException
+            throws GeneralSecurityException, IOException
 
     {
         Object obj = getSSLContextAsObject();
@@ -255,7 +260,7 @@ public class SSL {
      * @throws IOException              problem creating SSLContext
      */
     public Object getSSLContextAsObject()
-        throws GeneralSecurityException, IOException
+            throws GeneralSecurityException, IOException
 
     {
         if (sslContext == null) {
@@ -265,8 +270,8 @@ public class SSL {
     }
 
     public void addTrustMaterial(TrustChain trustChain)
-        throws NoSuchAlgorithmException, KeyStoreException,
-        KeyManagementException, IOException, CertificateException {
+            throws NoSuchAlgorithmException, KeyStoreException,
+            KeyManagementException, IOException, CertificateException {
         if (this.trustChain == null || trustChain == TrustMaterial.TRUST_ALL) {
             this.trustChain = trustChain;
         } else {
@@ -276,15 +281,15 @@ public class SSL {
     }
 
     public void setTrustMaterial(TrustChain trustChain)
-        throws NoSuchAlgorithmException, KeyStoreException,
-        KeyManagementException, IOException, CertificateException {
+            throws NoSuchAlgorithmException, KeyStoreException,
+            KeyManagementException, IOException, CertificateException {
         this.trustChain = trustChain;
         dirtyAndReloadIfYoung();
     }
 
     public void setKeyMaterial(KeyMaterial keyMaterial)
-        throws NoSuchAlgorithmException, KeyStoreException,
-        KeyManagementException, IOException, CertificateException {
+            throws NoSuchAlgorithmException, KeyStoreException,
+            KeyManagementException, IOException, CertificateException {
         this.keyMaterial = keyMaterial;
         dirtyAndReloadIfYoung();
     }
@@ -369,54 +374,6 @@ public class SSL {
 
     public boolean getCheckHostname() {
         return checkHostname;
-    }
-
-    /**
-     * @return String[] array of alternate "allowed names" to try against a
-     *         server's x509 CN field if the host/ip we used didn't match.
-     *         Returns an empty list if there are no "allowedNames" currently
-     *         set.
-     */
-    public List getAllowedNames() {
-        return Collections.unmodifiableList(allowedNames);
-    }
-
-    /**
-     * Offers a secure way to use virtual-hosting and SSL in some situations:
-     * for example you want to connect to "bar.com" but you know in advance
-     * that the SSL Certificate on that server only contains "CN=foo.com".  If
-     * you setAllowedNames( new String[] { "foo.com" } ) on your SSLClient in
-     * advance, you can connect securely, while still using "bar.com" as the
-     * host.
-     * <p/>
-     * Here's a code example using "cucbc.com" to connect, but anticipating
-     * "www.cucbc.com" in the server's certificate:
-     * <pre>
-     * SSLClient client = new SSLClient();
-     * client.setAllowedNames( new String[] { "www.cucbc.com" } );
-     * Socket s = client.createSocket( "cucbc.com", 443 );
-     * </pre>
-     * <p/>
-     * This technique is also useful if you don't want to use DNS, and want to
-     * connect using the IP address.
-     *
-     * @param allowedNames Collection of alternate "allowed names" to try against
-     *                     a server's x509 CN field if the host/ip we used didn't
-     *                     match.  Set to null to force strict matching against
-     *                     host/ip passed into createSocket().  Null is the
-     *                     default value.  Must be set in advance, before
-     *                     createSocket() is called.
-     */
-    public void addAllowedNames(Collection allowedNames) {
-        this.allowedNames.addAll(allowedNames);
-    }
-
-    public void addAllowedName(String allowedName) {
-        this.allowedNames.add(allowedName);
-    }
-
-    public void clearAllowedNames() {
-        this.allowedNames.clear();
     }
 
     public void setCheckHostname(boolean checkHostname) {
@@ -518,47 +475,46 @@ public class SSL {
     }
 
     private void init()
-        throws NoSuchAlgorithmException, KeyStoreException,
-        KeyManagementException, IOException, CertificateException {
+            throws NoSuchAlgorithmException, KeyStoreException,
+            KeyManagementException, IOException, CertificateException {
         socketFactory = null;
         serverSocketFactory = null;
         this.sslContext = JavaImpl.init(this, trustChain, keyMaterial);
         initCount++;
     }
 
-    public void doPreConnectSocketStuff(SSLSocket s)
-        throws IOException {
-        if (!useClientModeDefault) {
-            s.setUseClientMode(useClientMode);
+    public void doPreConnectSocketStuff(Socket s) throws IOException {
+        if (s instanceof SSLSocket && !useClientModeDefault) {
+            ((SSLSocket) s).setUseClientMode(useClientMode);
         }
         if (soTimeout > 0) {
             s.setSoTimeout(soTimeout);
         }
-        if (enabledProtocols != null) {
-            JavaImpl.setEnabledProtocols(s, enabledProtocols);
-        }
-        if (enabledCiphers != null) {
-            s.setEnabledCipherSuites(enabledCiphers);
-        }
-    }
-
-    public void doPostConnectSocketStuff(SSLSocket s, String host)
-        throws IOException {
-        if (checkHostname) {
-            int size = allowedNames.size() + 1;
-            String[] hosts = new String[size];
-            // hosts[ 0 ] MUST ALWAYS be the host given to createSocket().
-            hosts[0] = host;
-            int i = 1;
-            for (Iterator it = allowedNames.iterator(); it.hasNext(); i++) {
-                hosts[i] = (String) it.next();
+        if (s instanceof SSLSocket) {
+            if (enabledProtocols != null) {
+                JavaImpl.setEnabledProtocols(s, enabledProtocols);
             }
-            hostnameVerifier.check(hosts, s);
+            if (enabledCiphers != null) {
+                ((SSLSocket) s).setEnabledCipherSuites(enabledCiphers);
+            }
         }
     }
 
-    public SSLSocket createSocket() throws IOException {
-        return sslWrapperFactory.wrap(JavaImpl.createSocket(this));
+    public void doPostConnectSocketStuff(Socket s, String host)
+            throws IOException {
+        if (checkHostname && s instanceof SSLSocket) {
+            hostnameVerifier.check(host, (SSLSocket) s);
+        }
+    }
+
+    public Socket createSocket() throws IOException {
+        if (isSecure) {
+            return sslWrapperFactory.wrap(JavaImpl.createSocket(this));
+        } else {
+            Socket s = SocketFactory.getDefault().createSocket();
+            doPreConnectSocketStuff(s);
+            return s;
+        }
     }
 
     /**
@@ -575,28 +531,34 @@ public class SSL {
      * @throws UnknownHostException if the IP address of the host cannot be
      *                              determined
      */
-    public Socket createSocket(String remoteHost, int remotePort,
-                               InetAddress localHost, int localPort,
-                               int timeout)
-        throws IOException {
+    public Socket createSocket(
+            String remoteHost, int remotePort, InetAddress localHost, int localPort, int timeout
+    ) throws IOException {
         // Only use our factory-wide connectTimeout if this method was passed
         // in a timeout of 0 (infinite).
         int factoryTimeout = getConnectTimeout();
         int connectTimeout = timeout == 0 ? factoryTimeout : timeout;
-        SSLSocket s = JavaImpl.createSocket(this, remoteHost, remotePort,
-            localHost, localPort,
-            connectTimeout);
+        Socket s;
+        if (isSecure) {
+            s = JavaImpl.createSocket(
+                    this, remoteHost, remotePort, localHost, localPort, connectTimeout
+            );
+        } else {
+            s = JavaImpl.createPlainSocket(
+                    this, remoteHost, remotePort, localHost, localPort, connectTimeout
+            );
+        }
         return sslWrapperFactory.wrap(s);
     }
 
-    public Socket createSocket(Socket s, String remoteHost, int remotePort,
-                               boolean autoClose)
-        throws IOException {
+    public Socket createSocket(
+            Socket s, String remoteHost, int remotePort, boolean autoClose
+    ) throws IOException {
         SSLSocketFactory sf = getSSLSocketFactory();
         s = sf.createSocket(s, remoteHost, remotePort, autoClose);
-        doPreConnectSocketStuff((SSLSocket) s);
-        doPostConnectSocketStuff((SSLSocket) s, remoteHost);
-        return sslWrapperFactory.wrap((SSLSocket) s);
+        doPreConnectSocketStuff(s);
+        doPostConnectSocketStuff(s, remoteHost);
+        return sslWrapperFactory.wrap(s);
     }
 
     public ServerSocket createServerSocket() throws IOException {
@@ -616,7 +578,7 @@ public class SSL {
      */
     public ServerSocket createServerSocket(int port, int backlog,
                                            InetAddress localHost)
-        throws IOException {
+            throws IOException {
         SSLServerSocketFactory f = getSSLServerSocketFactory();
         ServerSocket ss = f.createServerSocket(port, backlog, localHost);
         SSLServerSocket s = (SSLServerSocket) ss;
@@ -625,7 +587,7 @@ public class SSL {
     }
 
     public void doPreConnectServerSocketStuff(SSLServerSocket s)
-        throws IOException {
+            throws IOException {
         if (soTimeout > 0) {
             s.setSoTimeout(soTimeout);
         }

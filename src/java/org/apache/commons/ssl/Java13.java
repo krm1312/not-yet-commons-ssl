@@ -209,6 +209,20 @@ public final class Java13 extends JavaImpl {
         return s;
     }
 
+    protected final Socket buildPlainSocket(
+            SSL ssl, String remoteHost, int remotePort, InetAddress localHost, int localPort, int connectTimeout
+    )
+        throws IOException {
+        // Connect Timeout ignored for Java 1.3
+        SocketFactory sf = SocketFactory.getDefault();
+        Socket s = connectSocket(
+                null, sf, remoteHost, remotePort, localHost, localPort, -1, ssl
+        );
+        ssl.doPreConnectSocketStuff(s);
+        ssl.doPostConnectSocketStuff(s, remoteHost);
+        return s;
+    }
+    
     protected final Socket connectSocket(Socket s, SocketFactory sf,
                                          String remoteHost, int remotePort,
                                          InetAddress localHost, int localPort,

@@ -34,6 +34,7 @@ package org.apache.commons.ssl;
 import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLSocket;
 import java.io.IOException;
+import java.net.Socket;
 
 /**
  * @author Credit Union Central of British Columbia
@@ -50,7 +51,7 @@ public interface SSLWrapperFactory {
      * @return The new wrapped SSLSocket.
      * @throws IOException if wrapping failed
      */
-    public SSLSocket wrap(SSLSocket s) throws IOException;
+    public Socket wrap(Socket s) throws IOException;
 
     /**
      * Wraps an SSLServerSocket.
@@ -75,7 +76,7 @@ public interface SSLWrapperFactory {
      */
     public final static SSLWrapperFactory NO_WRAP = new SSLWrapperFactory() {
         // Notice!  No wrapping!
-        public SSLSocket wrap(SSLSocket s) { return s; }
+        public Socket wrap(Socket s) { return s; }
 
         // We still wrap the ServerSocket, but we don't wrap the result of the
         // the accept() call.
@@ -94,7 +95,7 @@ public interface SSLWrapperFactory {
      * implementations.
      */
     public final static SSLWrapperFactory DUMB_WRAP = new SSLWrapperFactory() {
-        public SSLSocket wrap(SSLSocket s) { return new SSLSocketWrapper(s); }
+        public Socket wrap(Socket s) { return new SSLSocketWrapper(s); }
 
         public SSLServerSocket wrap(SSLServerSocket s, SSL ssl)
             throws IOException {
