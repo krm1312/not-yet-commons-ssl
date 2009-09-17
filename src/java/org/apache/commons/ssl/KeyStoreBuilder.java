@@ -378,6 +378,9 @@ public class KeyStoreBuilder {
                 br = tryJKS("jceks", stuffStream, jksPass, keyPass);
                 if (br == null) {
                     br = tryJKS("BKS", stuffStream, jksPass, keyPass);
+                    if (br == null) {
+                        br = tryJKS("UBER", stuffStream, jksPass, keyPass);
+                    }
                 }
             }
         }
@@ -585,18 +588,28 @@ public class KeyStoreBuilder {
         }
 
         String suffix = toPKCS8 ? ".pem" : ".jks";
-        File f = new File(alias + suffix);
+        String fileName = alias;
+        Certificate[] chain = ks.getCertificateChain(alias);
+        if (chain != null && chain[0] != null) {
+            String cn = Certificates.getCN((X509Certificate) chain[0]);
+            cn = cn != null ? cn.trim() : "";
+            if (!"".equals(cn)) {
+                fileName = cn;
+            }
+        }
+
+        File f = new File(fileName + suffix);
         int count = 1;
         while (f.exists()) {
             f = new File(alias + "_" + count + suffix);
             count++;
         }
 
-        FileOutputStream jks = new FileOutputStream(f);
+        FileOutputStream fout = new FileOutputStream(f);
         if (toPKCS8) {
             List pemItems = new LinkedList();
             PrivateKey key = (PrivateKey) ks.getKey(alias, password);
-            Certificate[] chain = ks.getCertificateChain(alias);
+            chain = ks.getCertificateChain(alias);
             byte[] pkcs8DerBytes = null;
             if (key instanceof RSAPrivateCrtKey) {
                 RSAPrivateCrtKey rsa = (RSAPrivateCrtKey) key;
@@ -648,12 +661,17 @@ public class KeyStoreBuilder {
                 pemItems.add(item);
             }
             byte[] pem = PEMUtil.encode(pemItems);
-            jks.write(pem);
+            fout.write(pem);
         } else {
-            ks.store(jks, password);
+            // If we're not converting to unencrypted PKCS8 style PEM,
+            // then we are converting to Sun JKS.  It happens right here:
+            KeyStore jks = KeyStore.getInstance(KeyStore.getDefaultType());
+            jks.load(null, password);
+            jks.setKeyEntry(alias, ks.getKey(alias, password), password, ks.getCertificateChain(alias));
+            jks.store(fout, password);
         }
-        jks.flush();
-        jks.close();
+        fout.flush();
+        fout.close();
         System.out.println("Successfuly wrote: [" + f.getPath() + "]");
     }
 

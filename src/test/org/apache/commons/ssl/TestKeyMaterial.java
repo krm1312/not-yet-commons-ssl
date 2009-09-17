@@ -18,6 +18,7 @@ import java.security.cert.X509Certificate;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.Locale;
+import java.util.Arrays;
 
 public class TestKeyMaterial extends TestCase {
     public static final char[] PASSWORD1 = "changeit".toCharArray();
@@ -49,6 +50,7 @@ public class TestKeyMaterial extends TestCase {
         String samplesDir = "samples/keystores";
         File dir = new File(samplesDir);
         String[] files = dir.list();
+        Arrays.sort(files, String.CASE_INSENSITIVE_ORDER);
         for (String f : files) {
             String F = f.toUpperCase(Locale.ENGLISH);
             if (F.endsWith(".KS") || F.indexOf("PKCS12") >= 0) {
@@ -68,6 +70,7 @@ public class TestKeyMaterial extends TestCase {
         boolean hasMultiPassword = FILENAME.indexOf(".2PASS.") >= 0;
 
         FileInputStream fin = new FileInputStream(dir + "/" + fileName);
+        System.out.println("Testing KeyMaterial: " + dir + "/" + fileName);        
         byte[] keystoreBytes = Util.streamToBytes(fin);
         char[] pass1 = PASSWORD1;
         char[] pass2 = PASSWORD1;
