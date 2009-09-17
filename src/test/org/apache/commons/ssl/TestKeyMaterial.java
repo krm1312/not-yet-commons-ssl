@@ -51,7 +51,8 @@ public class TestKeyMaterial extends TestCase {
         File dir = new File(samplesDir);
         String[] files = dir.list();
         Arrays.sort(files, String.CASE_INSENSITIVE_ORDER);
-        for (String f : files) {
+        for (int i = 0; i < files.length; i++) {
+            String f = files[i];
             String F = f.toUpperCase(Locale.ENGLISH);
             if (F.endsWith(".KS") || F.indexOf("PKCS12") >= 0) {
                 examineKeyStore(samplesDir, f, null);
@@ -63,15 +64,9 @@ public class TestKeyMaterial extends TestCase {
 
     private static void examineKeyStore(String dir, String fileName, String file2) throws Exception {
         String FILENAME = fileName.toUpperCase(Locale.ENGLISH);
-        int y = FILENAME.lastIndexOf('.');
-        int x = FILENAME.lastIndexOf('.', y - 1);
-
-        String type = FILENAME.substring(x + 1, y).toUpperCase(Locale.ENGLISH);
         boolean hasMultiPassword = FILENAME.indexOf(".2PASS.") >= 0;
 
-        FileInputStream fin = new FileInputStream(dir + "/" + fileName);
-        System.out.println("Testing KeyMaterial: " + dir + "/" + fileName);        
-        byte[] keystoreBytes = Util.streamToBytes(fin);
+        System.out.print("Testing KeyMaterial: " + dir + "/" + fileName);        
         char[] pass1 = PASSWORD1;
         char[] pass2 = PASSWORD1;
         if (hasMultiPassword) {
@@ -81,7 +76,13 @@ public class TestKeyMaterial extends TestCase {
         file2 = file2 != null ? dir + "/" + file2 : null;
 
         Date today = new Date();
-        KeyMaterial km = new KeyMaterial(dir + "/" + fileName, file2, pass1, pass2);
+        KeyMaterial km;
+        try {
+            km = new KeyMaterial(dir + "/" + fileName, file2, pass1, pass2);
+        } catch (ProbablyBadPasswordException pbpe) {
+            System.out.println("  WARN:  " + pbpe);
+            return;
+        }
         assertEquals("keymaterial-contains-1-alias", 1, km.getAliases().size());
         Iterator it509 = km.getAssociatedCertificateChains().iterator();
         while (it509.hasNext()) {
@@ -108,7 +109,9 @@ public class TestKeyMaterial extends TestCase {
         Util.streamToBytes(in);
         in.close();
         // System.out.println(Certificates.toString((X509Certificate) certs[0]));
-        s.close();       
+        s.close();
+
+        System.out.println("\t SUCCESS! ");
     }
 
 

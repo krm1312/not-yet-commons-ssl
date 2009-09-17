@@ -37,7 +37,8 @@ public class TestPKCS8Key extends TestCase {
         File dir = new File("samples/" + type);
         File[] files = dir.listFiles();
         byte[] original = null;
-        for (File f : files) {
+        for (int i = 0; i < files.length; i++) {
+            File f = files[i];
             String filename = f.getName();
             String FILENAME = filename.toUpperCase(Locale.ENGLISH);
             if (!FILENAME.endsWith(".PEM") && !FILENAME.endsWith(".DER")) {

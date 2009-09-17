@@ -395,10 +395,10 @@ public class Certificates {
                         try {
                             // Java 1.5 and up support these, so using reflection.  UGH!!!
                             Class c = httpConn.getClass();
-                            Method setConnTimeOut = c.getDeclaredMethod("setConnectTimeout", Integer.TYPE);
-                            Method setReadTimeout = c.getDeclaredMethod("setReadTimeout", Integer.TYPE);
-                            setConnTimeOut.invoke(httpConn, 5000);
-                            setReadTimeout.invoke(httpConn, 5000);
+                            Method setConnTimeOut = c.getDeclaredMethod("setConnectTimeout", new Class[]{Integer.TYPE});
+                            Method setReadTimeout = c.getDeclaredMethod("setReadTimeout", new Class[]{Integer.TYPE});
+                            setConnTimeOut.invoke(httpConn, new Integer[]{new Integer(5000)});
+                            setReadTimeout.invoke(httpConn, new Integer[]{new Integer(5000)});
                         } catch (NoSuchMethodException nsme) {
                             // oh well, java 1.4 users can suffer.
                         } catch (Exception e) {
