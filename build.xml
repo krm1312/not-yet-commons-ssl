@@ -11,12 +11,7 @@
 
     Default target: jar
 -->
-<project name="commons-ssl" default="jar" basedir=".">
-
-  <property name="httpclient-jar" value="commons-httpclient-3.0.jar"/>
-  <property name="log4j-jar" value="log4j-1.2.13.jar"/>
-  <property name="junit-jar" value="junit-3.8.1.jar"/>
-  <property name="bc-jar" value="bcprov-jdk16-143.jar"/>
+<project name="not-yet-commons-ssl" default="jar" basedir=".">
 
   <property name="src" location="./src/java"/>
   <property name="build" location="./build"/>
@@ -32,14 +27,12 @@
   <property name="test.report.dir" value="${build}/test-report"/>   
 
   <path id="compile-classpath">
+    <fileset dir="lib">
+      <include name="*.jar"/>
+    </fileset>
+    <pathelement location="."/>    
     <pathelement location="${classes}"/>
     <pathelement location="${test-classes}"/>            
-    <pathelement location="${lib}/${httpclient-jar}"/>
-    <pathelement location="${lib}/${log4j-jar}"/>
-    <pathelement location="${lib}/${junit-jar}"/>
-    <pathelement location="${lib}/${bc-jar}"/>
-    <pathelement location="lib/httpclient-4.0.jar"/>
-    <pathelement location="lib/httpcore-4.0.1.jar"/>
   </path>
 
   <target name="test-jar" depends="jar">
@@ -86,6 +79,8 @@
   </target>
 
   <target name="init">
+    <echo>${ant.version}</echo>
+    <echo>Java version: ${java.version}</echo>
     <tstamp>
       <format property="date" pattern="zzz:yyyy-MM-dd/HH:mm:ss" locale="en"/>
     </tstamp>
@@ -95,6 +90,7 @@
   <target name="javac" depends="init" description="Compiles java source code.">
     <mkdir dir="${classes}"/>
     <javac
+      compiler="extJavac"
       includeAntRuntime="false"
       destdir="${classes}"
       debug="true"
@@ -124,9 +120,9 @@
       duplicate="fail"
     >
       <manifest>
-        <attribute name="Built-By" value="Julius Davies"/>
-        <attribute name="Created-By" value="Julius Davies"/>
-        <attribute name="Main-Class" value="org.apache.commons.ssl.Ping"/>
+        <attribute name="Built-By" value="A"/>
+        <attribute name="Created-By" value="B"/>
+        <!-- <attribute name="Main-Class" value="ca.DNS"/> -->
       </manifest>
      </jar>
   </target>
@@ -156,6 +152,15 @@
   </target>
 
   <target name="all" depends="clean,jar"/>
+
+  <target name="classpath" depends="cp"/>
+
+  <target name='cp' depends='jar' description='Generates classpath.sh file'>
+    <property name='classdump' refid='compile-classpath'/>
+    <echo file='classpath.sh'>export CLASSPATH=${classdump}
+</echo>
+    <echo>Created classpath.sh file.</echo>
+  </target>
 
 
 </project>

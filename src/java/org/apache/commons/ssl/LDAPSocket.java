@@ -58,14 +58,17 @@ public class LDAPSocket extends SSLClient {
         }
     }
 
-    public LDAPSocket() throws GeneralSecurityException, IOException {
+    private LDAPSocket() throws GeneralSecurityException, IOException {
         super();
 
-        setTrustMaterial(TrustMaterial.TRUST_ALL);
-        setCheckCRL(false);
-        setCheckExpiry(false);
-        setCheckHostname(false);
-
+        // For now we setup the usual trust infrastructure, but consumers
+        // are encouraged to call getInstance().addTrustMaterial() or
+        // getInstance().setTrustMaterial() to customize the trust.
+        if (TrustMaterial.JSSE_CACERTS != null) {
+            setTrustMaterial(TrustMaterial.JSSE_CACERTS);
+        } else {
+            setTrustMaterial(TrustMaterial.CACERTS);
+        }
     }
 
     public static SocketFactory getDefault() {

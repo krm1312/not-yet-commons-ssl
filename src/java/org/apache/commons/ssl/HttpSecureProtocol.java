@@ -33,13 +33,10 @@ package org.apache.commons.ssl;
 
 import org.apache.commons.httpclient.params.HttpConnectionParams;
 import org.apache.commons.httpclient.protocol.SecureProtocolSocketFactory;
-import org.apache.http.conn.scheme.LayeredSocketFactory;
 
-import javax.net.ssl.SSLSocket;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
-import java.net.UnknownHostException;
 import java.security.GeneralSecurityException;
 
 /**
@@ -51,7 +48,7 @@ import java.security.GeneralSecurityException;
  * @since 5-May-2006
  */
 public class HttpSecureProtocol extends SSLClient
-    implements SecureProtocolSocketFactory, LayeredSocketFactory {
+    implements SecureProtocolSocketFactory {
 
     public HttpSecureProtocol()
         throws GeneralSecurityException, IOException {
@@ -91,44 +88,6 @@ public class HttpSecureProtocol extends SSLClient
         }
         int timeout = params.getConnectionTimeout();
         return super.createSocket(host, port, localAddress, localPort, timeout);
-    }
-
-    public java.net.Socket createSocket(
-        Socket socket, String host, int port, boolean autoClose
-    ) throws java.io.IOException, java.net.UnknownHostException {
-
-        // Julius Davies:  this is redundant, but I wanted to keep an eye
-        // on the HttpComponents LayeredSocketFactory interface.
-        
-        return super.createSocket(socket, host, port, autoClose);
-    }
-
-    public java.net.Socket connectSocket(
-        Socket sock, String host, int port, InetAddress localAddress, int localPort, org.apache.http.params.HttpParams params
-    ) throws IOException, UnknownHostException, org.apache.http.conn.ConnectTimeoutException {
-
-        // Ugh where the did this provided socket come from?
-        // My quick review of HttpClient 4.x's own SSLSocketFactory
-        // gives me the idea to just ignore it (cross fingers)
-        // since it's probably just a new SSLSocket() [empty constructor].
-
-        int timeout = org.apache.http.params.HttpConnectionParams.getConnectionTimeout(params);
-        return super.createSocket(host, port, localAddress, localPort, timeout);
-    }
-
-    public boolean isSecure(Socket sock) throws IllegalArgumentException {
-
-        // These 3 checkx below are copied directly from org/apache/http/conn/ssl/SSLSocketFactory.java.
-        // http://svn.apache.org/viewvc?view=revision&revision=498143
-        // Original author: Roland Weber, rolandw@apache.org, ossfwot@dubioso.net
-        // Copied by Julius Davies, November 11th, 2009
-
-        if (sock == null) { throw new IllegalArgumentException("Socket may not be null."); }
-        if (!(sock instanceof SSLSocket)) { throw new IllegalArgumentException("Socket not created by this factory."); }
-        if (sock.isClosed()) { throw new IllegalArgumentException("Socket is closed."); }
-
-        // Back to Julius Davies code.  :-)
-        return sock instanceof SSLSocket || isSecure();
     }
 
 }
