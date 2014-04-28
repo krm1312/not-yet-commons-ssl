@@ -32,11 +32,13 @@
 package org.apache.commons.ssl;
 
 import org.apache.commons.ssl.util.ByteArrayReadLine;
+import org.apache.commons.ssl.util.IPAddressParser;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.LinkedList;
 import java.util.Map;
@@ -345,6 +347,22 @@ public class Util {
         throw new IllegalArgumentException("not a valid cipher: " + cipher);
     }
 
+    /**
+     * Utility method to make sure IP-literals don't trigger reverse-DNS lookups.
+     */
+    public static InetAddress toInetAddress(String s) throws UnknownHostException {
+        byte[] ip = IPAddressParser.parseIPv4Literal(s);
+        if (ip == null) {
+            ip = IPAddressParser.parseIPv6Literal(s);
+        }
+        if (ip != null) {
+            // Strangely, this prevents Java's annoying SSL reverse-DNS lookup that it
+            // normally does, even with literal IP addresses.
+            return InetAddress.getByAddress(s, ip);
+        } else {
+            return InetAddress.getByName(s);
+        }
+    }
 
     public static void main(String[] args) throws Exception {
         String s = "line1\n\rline2\n\rline3";

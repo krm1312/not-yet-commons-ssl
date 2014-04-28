@@ -31,6 +31,22 @@
 
 package org.apache.commons.ssl;
 
+import org.apache.commons.ssl.util.IPAddressParser;
+
+import java.io.IOException;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.net.UnknownHostException;
+import java.security.KeyManagementException;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.UnrecoverableKeyException;
+import java.security.cert.Certificate;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import javax.net.SocketFactory;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
@@ -45,19 +61,6 @@ import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509KeyManager;
 import javax.net.ssl.X509TrustManager;
-import java.io.IOException;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.ServerSocket;
-import java.net.Socket;
-import java.security.KeyManagementException;
-import java.security.KeyStore;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.UnrecoverableKeyException;
-import java.security.cert.Certificate;
-import java.security.cert.CertificateException;
-import java.security.cert.X509Certificate;
 
 
 /**
@@ -168,9 +171,9 @@ public final class Java14 extends JavaImpl {
         ssl.doPostConnectSocketStuff(s, remoteHost);
         return s;
     }
-    
+
     protected final Socket connectSocket(Socket s, SocketFactory sf,
-                                         String remoteHost, int remotePort,
+                                         String host, int remotePort,
                                          InetAddress localHost, int localPort,
                                          int timeout, SSL ssl)
         throws IOException {
@@ -181,9 +184,8 @@ public final class Java14 extends JavaImpl {
                 s = sf.createSocket();
             }
         }
-
-        String orig = remoteHost;
-        remoteHost = ssl.dnsOverride(remoteHost);
+        host = ssl.dnsOverride(host);
+        InetAddress remoteHost = Util.toInetAddress(host);
         InetSocketAddress dest = new InetSocketAddress(remoteHost, remotePort);
         InetSocketAddress src = new InetSocketAddress(localHost, localPort);
         s.bind(src);

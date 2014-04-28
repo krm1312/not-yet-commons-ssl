@@ -537,7 +537,7 @@ public class RMISocketFactoryImpl extends RMISocketFactory {
             // This code doesn't actually send any packets (so no firewalls can
             // get in the way).  It's just a neat trick for getting our
             // internet-facing interface card.
-            InetAddress addr = InetAddress.getByName(anInternetIP);
+            InetAddress addr = Util.toInetAddress(anInternetIP);
             dg.connect(addr, 12345);
             InetAddress localAddr = dg.getLocalAddress();
             ip = localAddr.getHostAddress();
