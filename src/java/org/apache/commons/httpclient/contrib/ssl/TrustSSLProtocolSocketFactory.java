@@ -27,6 +27,7 @@ package org.apache.commons.httpclient.contrib.ssl;
 
 import org.apache.commons.ssl.HttpSecureProtocol;
 import org.apache.commons.ssl.KeyMaterial;
+import org.apache.commons.ssl.TrustMaterial;
 
 import java.io.IOException;
 import java.net.Socket;
@@ -192,8 +193,15 @@ public class TrustSSLProtocolSocketFactory extends HttpSecureProtocol {
     public TrustSSLProtocolSocketFactory(String pathToTrustStore, char[] password)
         throws GeneralSecurityException, IOException {
         super();
-        KeyMaterial km = new KeyMaterial(pathToTrustStore, password);
-        super.setTrustMaterial(km);
+        TrustMaterial tm;
+        try {
+            tm = new KeyMaterial(pathToTrustStore, password);
+        } catch (KeyStoreException kse) {
+            // KeyMaterial constructor blows up in no keys found,
+            // so we fall back to TrustMaterial constructor instead.
+            tm = new TrustMaterial(pathToTrustStore, password);
+        }
+        super.setTrustMaterial(tm);
     }
 
 }

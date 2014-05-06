@@ -36,6 +36,7 @@ import org.apache.commons.ssl.TrustMaterial;
 import java.io.IOException;
 import java.net.URL;
 import java.security.GeneralSecurityException;
+import java.security.KeyStoreException;
 
 /**
  * <p/>
@@ -182,13 +183,20 @@ public class AuthSSLProtocolSocketFactory extends HttpSecureProtocol {
             super.setKeyMaterial(km);
         }
 
-        // prepare trust material1
+        // prepare trust material
         if (truststoreUrl != null) {
             char[] tsPass = null;
             if (truststorePassword != null) {
                 tsPass = truststorePassword.toCharArray();
             }
-            TrustMaterial tm = new KeyMaterial(truststoreUrl, tsPass);
+            TrustMaterial tm;
+            try {
+                tm = new KeyMaterial(truststoreUrl, tsPass);
+            } catch (KeyStoreException kse) {
+                // KeyMaterial constructor blows up in no keys found,
+                // so we fall back to TrustMaterial constructor instead.
+                tm = new TrustMaterial(truststoreUrl, tsPass);
+            }
             super.setTrustMaterial(tm);
         }
     }
