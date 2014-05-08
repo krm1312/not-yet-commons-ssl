@@ -42,8 +42,8 @@ certificate even if your client certificate is bad (so even though the SSL
 handshake fails).  And unlike "openssl s_client", this utility can bind
 against any IP address available.
 
-Usage:  java -jar not-yet-commons-ssl-0.3.9.jar [options]
-Version 0.3.9      compiled=[PST:2007-11-14/14:42:18.000]
+Usage:  java -jar not-yet-commons-ssl-0.3.13.jar [options]
+Version 0.3.13      compiled=[PST:2014-05-08/14:42:18.000]
 Options:   (*=required)
 *  -t  --target           [hostname[:port]]              default port=443
    -b  --bind             [hostname[:port]]              default port=0 "ANY"
@@ -69,7 +69,7 @@ available, instead of requiring the password to be specified as a command-line a
 <p>org.apache.commons.ssl.KeyStoreBuilder is able to convert OpenSSL style public/private keys into
 Java KeyStore files.  It can also convert Java Keystore files into the PEM format that Apache likes.</p>
 
-<p><code>java -cp not-yet-commons-ssl-0.3.9.jar org.apache.commons.ssl.KeyStoreBuilder</code></p>
+<p><code>java -cp not-yet-commons-ssl-0.3.13.jar org.apache.commons.ssl.KeyStoreBuilder</code></p>
 
 <pre style="border: 1px solid red; padding: 10px; float: left;"><u><b>KeyStoreBuilder converts PKCS12 and PKCS8 to Java "Keystore"</b></u>
 

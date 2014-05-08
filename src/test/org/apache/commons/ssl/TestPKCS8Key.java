@@ -1,33 +1,21 @@
 package org.apache.commons.ssl;
 
-import junit.framework.Test;
-import junit.framework.TestCase;
-import junit.framework.TestSuite;
+import static org.junit.Assert.*;
+import org.junit.Test;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.util.Arrays;
 import java.util.Locale;
 
-public class TestPKCS8Key extends TestCase {
+public class TestPKCS8Key {
 
-    public TestPKCS8Key(String testName) {
-        super(testName);
-    }
-
-    public static void main(String args[]) {
-        String[] testCaseName = {TestPKCS8Key.class.getName()};
-        junit.textui.TestRunner.main(testCaseName);
-    }
-
-    public static Test suite() {
-        return new TestSuite(TestPKCS8Key.class);
-    }
-
+    @Test
     public void testDSA() throws Exception {
         checkFiles("dsa");
     }
 
+    @Test
     public void testRSA() throws Exception {
         checkFiles("rsa");
     }
@@ -36,9 +24,12 @@ public class TestPKCS8Key extends TestCase {
         String password = "changeit";
         File dir = new File("samples/" + type);
         File[] files = dir.listFiles();
+        if (files == null) {
+            fail("No files to test!");
+            return;
+        }
         byte[] original = null;
-        for (int i = 0; i < files.length; i++) {
-            File f = files[i];
+        for (File f : files) {
             String filename = f.getName();
             String FILENAME = filename.toUpperCase(Locale.ENGLISH);
             if (!FILENAME.endsWith(".PEM") && !FILENAME.endsWith(".DER")) {

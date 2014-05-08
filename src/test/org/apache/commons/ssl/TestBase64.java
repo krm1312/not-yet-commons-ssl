@@ -1,29 +1,16 @@
 package org.apache.commons.ssl;
 
-import junit.framework.Test;
-import junit.framework.TestCase;
-import junit.framework.TestSuite;
+import static org.junit.Assert.assertTrue;
+import org.junit.Test;
 
+import java.io.ByteArrayInputStream;
 import java.util.Arrays;
 import java.util.Random;
-import java.io.ByteArrayInputStream;
-
-public class TestBase64 extends TestCase {
-
-    public TestBase64(String testName) {
-        super(testName);
-    }
-
-    public static void main(String args[]) {
-        String[] testCaseName = {TestBase64.class.getName()};
-        junit.textui.TestRunner.main(testCaseName);
-    }
-
-    public static Test suite() {
-        return new TestSuite(TestBase64.class);
-    }
 
 
+public class TestBase64 {
+
+    @Test
     public void testOrigBase64() throws Exception {
         Random random = new Random();
         for (int i = 0; i < 4567; i++) {
@@ -57,7 +44,7 @@ public class TestBase64 extends TestCase {
         }
     }
 
-
+    @Test
     public void testBase64() throws Exception {
         Random random = new Random();
         for (int i = 0; i < 4567; i++) {

@@ -104,7 +104,7 @@ public class IPAddressParser {
 
         // This array helps us expand the "::" into the zeroes it represents.
         String[] raw = new String[]{"0000", "0000", "0000", "0000", "0000", "0000", "0000", "0000"};
-        if (s.contains("::")) {
+        if (s.indexOf("::") >= 0) {
             String[] split = s.split("::", -1);
             String[] prefix = splitOnColon(split[0]);
             String[] suffix = splitOnColon(split[1]);
@@ -134,7 +134,8 @@ public class IPAddressParser {
 
         byte[] ip6 = new byte[16];
         int i = 0;
-        for (String tok : raw) {
+        for (int j = 0; j < raw.length; j++) {
+            String tok = raw[j];
             if (tok.length() > 4) {
                 return null;
             }
@@ -179,69 +180,4 @@ public class IPAddressParser {
         }
         return s;
     }
-
-    public static void main(String[] args) {
-        System.out.println("Bad ones...");
-        ba2s(parseIPv6Literal(":::"));
-        ba2s(parseIPv6Literal("1::1::"));
-        ba2s(parseIPv6Literal("1::1:255.254.253.256"));
-        ba2s(parseIPv6Literal("1:2:3:4"));
-        ba2s(parseIPv6Literal("1:255.254.253.252::"));
-        ba2s(parseIPv6Literal("1:2:3:4:5:6:7:8::"));
-        ba2s(parseIPv6Literal("::1:2:3:4:5:6:7:8"));
-        ba2s(parseIPv6Literal("1:2:3:4:5:6:7:8::"));
-        ba2s(parseIPv6Literal("1:2:3:4:5:6:7:88888"));
-        ba2s(parseIPv6Literal("abcd"));
-        ba2s(parseIPv6Literal("cookie monster"));
-        ba2s(parseIPv6Literal(""));
-        ba2s(parseIPv6Literal(null));
-
-        ba2s(parseIPv4Literal("abcd"));
-        ba2s(parseIPv4Literal("cookie monster"));
-        ba2s(parseIPv4Literal(""));
-        ba2s(parseIPv4Literal(null));
-        ba2s(parseIPv4Literal("1"));
-        ba2s(parseIPv4Literal("1.2"));
-        ba2s(parseIPv4Literal("1.2.3"));
-        ba2s(parseIPv4Literal("1.2.3."));
-        ba2s(parseIPv4Literal("1.2.3.a"));
-        ba2s(parseIPv4Literal("1.2.3.4.5"));
-        ba2s(parseIPv4Literal("1.2.3.444"));
-        ba2s(parseIPv4Literal("1.2.-3.4"));
-        ba2s(parseIPv4Literal("[1.2.3.4]"));
-
-        System.out.println("Good ones...");
-        ba2s(parseIPv6Literal("::"));
-        ba2s(parseIPv6Literal("1::"));
-        ba2s(parseIPv6Literal("::1"));
-        ba2s(parseIPv6Literal("1::1"));
-        ba2s(parseIPv6Literal("1::1:255.254.253.252"));
-        ba2s(parseIPv6Literal("::255.254.253.252"));
-        ba2s(parseIPv6Literal("::1:2:3:4"));
-        ba2s(parseIPv6Literal("1::2:3:4"));
-        ba2s(parseIPv6Literal("1:2::3:4"));
-        ba2s(parseIPv6Literal("1:2:3::4"));
-        ba2s(parseIPv6Literal("1:2:3:4::"));
-        ba2s(parseIPv6Literal("1:2:3:4:5:6:7:8"));
-        ba2s(parseIPv6Literal("[::]"));
-        ba2s(parseIPv6Literal("[1:2:3:4:5:6:7:8]"));
-        ba2s(parseIPv6Literal("1111:2222:3333:4444:5555:6666:7777:8888"));
-        ba2s(parseIPv4Literal("0.0.0.0"));
-        ba2s(parseIPv4Literal("1.2.3.4"));
-        ba2s(parseIPv4Literal("255.255.255.255"));
-
-    }
-
-    public static void ba2s(byte[] b) {
-        if (b == null) {
-            System.out.println("null");
-            return;
-        }
-        String s = "";
-        for (int i = 0; i < b.length; i += 2) {
-            s += (b2s(b[i]) + b2s(b[i + 1]) + ":");
-        }
-        System.out.println(s.substring(0, s.length() - 1));
-    }
-
 }

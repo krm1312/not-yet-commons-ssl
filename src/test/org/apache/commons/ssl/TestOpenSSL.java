@@ -1,8 +1,7 @@
 package org.apache.commons.ssl;
 
-import junit.framework.Test;
-import junit.framework.TestCase;
-import junit.framework.TestSuite;
+import static org.junit.Assert.*;
+import org.junit.Test;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -10,21 +9,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.Random;
 
-public class TestOpenSSL extends TestCase {
-
-    public TestOpenSSL(String testName) {
-        super(testName);
-    }
-
-    public static void main(String args[]) {
-        String[] testCaseName = {TestOpenSSL.class.getName()};
-        junit.textui.TestRunner.main(testCaseName);
-    }
-
-    public static Test suite() {
-        return new TestSuite(TestOpenSSL.class);
-    }
-
+public class TestOpenSSL {
 
     public void encTest(String cipher) throws Exception {
         Random random = new Random();
@@ -59,29 +44,37 @@ public class TestOpenSSL extends TestCase {
 
     }
 
+    @Test
     public void testDES3Bytes() throws Exception {
         encTest("des3");
     }
 
+    @Test
     public void testAES128Bytes() throws Exception {
         encTest("aes128");
     }
 
+    @Test
     public void testRC2Bytes() throws Exception {
         encTest("rc2");
     }
 
+    @Test
     public void testDESBytes() throws Exception {
         encTest("des");
     }
 
+    @Test
     public void testDecryptPBE() throws Exception {
-        File f = new File("samples/pbe");
-        File[] files = f.listFiles();
+        File d = new File("samples/pbe");
+        File[] files = d.listFiles();
+        if (files == null) {
+            fail("No testDecryptPBE() files to test!");
+        }
         int testCount = 0;
         Arrays.sort(files);
-        for (int i = 0; i < files.length; i++) {
-            testCount += process(files[i], 0);
+        for (File f : files) {
+            testCount += process(f, 0);
         }
         System.out.println(testCount + " pbe test files successfully decrypted.");
     }
@@ -102,9 +95,12 @@ public class TestOpenSSL extends TestCase {
         if (f.isDirectory()) {
             if (depth <= 7) {
                 File[] files = f.listFiles();
+                if (files == null) {
+                    return 0;
+                }
                 Arrays.sort(files);
-                for (int i = 0; i < files.length; i++) {
-                    sum += process(files[i], depth + 1);
+                for (File ff : files) {
+                    sum += process(ff, depth + 1);
                 }
             } else {
                 System.out.println("IGNORING [" + f + "].  Directory too deep (" + depth + ").");
@@ -133,7 +129,7 @@ public class TestOpenSSL extends TestCase {
                         System.out.println("Warn: " + cipherPadded + filePadded + " NoSuchAlgorithmException");
                         return 0;
                     } catch (ArithmeticException ae) {
-                        if (cipherPadded.indexOf("cfb1") >= 0) {
+                        if (cipherPadded.contains("cfb1")) {
                             System.out.println("Warn: " + cipherPadded + filePadded + " BouncyCastle can't handle cfb1 " + ae);
                             return 0;
                         } else {

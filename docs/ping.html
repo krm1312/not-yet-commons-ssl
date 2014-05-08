@@ -42,20 +42,23 @@ certificate even if your client certificate is bad (so even though the SSL
 handshake fails).  And unlike "openssl s_client", this utility can bind
 against any IP address available.
 
-$Name: commons-ssl-0_3_8 $ compiled=[EST:2007-02-22/10:12:26.000]
-Usage:  java -jar not-yet-commons-ssl-0.3.7.jar [options]
+Usage:  java -jar not-yet-commons-ssl-0.3.13.jar [options]
+Version: 0.3.13   Compiled: [PDT:2014-05-08/14:15:16.000]
 Options:   (*=required)
-*  -t  --target           [hostname[:port]]             default port=443
-   -b  --bind             [hostname[:port]]             default port=0 "ANY"
-   -r  --proxy            [hostname[:port]]             default port=80
-   -tm --trust-cert       [path to trust material]  *.{pem, der, crt, jks}
-   -km --client-cert      [path to client's private key]  *.{jks, pkcs12, pkcs8}
-   -cc --cert-chain       [path to client's cert chain if using pkcs8/OpenSSL key]
+*  -t  --target           [hostname[:port]]              default port=443
+   -b  --bind             [hostname[:port]]              default port=0 "ANY"
+   -r  --proxy            [hostname[:port]]              default port=80
+   -tm --trust-cert       [path to trust material]       {pem, der, crt, jks}
+   -km --client-cert      [path to client's private key] {jks, pkcs12, pkcs8}
+   -cc --cert-chain       [path to client's cert chain for pkcs8/OpenSSL key]
    -p  --password         [client cert password]
+   -h  --host-header      [http-host-header]      in case -t is an IP address
+   -u  --path             [path for GET/HEAD request]    default=/
+   -m  --method           [http method to use]           default=HEAD
 
 Example:
 
-java -jar commons-ssl.jar -t cucbc.com:443 -c ./client.pfx -p `cat ./pass.txt`</pre><br clear="all"/>
+java -jar commons-ssl.jar -t host.com:443 -c ./client.pfx -p `cat ./pass.txt` </pre><br clear="all"/>
 
 <p style="margin-top: 8px;"><b>TODO:</b><br/>Apparently Java 6.0 includes support for grabbing passwords from
 standard-in without echoing the typed characters.  Would be nice to use that feature when it's
@@ -63,10 +66,9 @@ available, instead of requiring the password to be specified as a command-line a
 
 <hr/>
 <h2>KeyStoreBuilder</em></h2>
-<p><code>java -cp commons-ssl-0.3.7.jar org.apache.commons.ssl.KeyStoreBuilder</code></p>
+<p><code>java -cp not-yet-commons-ssl-0.3.13.jar org.apache.commons.ssl.KeyStoreBuilder</code></p>
 
 <pre style="border: 1px solid red; padding: 10px; float: left;"><u><b>KeyStoreBuilder converts PKCS12 and PKCS8 to Java "Keystore", and vice versa.</b></u>
-
 KeyStoreBuilder:  creates '[alias].jks' (Java Key Store)
     -topk8 mode:  creates '[alias].pem' (x509 chain + unencrypted pkcs8)
 [alias] will be set to the first CN value of the X509 certificate.
@@ -77,8 +79,7 @@ Usage3: -topk8 [password] [file:jks]
 -------------------------------------------------------------------
 [private-key] can be openssl format, or pkcs8.
 [password] decrypts [private-key], and also encrypts outputted JKS file.
-All files can be PEM or DER.
-</pre><br clear="all"/>
+All files can be PEM or DER.</pre><br clear="all"/>
 
 <br/><b>Warning:</b>
 &nbsp;<span style="color: red; font-weight: bold;">-topk8 outputs the private key UNENCRYPTED!

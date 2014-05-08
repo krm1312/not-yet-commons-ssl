@@ -1,26 +1,23 @@
 package org.apache.commons.ssl;
 
-import junit.framework.Test;
-import junit.framework.TestCase;
-import junit.framework.TestSuite;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import static org.junit.Assert.*;
+import org.junit.Test;
 
-import javax.net.ssl.SSLSocket;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.security.Security;
-import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
-import java.util.Date;
-import java.util.Iterator;
-import java.util.Locale;
 import java.util.Arrays;
+import java.util.Date;
+import java.util.List;
+import java.util.Locale;
+import javax.net.ssl.SSLSocket;
 
-public class TestKeyMaterial extends TestCase {
+public class TestKeyMaterial {
     public static final char[] PASSWORD1 = "changeit".toCharArray();
     public static final char[] PASSWORD2 = "itchange".toCharArray();
 
@@ -28,33 +25,15 @@ public class TestKeyMaterial extends TestCase {
         Security.addProvider(new BouncyCastleProvider());
     }
 
-    public TestKeyMaterial(String testName) {
-        super(testName);
-    }
-
-    public static void main(String args[]) {
-        String[] testCaseName = {TestKeyMaterial.class.getName()};
-        junit.textui.TestRunner.main(testCaseName);
-    }
-
-    public static Test suite() {
-        return new TestSuite(TestKeyMaterial.class);
-    }
-
-    public void testDSA_RSA_Mix() throws Exception {
-
-    }
-
-
+    @Test
     public void testKeystores() throws Exception {
         String samplesDir = "samples/keystores";
         File dir = new File(samplesDir);
         String[] files = dir.list();
         Arrays.sort(files, String.CASE_INSENSITIVE_ORDER);
-        for (int i = 0; i < files.length; i++) {
-            String f = files[i];
+        for (String f : files) {
             String F = f.toUpperCase(Locale.ENGLISH);
-            if (F.endsWith(".KS") || F.indexOf("PKCS12") >= 0) {
+            if (F.endsWith(".KS") || F.contains("PKCS12")) {
                 examineKeyStore(samplesDir, f, null);
             } else if (F.endsWith(".PEM")) {
                 examineKeyStore(samplesDir, f, "rsa.key");
@@ -64,7 +43,7 @@ public class TestKeyMaterial extends TestCase {
 
     private static void examineKeyStore(String dir, String fileName, String file2) throws Exception {
         String FILENAME = fileName.toUpperCase(Locale.ENGLISH);
-        boolean hasMultiPassword = FILENAME.indexOf(".2PASS.") >= 0;
+        boolean hasMultiPassword = FILENAME.contains(".2PASS.");
 
         System.out.print("Testing KeyMaterial: " + dir + "/" + fileName);        
         char[] pass1 = PASSWORD1;
@@ -84,11 +63,9 @@ public class TestKeyMaterial extends TestCase {
             return;
         }
         assertEquals("keymaterial-contains-1-alias", 1, km.getAliases().size());
-        Iterator it509 = km.getAssociatedCertificateChains().iterator();
-        while (it509.hasNext()) {
-            X509Certificate[] cert = (X509Certificate[]) it509.next();
-            for (int i = 0; i < cert.length; i++) {
-                assertTrue("certchain-valid-dates", cert[i].getNotAfter().after(today));
+        for (X509Certificate[] cert : (List<X509Certificate[]>) km.getAssociatedCertificateChains()) {
+            for (X509Certificate c : cert) {
+                assertTrue("certchain-valid-dates", c.getNotAfter().after(today));
             }
         }
 
@@ -104,7 +81,7 @@ public class TestKeyMaterial extends TestCase {
         client.setTrustMaterial(TrustMaterial.TRUST_ALL);
         client.setCheckHostname(false);
         SSLSocket s = (SSLSocket) client.createSocket("localhost", port);
-        Certificate[] certs = s.getSession().getPeerCertificates();
+        s.getSession().getPeerCertificates();
         InputStream in = s.getInputStream();
         Util.streamToBytes(in);
         in.close();
@@ -128,8 +105,8 @@ public class TestKeyMaterial extends TestCase {
                     s.close();
                 } catch (Exception e) {
 
-                } finally {
-                    // System.out.println("Test ssl server on port " + port + " finished.");
+                    System.out.println("Test ssl server exception: " + e);
+
                 }
             }
         };

@@ -120,9 +120,9 @@
       duplicate="fail"
     >
       <manifest>
-        <attribute name="Built-By" value="A"/>
-        <attribute name="Created-By" value="B"/>
-        <!-- <attribute name="Main-Class" value="ca.DNS"/> -->
+        <attribute name="Built-By" value="Julius Davies"/>
+        <attribute name="Created-By" value="Julius Davies"/>
+        <attribute name="Main-Class" value="org.apache.commons.ssl.Ping"/>
       </manifest>
      </jar>
   </target>
