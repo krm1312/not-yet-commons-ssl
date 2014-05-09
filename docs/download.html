@@ -38,8 +38,8 @@ tr.released td, tr.released th { background-color: yellow; font-weight: bold; }
 to start <a href="http://incubator.apache.org/incubation/Incubation_Policy.html">Incubation</a> one day.
 <table cellpadding="6" cellspacing="0" border="0" style="margin-top: 9px;">
 <tr><th colspan="3">Current Version (May 8th, 2014):</th></tr>
-<tr><td>Full source:</td><td><a href="/commons-ssl/not-yet-commons-ssl-0.3.13.zip">not-yet-commons-ssl-0.3.13.zip</a></td><td>3.3MB</td><td><span style="color: red;">Alpha</span></td><td>MD5: </td></tr>
-<tr><td>Binary only:</td><td><a href="/commons-ssl/not-yet-commons-ssl-0.3.13.jar">not-yet-commons-ssl-0.3.13.jar</a></td><td>265KB</td><td><span style="color: red;">Alpha</span></td><td>MD5: </td></tr>
+<tr><td>Full source:</td><td><a href="/commons-ssl/not-yet-commons-ssl-0.3.13.zip">not-yet-commons-ssl-0.3.13.zip</a></td><td>5.1MB</td><td><span style="color: red;">Alpha</span></td><td>MD5: 14f2f7edeaf2bbab550d63a51868e432</td></tr>
+<tr><td>Binary only:</td><td><a href="/commons-ssl/not-yet-commons-ssl-0.3.13.jar">not-yet-commons-ssl-0.3.13.jar</a></td><td>268KB</td><td><span style="color: red;">Alpha</span></td><td>MD5: 3dd6c487e1ce53221aa13811e0bc6207</td></tr>
 
 <tr><th colspan="3">Previous Version (September 17th, 2009):</th></tr>
 <tr><td>Full source:</td><td><a href="/commons-ssl/not-yet-commons-ssl-0.3.11.zip">not-yet-commons-ssl-0.3.11.zip</a></td><td>3.3MB</td><td><span style="color: red;">Alpha</span></td><td>MD5: 5c3997f638a50aed2bb5521fdbbb6873</td></tr>
@@ -51,7 +51,21 @@ This code probably contains bugs.  This code may have security issues.</span>
 <p>Future versions will definitely break the current API in a non-reverse compatible way.  After commons-ssl-0.5.0, though, we
 plan on always being reverse compatible with ourselves.
 <hr/>
-<h3>Features as of not-yet-commons-ssl-0.3.11:</h3>
+<h3>Changelog for not-yet-commons-ssl-0.3.13:</h3>
+<dl>
+<dt>1. Fix bugs in AuthSSLProtocolSocketFactory and TrustSSLProtocolSocketFactory.</dt>
+<dd>KeyMaterial's constructor has been checking that KeyMaterial contains at least one
+private key, but this assumption was invalid with these guys.  The fall-back to the
+TrustMaterial constructor if necessary.   (Wonder how long this has been broken!   Oops!)</dd>
+
+<dt>2. Upgraded from JUnit3 to JUnit4.  Added some extra unit tests.</dt>
+</dl>
+<h3>Changelog for not-yet-commons-ssl-0.3.12:</h3>
+<dl>
+<dt>1. Avoid reverse-DNS lookups with literal IP address connections.</dt>
+<dd>Based on my own investigation, InetAddress.getByAddress(String, byte[]) does not do the reverse-DNS lookup that plagues Java SSL users, so we call that whenever possible.</dd>
+</dl>
+<h3>Changelog for not-yet-commons-ssl-0.3.11:</h3>
 <dl>
 <dt>1.  Fixed KeyStoreBuilder.</dt>
 <dd>It really can handle KeyStores now where the store-password and key-password differ.  It can

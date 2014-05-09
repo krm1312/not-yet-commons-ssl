@@ -1,5 +1,6 @@
 package org.apache.commons.ssl;
 
+import static org.apache.commons.ssl.JUnitConfig.TEST_HOME;
 import static org.junit.Assert.*;
 import org.junit.Test;
 
@@ -66,7 +67,7 @@ public class TestOpenSSL {
 
     @Test
     public void testDecryptPBE() throws Exception {
-        File d = new File("samples/pbe");
+        File d = new File(TEST_HOME + "samples/pbe");
         File[] files = d.listFiles();
         if (files == null) {
             fail("No testDecryptPBE() files to test!");

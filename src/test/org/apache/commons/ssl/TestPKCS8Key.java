@@ -1,5 +1,6 @@
 package org.apache.commons.ssl;
 
+import static org.apache.commons.ssl.JUnitConfig.TEST_HOME;
 import static org.junit.Assert.*;
 import org.junit.Test;
 
@@ -22,7 +23,7 @@ public class TestPKCS8Key {
 
     private static void checkFiles(String type) throws Exception {
         String password = "changeit";
-        File dir = new File("samples/" + type);
+        File dir = new File(TEST_HOME + "samples/" + type);
         File[] files = dir.listFiles();
         if (files == null) {
             fail("No files to test!");

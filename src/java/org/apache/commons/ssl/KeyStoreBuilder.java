@@ -314,6 +314,14 @@ public class KeyStoreBuilder {
 
     public static BuildResult parse(byte[] stuff, char[] jksPass,
                                     char[] keyPass)
+            throws IOException, CertificateException, KeyStoreException,
+            ProbablyBadPasswordException {
+
+        return parse(stuff, jksPass, keyPass, false);
+    }
+
+    static BuildResult parse(byte[] stuff, char[] jksPass,
+                             char[] keyPass, boolean forTrustMaterial)
         throws IOException, CertificateException, KeyStoreException,
         ProbablyBadPasswordException {
         CertificateFactory cf = CertificateFactory.getInstance("X.509");
@@ -371,15 +379,15 @@ public class KeyStoreBuilder {
 
         ByteArrayInputStream stuffStream = new ByteArrayInputStream(stuff);
         // Try default keystore... then try others.
-        BuildResult br = tryJKS(KeyStore.getDefaultType(), stuffStream, jksPass, keyPass);
+        BuildResult br = tryJKS(KeyStore.getDefaultType(), stuffStream, jksPass, keyPass, forTrustMaterial);
         if (br == null) {
-            br = tryJKS("jks", stuffStream, jksPass, keyPass);
+            br = tryJKS("jks", stuffStream, jksPass, keyPass, forTrustMaterial);
             if (br == null) {
-                br = tryJKS("jceks", stuffStream, jksPass, keyPass);
+                br = tryJKS("jceks", stuffStream, jksPass, keyPass, forTrustMaterial);
                 if (br == null) {
-                    br = tryJKS("BKS", stuffStream, jksPass, keyPass);
+                    br = tryJKS("BKS", stuffStream, jksPass, keyPass, forTrustMaterial);
                     if (br == null) {
-                        br = tryJKS("UBER", stuffStream, jksPass, keyPass);
+                        br = tryJKS("UBER", stuffStream, jksPass, keyPass, forTrustMaterial);
                     }
                 }
             }
@@ -389,7 +397,7 @@ public class KeyStoreBuilder {
         }
         if (isASN) {
             if (isProbablyPKCS12) {
-                return tryJKS("pkcs12", stuffStream, jksPass, null);
+                return tryJKS("pkcs12", stuffStream, jksPass, null, forTrustMaterial);
             }
         } else {
             // Okay, it's ASN.1, but it's not PKCS12.  Only one possible
@@ -432,7 +440,7 @@ public class KeyStoreBuilder {
             }
         }
 
-        br = tryJKS("pkcs12", stuffStream, jksPass, null);
+        br = tryJKS("pkcs12", stuffStream, jksPass, null, forTrustMaterial);
         if (br != null) {
             // no exception thrown, so must be PKCS12.
             System.out.println("Please report bug!");
@@ -443,10 +451,10 @@ public class KeyStoreBuilder {
         throw new KeyStoreException("failed to extract any certificates or private keys - maybe bad password?");
     }
 
-    private static BuildResult tryJKS(String keystoreType,
-                                      ByteArrayInputStream in,
-                                      char[] jksPassword, char[] keyPassword)
-        throws ProbablyBadPasswordException {
+    private static BuildResult tryJKS(
+            String keystoreType, ByteArrayInputStream in, char[] jksPassword, char[] keyPassword,
+            boolean forTrustMaterial
+    ) throws ProbablyBadPasswordException {
         in.reset();
         if (keyPassword == null || keyPassword.length <= 0) {
             keyPassword = jksPassword;
@@ -481,7 +489,11 @@ public class KeyStoreBuilder {
                 }
             }
             if (key == null && uke != null) {
-                throw new ProbablyBadPasswordException("Probably bad JKS-Key password: " + uke);
+                // If we're trying to load KeyMaterial, then we *need* that key we spotted.
+                // But if we're trying to load TrustMaterial, then we're fine, and we can ignore the key.
+                if (!forTrustMaterial) {
+                    throw new ProbablyBadPasswordException("Probably bad JKS-Key password: " + uke);
+                }
             }
             if (isPKCS12) {
                 // PKCS12 is supposed to be just a key and a chain, anyway.

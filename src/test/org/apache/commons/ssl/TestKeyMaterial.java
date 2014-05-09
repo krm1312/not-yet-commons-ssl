@@ -1,5 +1,6 @@
 package org.apache.commons.ssl;
 
+import static org.apache.commons.ssl.JUnitConfig.TEST_HOME;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import static org.junit.Assert.*;
 import org.junit.Test;
@@ -27,7 +28,7 @@ public class TestKeyMaterial {
 
     @Test
     public void testKeystores() throws Exception {
-        String samplesDir = "samples/keystores";
+        String samplesDir = TEST_HOME + "samples/keystores";
         File dir = new File(samplesDir);
         String[] files = dir.list();
         Arrays.sort(files, String.CASE_INSENSITIVE_ORDER);

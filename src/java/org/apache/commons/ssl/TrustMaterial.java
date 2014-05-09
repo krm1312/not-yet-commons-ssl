@@ -205,12 +205,11 @@ public class TrustMaterial extends TrustChain {
         this(Util.streamToBytes(jks), password);
     }
 
-
     public TrustMaterial(byte[] jks, char[] password)
         throws GeneralSecurityException, IOException {
 
         KeyStoreBuilder.BuildResult br;
-        br = KeyStoreBuilder.parse(jks, password, null);
+        br = KeyStoreBuilder.parse(jks, password, null, true);
         if (br.jks != null) {
             // If we've been given a keystore, just use that.
             this.jks = br.jks;
