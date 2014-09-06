@@ -443,9 +443,14 @@ public class KeyStoreBuilder {
         br = tryJKS("pkcs12", stuffStream, jksPass, null, forTrustMaterial);
         if (br != null) {
             // no exception thrown, so must be PKCS12.
+            /*
+            Hmm, well someone finally reported this bug!   And they want the library to be quiet....
+            Commenting out for now, maybe investigate why it's happening one day....
+
             System.out.println("Please report bug!");
             System.out.println("PKCS12 detection failed to realize this was PKCS12!");
             System.out.println(asn1);
+            */
             return br;
         }
         throw new KeyStoreException("failed to extract any certificates or private keys - maybe bad password?");
