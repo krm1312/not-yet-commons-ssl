@@ -37,13 +37,12 @@ tr.released td, tr.released th { background-color: yellow; font-weight: bold; }
 <p>Not-Yet-Commons-SSL currently has NO affiliation with the <a href="http://apache.org/">Apache Software Foundation</a> (apache.org), but we're hoping
 to start <a href="http://incubator.apache.org/incubation/Incubation_Policy.html">Incubation</a> one day.
 <table cellpadding="6" cellspacing="0" border="0" style="margin-top: 9px;">
-<tr><th colspan="3">Current Version (May 8th, 2014):</th></tr>
-<tr><td>Full source:</td><td><a href="/commons-ssl/not-yet-commons-ssl-0.3.13.zip">not-yet-commons-ssl-0.3.13.zip</a></td><td>5.1MB</td><td><span style="color: red;">Alpha</span></td><td>MD5: 14f2f7edeaf2bbab550d63a51868e432</td></tr>
-<tr><td>Binary only:</td><td><a href="/commons-ssl/not-yet-commons-ssl-0.3.13.jar">not-yet-commons-ssl-0.3.13.jar</a></td><td>268KB</td><td><span style="color: red;">Alpha</span></td><td>MD5: 3dd6c487e1ce53221aa13811e0bc6207</td></tr>
-
-<tr><th colspan="3">Previous Version (September 17th, 2009):</th></tr>
-<tr><td>Full source:</td><td><a href="/commons-ssl/not-yet-commons-ssl-0.3.11.zip">not-yet-commons-ssl-0.3.11.zip</a></td><td>3.3MB</td><td><span style="color: red;">Alpha</span></td><td>MD5: 5c3997f638a50aed2bb5521fdbbb6873</td></tr>
-<tr><td>Binary only:</td><td><a href="/commons-ssl/not-yet-commons-ssl-0.3.11.jar">not-yet-commons-ssl-0.3.11.jar</a></td><td>265KB</td><td><span style="color: red;">Alpha</span></td><td>MD5: dcaeab0ff2ff86958e8c1795aeae5fbe</td></tr>
+    <tr><th colspan="3">Current Version (September 8th, 2014):</th></tr>
+    <tr><td>Full source:</td><td><a href="/commons-ssl/not-yet-commons-ssl-0.3.15.zip">not-yet-commons-ssl-0.3.15.zip</a></td><td>5.1MB</td><td><span style="color: red;">Alpha</span></td><td>MD5: </td></tr>
+    <tr><td>Binary only:</td><td><a href="/commons-ssl/not-yet-commons-ssl-0.3.15.jar">not-yet-commons-ssl-0.3.15.jar</a></td><td>267KB</td><td><span style="color: red;">Alpha</span></td><td>MD5: cebc58b8367c253688426043fdf08221</td></tr>
+    <tr><th colspan="3">Previous Version (May 8th, 2014):</th></tr>
+    <tr><td>Full source:</td><td><a href="/commons-ssl/not-yet-commons-ssl-0.3.13.zip">not-yet-commons-ssl-0.3.13.zip</a></td><td>5.1MB</td><td><span style="color: red;">Alpha</span></td><td>MD5: 14f2f7edeaf2bbab550d63a51868e432</td></tr>
+    <tr><td>Binary only:</td><td><a href="/commons-ssl/not-yet-commons-ssl-0.3.13.jar">not-yet-commons-ssl-0.3.13.jar</a></td><td>268KB</td><td><span style="color: red;">Alpha</span></td><td>MD5: 3dd6c487e1ce53221aa13811e0bc6207</td></tr>
 </table>
 <br/><b>Warning:</b>
 &nbsp;<span style="color: red; font-weight: bold;">All versions of not-yet-commons-ssl should be considered to be of "Alpha" quality!
@@ -51,6 +50,17 @@ This code probably contains bugs.  This code may have security issues.</span>
 <p>Future versions will definitely break the current API in a non-reverse compatible way.  After commons-ssl-0.5.0, though, we
 plan on always being reverse compatible with ourselves.
 <hr/>
+<h3>Changelog for not-yet-commons-ssl-0.3.15:</h3>
+<dl>
+    <dt>1. Security patch from Redhat for CVE alert.</dt>
+    <dd>The way we parse the Principal (e.g., "CN=a,OU=b,O=c") from an X509 Certificate had a serious security flaw.
+    Thanks to Redhat, Arun Babu Neelicattu, and David Jorm for notifying us, and for the patch they submitted.</dd></dd>
+    <dt>2. Upgrade to Java 1.5.</dt>
+    <dd>Not-yet-commons-ssl now requires at least Java 1.5 to run (a.k.a. Java 5).
+    If you really need Java 1.3 or Java 1.4 compatibility, please email the mailing list; it's not too late for us to
+    rejig things to bring that back, but we're not going to bother unless someone actually needs it.
+    </dd>
+</dl>
 <h3>Changelog for not-yet-commons-ssl-0.3.13:</h3>
 <dl>
 <dt>1. Fix bugs in AuthSSLProtocolSocketFactory and TrustSSLProtocolSocketFactory.</dt>
