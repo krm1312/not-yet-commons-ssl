@@ -478,8 +478,10 @@ public class KeyStoreBuilder {
                 String alias = (String) en.nextElement();
                 if (jksKeyStore.isKeyEntry(alias)) {
                     try {
-                        key = jksKeyStore.getKey(alias, keyPassword);
-                        if (key != null && key instanceof PrivateKey) {
+                        if (keyPassword != null) {
+                            key = jksKeyStore.getKey(alias, keyPassword);
+                        }
+                        if (key instanceof PrivateKey) {
                             chain = jksKeyStore.getCertificateChain(alias);
                             break;
                         }

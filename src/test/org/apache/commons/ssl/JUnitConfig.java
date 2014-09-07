@@ -1,6 +1,7 @@
 package org.apache.commons.ssl;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.Properties;
@@ -16,17 +17,17 @@ public class JUnitConfig {
             Properties p = new Properties();
 
             boolean loaded = false;
-            FileReader fr = null;
+            FileInputStream fin = null;
             try {
-                fr = new FileReader(f);
-                p.load(fr);
+                fin = new FileInputStream(f);
+                p.load(fin);
                 loaded = true;
             } catch (IOException ioe) {
                 System.err.println("Failed to load: " + f);
             } finally {
-                if (fr != null) {
+                if (fin != null) {
                     try {
-                        fr.close();
+                        fin.close();
                     } catch (IOException ioe) {
                         System.err.println("Failed to close: " + f);
                     }
