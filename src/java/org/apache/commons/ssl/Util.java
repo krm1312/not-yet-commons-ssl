@@ -35,15 +35,24 @@ import org.apache.commons.ssl.util.ByteArrayReadLine;
 import org.apache.commons.ssl.util.IPAddressParser;
 
 import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.cert.Certificate;
+import java.util.Arrays;
+import java.util.Enumeration;
 import java.util.LinkedList;
 import java.util.Map;
+import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.TreeMap;
+import java.util.TreeSet;
 
 /**
  * @author Credit Union Central of British Columbia
@@ -54,6 +63,54 @@ import java.util.TreeMap;
 public class Util {
     public final static int SIZE_KEY = 0;
     public final static int LAST_READ_KEY = 1;
+
+    /**
+     * True if the Keystores have the same # of entries, have the same set of aliases, and all the certificate-chains
+     * (of the certificate entries) match.   Does not check the private keys for equality, since we
+     * don't bother taking the passwords to get at them.
+     */
+    public static boolean equals(KeyStore ks1, KeyStore ks2) throws KeyStoreException {
+        if (ks1 == null || ks2 == null) {
+            return ks1 == null && ks2 == null;
+        }
+        Set<String> aliases1 = aliases(ks1);
+        Set<String> aliases2 = aliases(ks2);
+        if (aliases1.equals(aliases2)) {
+            for (String s : aliases1) {
+                if (ks1.isCertificateEntry(s) != ks2.isCertificateEntry(s)) {
+                    return false;
+                }
+                if (ks1.isKeyEntry(s) != ks2.isKeyEntry(s)) {
+                    return false;
+                }
+                if (ks1.isCertificateEntry(s)) {
+                    Certificate[] cc1 = ks1.getCertificateChain(s);
+                    Certificate[] cc2 = ks2.getCertificateChain(s);
+                    if (!Arrays.equals(cc1, cc2)) {
+                        return false;
+                    }
+
+                    Certificate c1 = ks1.getCertificate(s);
+                    Certificate c2 = ks2.getCertificate(s);
+                    if (!c1.equals(c2)) {
+                        return false;
+                    }
+                }
+
+                // should we bother checking keys?   maybe one day....
+            }
+        }
+        return true;
+    }
+
+    private static Set<String> aliases(KeyStore ks) throws KeyStoreException {
+        Set<String> aliases = new TreeSet<String>();
+        Enumeration<String> en = ks.aliases();
+        while (en.hasMoreElements()) {
+            aliases.add(en.nextElement());
+        }
+        return aliases;
+    }
 
     public static boolean isYes(String yesString) {
         if (yesString == null) {
@@ -124,6 +181,10 @@ public class Util {
         if (ioe != null) {
             throw ioe;
         }
+    }
+
+    public static byte[] fileToBytes(final File f) throws IOException {
+        return streamToBytes(new FileInputStream(f));
     }
 
     public static byte[] streamToBytes(final ByteArrayInputStream in,

@@ -395,11 +395,11 @@ public class KeyStoreBuilder {
         if (br != null) {
             return br;
         }
-        if (isASN) {
-            if (isProbablyPKCS12) {
-                return tryJKS("pkcs12", stuffStream, jksPass, null, forTrustMaterial);
-            }
-        } else {
+        if (isASN && isProbablyPKCS12) {
+            br = tryJKS("pkcs12", stuffStream, jksPass, null, forTrustMaterial);
+        }
+
+        if (br == null) {
             // Okay, it's ASN.1, but it's not PKCS12.  Only one possible
             // interesting things remains:  X.509.
             stuffStream.reset();

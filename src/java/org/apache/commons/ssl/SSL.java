@@ -58,7 +58,7 @@ import java.util.*;
  */
 public class SSL {
     private final static String[] KNOWN_PROTOCOLS =
-            {"TLSv1", "SSLv3", "SSLv2", "SSLv2Hello"};
+            {"TLSv1.2", "TLSv1.1", "TLSv1", "SSLv3", "SSLv2", "SSLv2Hello"};
 
     // SUPPORTED_CIPHERS_ARRAY is initialized in the static constructor.
     private final static String[] SUPPORTED_CIPHERS;
@@ -66,26 +66,8 @@ public class SSL {
     public final static SortedSet KNOWN_PROTOCOLS_SET;
     public final static SortedSet SUPPORTED_CIPHERS_SET;
 
-    // RC4
-    public final static String SSL_RSA_WITH_RC4_128_SHA = "SSL_RSA_WITH_RC4_128_SHA";
-
-    // 3DES
-    public final static String SSL_RSA_WITH_3DES_EDE_CBC_SHA = "SSL_RSA_WITH_3DES_EDE_CBC_SHA";
-    public final static String SSL_DHE_RSA_WITH_3DES_EDE_CBC_SHA = "SSL_DHE_RSA_WITH_3DES_EDE_CBC_SHA";
-    public final static String SSL_DHE_DSS_WITH_3DES_EDE_CBC_SHA = "SSL_DHE_DSS_WITH_3DES_EDE_CBC_SHA";
-
-    // AES-128
-    public final static String TLS_RSA_WITH_AES_128_CBC_SHA = "TLS_RSA_WITH_AES_128_CBC_SHA";
-    public final static String TLS_DHE_RSA_WITH_AES_128_CBC_SHA = "TLS_DHE_RSA_WITH_AES_128_CBC_SHA";
-    public final static String TLS_DHE_DSS_WITH_AES_128_CBC_SHA = "TLS_DHE_DSS_WITH_AES_128_CBC_SHA";
-
-    // AES-256
-    public final static String TLS_RSA_WITH_AES_256_CBC_SHA = "TLS_RSA_WITH_AES_256_CBC_SHA";
-    public final static String TLS_DHE_RSA_WITH_AES_256_CBC_SHA = "TLS_DHE_RSA_WITH_AES_256_CBC_SHA";
-    public final static String TLS_DHE_DSS_WITH_AES_256_CBC_SHA = "TLS_DHE_DSS_WITH_AES_256_CBC_SHA";
-
     static {
-        TreeSet ts = new TreeSet(Collections.reverseOrder());
+        TreeSet<String> ts = new TreeSet<String>(Collections.reverseOrder());
         ts.addAll(Arrays.asList(KNOWN_PROTOCOLS));
         KNOWN_PROTOCOLS_SET = Collections.unmodifiableSortedSet(ts);
 
@@ -93,7 +75,7 @@ public class SSL {
         // reads of "/dev/random" (Linux only?).  You might find you system
         // stuck here.  Move the mouse around a little!
         SSLSocketFactory s = (SSLSocketFactory) SSLSocketFactory.getDefault();
-        ts = new TreeSet();
+        ts = new TreeSet<String>();
         SUPPORTED_CIPHERS = s.getSupportedCipherSuites();
         Arrays.sort(SUPPORTED_CIPHERS);
         ts.addAll(Arrays.asList(SUPPORTED_CIPHERS));
@@ -184,11 +166,6 @@ public class SSL {
             setTrustMaterial(TrustMaterial.DEFAULT);
         }
         this.usingSystemProperties = usingSysProps;
-
-        // By default we only use the strong ciphers (128 bit and higher).
-        // Consumers can call "useDefaultJavaCiphers()" to get the 40 and 56 bit
-        // ciphers back that Java normally has turned on.
-        useStrongCiphers();
         dirtyAndReloadIfYoung();
     }
 
@@ -307,42 +284,8 @@ public class SSL {
         return enabledCiphers != null ? enabledCiphers : getDefaultCipherSuites();
     }
 
-    public void useDefaultJavaCiphers() {
-        this.enabledCiphers = null;
-    }
-
-    public void useStrongCiphers() {
-        LinkedList list = new LinkedList();
-        addCipher(list, SSL_DHE_DSS_WITH_3DES_EDE_CBC_SHA, false);
-        addCipher(list, SSL_DHE_RSA_WITH_3DES_EDE_CBC_SHA, false);
-        addCipher(list, SSL_RSA_WITH_3DES_EDE_CBC_SHA, false);
-        addCipher(list, SSL_RSA_WITH_RC4_128_SHA, false);
-        addCipher(list, TLS_DHE_DSS_WITH_AES_128_CBC_SHA, false);
-        addCipher(list, TLS_DHE_DSS_WITH_AES_256_CBC_SHA, false);
-        addCipher(list, TLS_DHE_RSA_WITH_AES_128_CBC_SHA, false);
-        addCipher(list, TLS_DHE_RSA_WITH_AES_256_CBC_SHA, false);
-        addCipher(list, TLS_RSA_WITH_AES_128_CBC_SHA, false);
-        addCipher(list, TLS_RSA_WITH_AES_256_CBC_SHA, false);
-        String[] strongCiphers = new String[list.size()];
-        list.toArray(strongCiphers);
-        String[] currentCiphers = getEnabledCiphers();
-        // Current ciphers must be default or something.  Odd that it's null,
-        // though.
-        if (currentCiphers == null) {
-            setEnabledCiphers(strongCiphers);
-        }
-
-        Arrays.sort(strongCiphers);
-        Arrays.sort(currentCiphers);
-        // Let's only call "setEnabledCiphers" if our array is actually different
-        // than what's already set.
-        if (!Arrays.equals(strongCiphers, currentCiphers)) {
-            setEnabledCiphers(strongCiphers);
-        }
-    }
-
     public void setEnabledCiphers(String[] ciphers) {
-        HashSet desired = new HashSet(Arrays.asList(ciphers));
+        HashSet<String> desired = new HashSet<String>(Arrays.asList(ciphers));
         desired.removeAll(SUPPORTED_CIPHERS_SET);
         if (!desired.isEmpty()) {
             throw new IllegalArgumentException("following ciphers not supported: " + desired);
@@ -351,15 +294,10 @@ public class SSL {
     }
 
     public String[] getEnabledProtocols() {
-        return enabledProtocols != null ? enabledProtocols : KNOWN_PROTOCOLS;
+        return enabledProtocols;
     }
 
     public void setEnabledProtocols(String[] protocols) {
-        HashSet desired = new HashSet(Arrays.asList(protocols));
-        desired.removeAll(KNOWN_PROTOCOLS_SET);
-        if (!desired.isEmpty()) {
-            throw new IllegalArgumentException("following protocols not supported: " + desired);
-        }
         this.enabledProtocols = protocols;
     }
 
@@ -605,16 +543,16 @@ public class SSL {
           "false" - giving "true" priority.
           */
         if (!wantClientAuth) {
-            JavaImpl.setWantClientAuth(s, wantClientAuth);
+            JavaImpl.setWantClientAuth(s, false);
         }
         if (!needClientAuth) {
-            s.setNeedClientAuth(needClientAuth);
+            s.setNeedClientAuth(false);
         }
         if (wantClientAuth) {
-            JavaImpl.setWantClientAuth(s, wantClientAuth);
+            JavaImpl.setWantClientAuth(s, true);
         }
         if (needClientAuth) {
-            s.setNeedClientAuth(needClientAuth);
+            s.setNeedClientAuth(true);
         }
     }
 
@@ -671,37 +609,4 @@ public class SSL {
     public X509Certificate[] getCurrentClientChain() {
         return currentClientChain;
     }
-
-    public static void main(String[] args) {
-        for (int i = 0; i < SUPPORTED_CIPHERS.length; i++) {
-            System.out.println(SUPPORTED_CIPHERS[i]);
-        }
-        System.out.println();
-        System.out.println("----------------------------------------------");
-        addCipher(null, SSL_DHE_DSS_WITH_3DES_EDE_CBC_SHA, true);
-        addCipher(null, SSL_DHE_RSA_WITH_3DES_EDE_CBC_SHA, true);
-        addCipher(null, SSL_RSA_WITH_3DES_EDE_CBC_SHA, true);
-        addCipher(null, SSL_RSA_WITH_RC4_128_SHA, true);
-        addCipher(null, TLS_DHE_DSS_WITH_AES_128_CBC_SHA, true);
-        addCipher(null, TLS_DHE_DSS_WITH_AES_256_CBC_SHA, true);
-        addCipher(null, TLS_DHE_RSA_WITH_AES_128_CBC_SHA, true);
-        addCipher(null, TLS_DHE_RSA_WITH_AES_256_CBC_SHA, true);
-        addCipher(null, TLS_RSA_WITH_AES_128_CBC_SHA, true);
-        addCipher(null, TLS_RSA_WITH_AES_256_CBC_SHA, true);
-    }
-
-    private static void addCipher(List l, String c, boolean printOnStandardOut) {
-        boolean supported = false;
-        if (c != null && SUPPORTED_CIPHERS_SET.contains(c)) {
-            if (l != null) {
-                l.add(c);
-            }
-            supported = true;
-        }
-        if (printOnStandardOut) {
-            System.out.println(c + ":\t" + supported);
-        }
-    }
-
-
 }

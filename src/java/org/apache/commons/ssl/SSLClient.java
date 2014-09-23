@@ -91,10 +91,6 @@ public class SSLClient extends SSLSocketFactory {
 
     public void setDefaultProtocol(String s) { ssl.setDefaultProtocol(s); }
 
-    public void useDefaultJavaCiphers() { ssl.useDefaultJavaCiphers(); }
-
-    public void useStrongCiphers() { ssl.useStrongCiphers(); }
-
     public void setEnabledCiphers(String[] ciphers) {
         ssl.setEnabledCiphers(ciphers);
     }

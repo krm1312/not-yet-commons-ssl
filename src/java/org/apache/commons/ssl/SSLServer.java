@@ -85,7 +85,7 @@ public class SSLServer extends SSLServerSocketFactory {
         throws GeneralSecurityException, IOException {
         // If running inside Tomcat, let's try to re-use Tomcat's SSL
         // certificate for our own stuff (e.g. RMI-SSL).
-        Integer p8443 = new Integer(8443);
+        Integer p8443 = Integer.valueOf(8443);
         KeyMaterial km;
         TrustMaterial tm;
         km = (KeyMaterial) TomcatServerXML.KEY_MATERIAL_BY_PORT.get(p8443);
@@ -172,10 +172,6 @@ public class SSLServer extends SSLServerSocketFactory {
     public void setConnectTimeout(int i) { ssl.setConnectTimeout(i); }
 
     public void setDefaultProtocol(String s) { ssl.setDefaultProtocol(s); }
-
-    public void useDefaultJavaCiphers() { ssl.useDefaultJavaCiphers(); }
-
-    public void useStrongCiphers() { ssl.useStrongCiphers(); }
 
     public void setEnabledCiphers(String[] ciphers) {
         ssl.setEnabledCiphers(ciphers);

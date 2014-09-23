@@ -64,7 +64,6 @@ public class SSLEchoServer {
         ssl.setCheckCRL(false);
         ssl.setCheckHostname(false);
         ssl.setWantClientAuth(true);
-        ssl.useDefaultJavaCiphers();
 
         SSLServerSocket ss = (SSLServerSocket) ssl.createServerSocket(port, 3);
         System.out.println("SSL Echo server listening on port: " + port);
