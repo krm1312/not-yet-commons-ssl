@@ -37,12 +37,14 @@ tr.released td, tr.released th { background-color: yellow; font-weight: bold; }
 <p>Not-Yet-Commons-SSL currently has NO affiliation with the <a href="http://apache.org/">Apache Software Foundation</a> (apache.org), but we're hoping
 to start <a href="http://incubator.apache.org/incubation/Incubation_Policy.html">Incubation</a> one day.
 <table cellpadding="6" cellspacing="0" border="0" style="margin-top: 9px;">
-    <tr><th colspan="3">Current Version (September 8th, 2014):</th></tr>
-    <tr><td>Full source:</td><td><a href="/commons-ssl/not-yet-commons-ssl-0.3.15.zip">not-yet-commons-ssl-0.3.15.zip</a></td><td>5.1MB</td><td><span style="color: red;">Alpha</span></td><td>MD5: </td></tr>
-    <tr><td>Binary only:</td><td><a href="/commons-ssl/not-yet-commons-ssl-0.3.15.jar">not-yet-commons-ssl-0.3.15.jar</a></td><td>267KB</td><td><span style="color: red;">Alpha</span></td><td>MD5: cebc58b8367c253688426043fdf08221</td></tr>
-    <tr><th colspan="3">Previous Version (May 8th, 2014):</th></tr>
-    <tr><td>Full source:</td><td><a href="/commons-ssl/not-yet-commons-ssl-0.3.13.zip">not-yet-commons-ssl-0.3.13.zip</a></td><td>5.1MB</td><td><span style="color: red;">Alpha</span></td><td>MD5: 14f2f7edeaf2bbab550d63a51868e432</td></tr>
-    <tr><td>Binary only:</td><td><a href="/commons-ssl/not-yet-commons-ssl-0.3.13.jar">not-yet-commons-ssl-0.3.13.jar</a></td><td>268KB</td><td><span style="color: red;">Alpha</span></td><td>MD5: 3dd6c487e1ce53221aa13811e0bc6207</td></tr>
+    <tr><th colspan="3">Current Version (September 23rd, 2014):</th></tr>
+    <tr><td>Full source:</td><td><a href="/commons-ssl/not-yet-commons-ssl-0.3.16.zip">not-yet-commons-ssl-0.3.16.zip</a></td><td>5.1MB</td><td><span style="color: red;">Alpha</span></td><td>MD5: </td></tr>
+    <tr><td>Binary only:</td><td><a href="/commons-ssl/not-yet-commons-ssl-0.3.16.jar">not-yet-commons-ssl-0.3.16.jar</a></td><td>267KB</td><td><span style="color: red;">Alpha</span></td><td>MD5: cebc58b8367c253688426043fdf08221</td></tr>
+    <tr><th colspan="3">Previous Version (September 8th, 2014):</th></tr>
+    <tr><td>Full source:</td><td><a href="/not-yet-commons-ssl-0.3.15/not-yet-commons-ssl-0.3.15.zip">not-yet-commons-ssl-0.3.15.zip</a></td><td>5.1MB</td><td><span style="color: red;">Alpha</span></td><td>MD5: f62d7f7f890ac03a0210d1be7571b21e</td></tr>
+    <tr><td>Binary only:</td><td><a href="/not-yet-commons-ssl-0.3.15/not-yet-commons-ssl-0.3.15.jar">not-yet-commons-ssl-0.3.15.jar</a></td><td>267KB</td><td><span style="color: red;">Alpha</span></td><td>MD5: cebc58b8367c253688426043fdf08221</td></tr>
+    <tr><th colspan="3">All Previous Versions (use "svn export"):</th></tr>
+    <tr><td>&nbsp;</td><td colspan="2"><a href='http://juliusdavies.ca/svn/not-yet-commons-ssl/tags/'>/svn/not-yet-commons-ssl/tags/</a></td></tr>
 </table>
 <br/><b>Warning:</b>
 &nbsp;<span style="color: red; font-weight: bold;">All versions of not-yet-commons-ssl should be considered to be of "Alpha" quality!
@@ -50,6 +52,16 @@ This code probably contains bugs.  This code may have security issues.</span>
 <p>Future versions will definitely break the current API in a non-reverse compatible way.  After commons-ssl-0.5.0, though, we
 plan on always being reverse compatible with ourselves.
 <hr/>
+<h3>Changelog for not-yet-commons-ssl-0.3.16:</h3>
+<dl>
+    <dt>1. Bug fix for TrustMaterial constructor.</dt>
+    <dd>Re-introduce ability to load an X509 certificate specified as raw bytes (e.g., byte[]) in the constructor.  (Thanks to Brent Putnam for the bug report).</dd></dd>
+    <dt>2. Remove protocol / cipher whitelists.</dt>
+    <dd>
+Got rid of useStrongCiphers() method (and its converse, useDefaultCiphers()), since all ciphers in Java 7 are at least 128 bit, and my approach used a white list that was starting to get out-of-date.  If users want to ensure only strong ciphers are used in their SSL connections, they can either upgrade to Java 7 or newer, or invoke SSLClient.setEnabledCiphers() or SSLServer.setEnabledCiphers().   Also got rid of all logic that was setting default protocols, because again it was a white list that was getting out of date.  We do still call SSLContext.getInstance("TLS") by default (can be overridden), but I figure that one should be okay for at least another decade.
+    </dd>
+</dl>
+
 <h3>Changelog for not-yet-commons-ssl-0.3.15:</h3>
 <dl>
     <dt>1. Security patch from Redhat for CVE alert.</dt>
