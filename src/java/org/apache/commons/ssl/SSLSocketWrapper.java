@@ -31,9 +31,6 @@
 
 package org.apache.commons.ssl;
 
-import javax.net.ssl.HandshakeCompletedListener;
-import javax.net.ssl.SSLSession;
-import javax.net.ssl.SSLSocket;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -42,6 +39,10 @@ import java.net.Socket;
 import java.net.SocketAddress;
 import java.net.SocketException;
 import java.nio.channels.SocketChannel;
+
+import javax.net.ssl.HandshakeCompletedListener;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.SSLSocket;
 
 /**
  * @author Credit Union Central of British Columbia
@@ -79,11 +80,7 @@ public class SSLSocketWrapper extends SSLSocket {
     }
 
     public boolean getEnableSessionCreation() {
-        if (s instanceof SSLSocket) {
-            return ((SSLSocket) s).getEnableSessionCreation();
-        } else {
-            return false;
-        }
+        return s instanceof SSLSocket && ((SSLSocket) s).getEnableSessionCreation();
     }
 
     public String[] getEnabledCipherSuites() {
@@ -119,27 +116,15 @@ public class SSLSocketWrapper extends SSLSocket {
     }
 
     public boolean getUseClientMode() {
-        if (s instanceof SSLSocket) {
-            return ((SSLSocket) s).getUseClientMode();
-        } else {
-            return false;
-        }
+        return s instanceof SSLSocket && ((SSLSocket) s).getUseClientMode();
     }
 
     public boolean getNeedClientAuth() {
-        if (s instanceof SSLSocket) {
-            return ((SSLSocket) s).getNeedClientAuth();
-        } else {
-            return false;
-        }
+        return s instanceof SSLSocket && ((SSLSocket) s).getNeedClientAuth();
     }
 
     public boolean getWantClientAuth() {
-        if (s instanceof SSLSocket) {
-            return ((SSLSocket) s).getWantClientAuth();
-        } else {
-            return false;
-        }
+        return s instanceof SSLSocket && ((SSLSocket) s).getWantClientAuth();
     }
 
     public void setEnabledCipherSuites(String[] cs) {
@@ -322,12 +307,9 @@ public class SSLSocketWrapper extends SSLSocket {
         return s.toString();
     }
 
-    /*  Java 1.5
-     public void setPerformancePreferences(int connectionTime, int latency, int bandwidth)
-     {
-         s.setPerformancePreferences( connectionTime, latency, bandwidth );
-     }
-     */
+    public void setPerformancePreferences(int connectionTime, int latency, int bandwidth) {
+        s.setPerformancePreferences( connectionTime, latency, bandwidth );
+    }
 
     public void bind(SocketAddress bindpoint) throws IOException {
         s.bind(bindpoint);
@@ -351,6 +333,12 @@ public class SSLSocketWrapper extends SSLSocket {
 
     public OutputStream getOutputStream() throws IOException {
         return s.getOutputStream();
+    }
+
+    public void setHost(String host) throws IOException {
+        if (s instanceof SSLSocket) {
+            Java14.setHostForSNI((SSLSocket)s, host);
+        }
     }
 
 }

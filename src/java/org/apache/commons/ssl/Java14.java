@@ -202,7 +202,7 @@ public final class Java14 extends JavaImpl {
                 && params != null && params.length == 1 && String.class.equals(params[0]);
     }
 
-    private static void setHostForSNI(SSLSocket s, String host) throws IOException {
+    public static void setHostForSNI(SSLSocket s, String host) throws IOException {
         // Tries to call a "setHost()" method on the supplied SSLSocket via reflection if one exists.
         Method[] methods = s.getClass().getMethods();
         for (int i = 0; i < methods.length; i++) {
