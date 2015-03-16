@@ -31,14 +31,13 @@
 
 package org.apache.commons.ssl;
 
-import org.apache.commons.ssl.util.IPAddressParser;
-
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.net.UnknownHostException;
 import java.security.KeyManagementException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
@@ -47,6 +46,7 @@ import java.security.UnrecoverableKeyException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+
 import javax.net.SocketFactory;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
@@ -188,9 +188,49 @@ public final class Java14 extends JavaImpl {
         InetAddress remoteHost = Util.toInetAddress(host);
         InetSocketAddress dest = new InetSocketAddress(remoteHost, remotePort);
         InetSocketAddress src = new InetSocketAddress(localHost, localPort);
+        if (s instanceof SSLSocket) {
+            setHostForSNI((SSLSocket) s, host);
+        }
         s.bind(src);
         s.connect(dest, timeout);
         return s;
+    }
+
+    private static boolean returnsVoidTakesOneString(Method m) {
+        Class<?>[] params = m.getParameterTypes();
+        return Void.TYPE.equals(m.getReturnType())
+                && params != null && params.length == 1 && String.class.equals(params[0]);
+    }
+
+    private static void setHostForSNI(SSLSocket s, String host) throws IOException {
+        // Tries to call a "setHost()" method on the supplied SSLSocket via reflection if one exists.
+        Method[] methods = s.getClass().getMethods();
+        for (int i = 0; i < methods.length; i++) {
+            Method m = methods[i];
+            if (returnsVoidTakesOneString(m) && "setHost".equals(m.getName())) {
+                try {
+
+                    m.invoke(s, host);
+                    return;
+
+                } catch (IllegalAccessException iae) {
+
+                    // oh well, nevermind
+
+                } catch (InvocationTargetException ite) {
+                    Throwable t = ite.getCause();
+                    if (t instanceof IOException) {
+                        throw (IOException) t;
+                    } else if (t instanceof RuntimeException) {
+                        throw (RuntimeException) t;
+                    } else if (t instanceof Error) {
+                        throw (Error) t;
+                    } else {
+                        throw new IOException("setHost() via reflection failed: " + t);
+                    }
+                }
+            }
+        }
     }
 
     protected final SSLServerSocket buildServerSocket(SSL ssl)
