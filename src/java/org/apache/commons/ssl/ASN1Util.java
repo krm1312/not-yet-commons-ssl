@@ -31,23 +31,27 @@
 
 package org.apache.commons.ssl;
 
-import org.apache.commons.ssl.asn1.ASN1InputStream;
-import org.apache.commons.ssl.asn1.DEREncodable;
-import org.apache.commons.ssl.asn1.DERInteger;
-import org.apache.commons.ssl.asn1.DERObjectIdentifier;
-import org.apache.commons.ssl.asn1.DEROctetString;
-import org.apache.commons.ssl.asn1.DERPrintableString;
-import org.apache.commons.ssl.asn1.DERSequence;
-import org.apache.commons.ssl.asn1.DERSet;
-import org.apache.commons.ssl.asn1.DERTaggedObject;
-import org.apache.commons.ssl.util.Hex;
-
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.Vector;
+
+import org.apache.commons.ssl.org.bouncycastle.asn1.ASN1Encodable;
+import org.apache.commons.ssl.org.bouncycastle.asn1.ASN1InputStream;
+import org.apache.commons.ssl.org.bouncycastle.asn1.ASN1Integer;
+import org.apache.commons.ssl.org.bouncycastle.asn1.ASN1ObjectIdentifier;
+import org.apache.commons.ssl.org.bouncycastle.asn1.ASN1OctetString;
+import org.apache.commons.ssl.org.bouncycastle.asn1.ASN1Sequence;
+import org.apache.commons.ssl.org.bouncycastle.asn1.ASN1Set;
+import org.apache.commons.ssl.org.bouncycastle.asn1.ASN1TaggedObject;
+import org.apache.commons.ssl.org.bouncycastle.asn1.DERPrintableString;
+import org.apache.commons.ssl.org.bouncycastle.asn1.DERSequence;
+import org.apache.commons.ssl.org.bouncycastle.asn1.DERSet;
+import org.apache.commons.ssl.org.bouncycastle.asn1.DERTaggedObject;
+import org.apache.commons.ssl.org.bouncycastle.asn1.DLSequence;
+import org.apache.commons.ssl.util.Hex;
 
 /**
  * @author Credit Union Central of British Columbia
@@ -63,7 +67,7 @@ public class ASN1Util {
     public static ASN1Structure analyze(byte[] asn1)
         throws IOException {
         ASN1InputStream asn = new ASN1InputStream(asn1);
-        DERSequence seq = (DERSequence) asn.readObject();
+        DLSequence seq = (DLSequence) asn.readObject();
         ASN1Structure pkcs8 = new ASN1Structure();
         ASN1Util.analyze(seq, pkcs8, 0);
         return pkcs8;
@@ -88,15 +92,15 @@ public class ASN1Util {
     }
 
 
-    public static void analyze(DEREncodable seq, ASN1Structure pkcs8,
+    public static void analyze(ASN1Encodable seq, ASN1Structure pkcs8,
                                int depth) {
         String tag = null;
         if (depth >= 2) {
             pkcs8.derIntegers = null;
         }
         Enumeration en;
-        if (seq instanceof DERSequence) {
-            en = ((DERSequence) seq).getObjects();
+        if (seq instanceof DLSequence) {
+            en = ((DLSequence) seq).getObjects();
         } else if (seq instanceof DERSet) {
             en = ((DERSet) seq).getObjects();
         } else if (seq instanceof DERTaggedObject) {
@@ -106,13 +110,13 @@ public class ASN1Util {
             v.add(derTag.getObject());
             en = v.elements();
         } else {
-            throw new IllegalArgumentException("DEREncodable must be one of: DERSequence, DERSet, DERTaggedObject");
+            throw new IllegalArgumentException("DEREncodable must be one of: DLSequence, DERSet, DERTaggedObject");
         }
         while (en != null && en.hasMoreElements()) {
-            DEREncodable obj = (DEREncodable) en.nextElement();
-            if (!(obj instanceof DERSequence) &&
-                !(obj instanceof DERSet) &&
-                !(obj instanceof DERTaggedObject)) {
+            ASN1Encodable obj = (ASN1Encodable) en.nextElement();
+            if (!(obj instanceof ASN1Sequence) &&
+                !(obj instanceof ASN1Set) &&
+                !(obj instanceof ASN1TaggedObject)) {
                 String str = obj.toString();
                 String name = obj.getClass().getName();
                 name = name.substring(name.lastIndexOf('.') + 1);
@@ -122,8 +126,8 @@ public class ASN1Util {
                 for (int i = 0; i < depth; i++) {
                     name = "  " + name;
                 }
-                if (obj instanceof DERInteger) {
-                    DERInteger dInt = (DERInteger) obj;
+                if (obj instanceof ASN1Integer) {
+                    ASN1Integer dInt = (ASN1Integer) obj;
                     if (pkcs8.derIntegers != null) {
                         pkcs8.derIntegers.add(dInt);
                     }
@@ -137,8 +141,8 @@ public class ASN1Util {
                         }
                     }
                     str = dInt.getValue().toString();
-                } else if (obj instanceof DERObjectIdentifier) {
-                    DERObjectIdentifier id = (DERObjectIdentifier) obj;
+                } else if (obj instanceof ASN1ObjectIdentifier) {
+                    ASN1ObjectIdentifier id = (ASN1ObjectIdentifier) obj;
                     str = id.getId();
                     pkcs8.oids.add(str);
                     if (pkcs8.oid1 == null) {
@@ -150,8 +154,8 @@ public class ASN1Util {
                     }
                 } else {
                     pkcs8.derIntegers = null;
-                    if (obj instanceof DEROctetString) {
-                        DEROctetString oct = (DEROctetString) obj;
+                    if (obj instanceof ASN1OctetString) {
+                        ASN1OctetString oct = (ASN1OctetString) obj;
                         byte[] octets = oct.getOctets();
                         int len = Math.min(10, octets.length);
                         boolean probablyBinary = false;

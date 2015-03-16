@@ -31,9 +31,10 @@
 
 package org.apache.commons.ssl;
 
-import org.apache.commons.ssl.asn1.ASN1EncodableVector;
-import org.apache.commons.ssl.asn1.DERInteger;
-import org.apache.commons.ssl.asn1.DERSequence;
+import org.apache.commons.ssl.org.bouncycastle.asn1.ASN1EncodableVector;
+import org.apache.commons.ssl.org.bouncycastle.asn1.ASN1Integer;
+import org.apache.commons.ssl.org.bouncycastle.asn1.ASN1Sequence;
+import org.apache.commons.ssl.org.bouncycastle.asn1.DERSequence;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -633,16 +634,16 @@ public class KeyStoreBuilder {
             if (key instanceof RSAPrivateCrtKey) {
                 RSAPrivateCrtKey rsa = (RSAPrivateCrtKey) key;
                 ASN1EncodableVector vec = new ASN1EncodableVector();
-                vec.add(new DERInteger(BigInteger.ZERO));
-                vec.add(new DERInteger(rsa.getModulus()));
-                vec.add(new DERInteger(rsa.getPublicExponent()));
-                vec.add(new DERInteger(rsa.getPrivateExponent()));
-                vec.add(new DERInteger(rsa.getPrimeP()));
-                vec.add(new DERInteger(rsa.getPrimeQ()));
-                vec.add(new DERInteger(rsa.getPrimeExponentP()));
-                vec.add(new DERInteger(rsa.getPrimeExponentQ()));
-                vec.add(new DERInteger(rsa.getCrtCoefficient()));
-                DERSequence seq = new DERSequence(vec);
+                vec.add(new ASN1Integer(BigInteger.ZERO));
+                vec.add(new ASN1Integer(rsa.getModulus()));
+                vec.add(new ASN1Integer(rsa.getPublicExponent()));
+                vec.add(new ASN1Integer(rsa.getPrivateExponent()));
+                vec.add(new ASN1Integer(rsa.getPrimeP()));
+                vec.add(new ASN1Integer(rsa.getPrimeQ()));
+                vec.add(new ASN1Integer(rsa.getPrimeExponentP()));
+                vec.add(new ASN1Integer(rsa.getPrimeExponentQ()));
+                vec.add(new ASN1Integer(rsa.getCrtCoefficient()));
+                ASN1Sequence seq = new DERSequence(vec);
                 byte[] derBytes = PKCS8Key.encode(seq);
                 PKCS8Key pkcs8 = new PKCS8Key(derBytes, null);
                 pkcs8DerBytes = pkcs8.getDecryptedBytes();
@@ -656,13 +657,13 @@ public class KeyStoreBuilder {
                 BigInteger y = q.modPow(x, p);
 
                 ASN1EncodableVector vec = new ASN1EncodableVector();
-                vec.add(new DERInteger(BigInteger.ZERO));
-                vec.add(new DERInteger(p));
-                vec.add(new DERInteger(q));
-                vec.add(new DERInteger(g));
-                vec.add(new DERInteger(y));
-                vec.add(new DERInteger(x));
-                DERSequence seq = new DERSequence(vec);
+                vec.add(new ASN1Integer(BigInteger.ZERO));
+                vec.add(new ASN1Integer(p));
+                vec.add(new ASN1Integer(q));
+                vec.add(new ASN1Integer(g));
+                vec.add(new ASN1Integer(y));
+                vec.add(new ASN1Integer(x));
+                ASN1Sequence seq = new DERSequence(vec);
                 byte[] derBytes = PKCS8Key.encode(seq);
                 PKCS8Key pkcs8 = new PKCS8Key(derBytes, null);
                 pkcs8DerBytes = pkcs8.getDecryptedBytes();

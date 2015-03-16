@@ -31,16 +31,21 @@
 
 package org.apache.commons.ssl;
 
-import org.apache.commons.ssl.asn1.*;
-
-import javax.crypto.*;
-import javax.crypto.spec.IvParameterSpec;
-import javax.crypto.spec.RC2ParameterSpec;
-import javax.crypto.spec.RC5ParameterSpec;
-import javax.crypto.spec.SecretKeySpec;
-import java.io.*;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.math.BigInteger;
-import java.security.*;
+import java.security.GeneralSecurityException;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
+import java.security.KeyFactory;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
+import java.security.PublicKey;
 import java.security.interfaces.DSAParams;
 import java.security.interfaces.DSAPrivateKey;
 import java.security.interfaces.RSAPrivateCrtKey;
@@ -52,6 +57,26 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+
+import javax.crypto.BadPaddingException;
+import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.Mac;
+import javax.crypto.NoSuchPaddingException;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.RC2ParameterSpec;
+import javax.crypto.spec.RC5ParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
+
+import org.apache.commons.ssl.org.bouncycastle.asn1.ASN1Encodable;
+import org.apache.commons.ssl.org.bouncycastle.asn1.ASN1EncodableVector;
+import org.apache.commons.ssl.org.bouncycastle.asn1.ASN1Integer;
+import org.apache.commons.ssl.org.bouncycastle.asn1.ASN1ObjectIdentifier;
+import org.apache.commons.ssl.org.bouncycastle.asn1.ASN1OutputStream;
+import org.apache.commons.ssl.org.bouncycastle.asn1.DERNull;
+import org.apache.commons.ssl.org.bouncycastle.asn1.DEROctetString;
+import org.apache.commons.ssl.org.bouncycastle.asn1.DERSequence;
 
 /**
  * Utility for decrypting PKCS8 private keys.  Way easier to use than
@@ -899,12 +924,12 @@ public class PKCS8Key {
 
     public static byte[] formatAsPKCS8(byte[] privateKey, String oid,
                                        ASN1Structure pkcs8) {
-        DERInteger derZero = new DERInteger(BigInteger.ZERO);
+        ASN1Integer derZero = new ASN1Integer(BigInteger.ZERO);
         ASN1EncodableVector outterVec = new ASN1EncodableVector();
         ASN1EncodableVector innerVec = new ASN1EncodableVector();
         DEROctetString octetsToAppend;
         try {
-            DERObjectIdentifier derOID = new DERObjectIdentifier(oid);
+            ASN1ObjectIdentifier derOID = new ASN1ObjectIdentifier(oid);
             innerVec.add(derOID);
             if (DSA_OID.equals(oid)) {
                 if (pkcs8 == null) {
@@ -919,12 +944,12 @@ public class PKCS8Key {
                     throw new RuntimeException("invalid DSA key - can't find P, Q, G, X");
                 }
 
-                DERInteger[] ints = new DERInteger[pkcs8.derIntegers.size()];
+                ASN1Integer[] ints = new ASN1Integer[pkcs8.derIntegers.size()];
                 pkcs8.derIntegers.toArray(ints);
-                DERInteger p = ints[1];
-                DERInteger q = ints[2];
-                DERInteger g = ints[3];
-                DERInteger x = ints[5];
+                ASN1Integer p = ints[1];
+                ASN1Integer q = ints[2];
+                ASN1Integer g = ints[3];
+                ASN1Integer x = ints[5];
 
                 byte[] encodedX = encode(x);
                 octetsToAppend = new DEROctetString(encodedX);
@@ -960,7 +985,7 @@ public class PKCS8Key {
         return true;
     }
 
-    public static byte[] encode(DEREncodable der) throws IOException {
+    public static byte[] encode(ASN1Encodable der) throws IOException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream(1024);
         ASN1OutputStream out = new ASN1OutputStream(baos);
         out.writeObject(der);
