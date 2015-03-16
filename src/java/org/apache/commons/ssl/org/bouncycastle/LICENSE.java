@@ -1,4 +1,4 @@
-package org.bouncycastle;
+package org.apache.commons.ssl.org.bouncycastle;
 
 /**
  * The Bouncy Castle License
