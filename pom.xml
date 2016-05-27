@@ -30,8 +30,4 @@
       <url>http://juliusdavies.ca/commons-ssl/LICENSE.txt</url>
     </license>
   </licenses>
-  <scm>
-    <connection>http://juliusdavies.ca/svn/not-yet-commons-ssl/tags/commons-ssl-0.3.17/</connection>
-    <url>http://juliusdavies.ca/svn/viewvc.cgi/not-yet-commons-ssl/tags/commons-ssl-0.3.17/</url>
-  </scm>
 </project>
