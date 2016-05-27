@@ -31,10 +31,10 @@
 
 package org.apache.commons.ssl;
 
-import org.apache.commons.ssl.org.bouncycastle.asn1.ASN1EncodableVector;
-import org.apache.commons.ssl.org.bouncycastle.asn1.ASN1Integer;
-import org.apache.commons.ssl.org.bouncycastle.asn1.ASN1Sequence;
-import org.apache.commons.ssl.org.bouncycastle.asn1.DERSequence;
+import org.bouncycastle.asn1.ASN1EncodableVector;
+import org.bouncycastle.asn1.ASN1Integer;
+import org.bouncycastle.asn1.ASN1Sequence;
+import org.bouncycastle.asn1.DERSequence;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;

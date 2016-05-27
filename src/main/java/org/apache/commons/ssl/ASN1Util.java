@@ -38,19 +38,19 @@ import java.util.Enumeration;
 import java.util.List;
 import java.util.Vector;
 
-import org.apache.commons.ssl.org.bouncycastle.asn1.ASN1Encodable;
-import org.apache.commons.ssl.org.bouncycastle.asn1.ASN1InputStream;
-import org.apache.commons.ssl.org.bouncycastle.asn1.ASN1Integer;
-import org.apache.commons.ssl.org.bouncycastle.asn1.ASN1ObjectIdentifier;
-import org.apache.commons.ssl.org.bouncycastle.asn1.ASN1OctetString;
-import org.apache.commons.ssl.org.bouncycastle.asn1.ASN1Sequence;
-import org.apache.commons.ssl.org.bouncycastle.asn1.ASN1Set;
-import org.apache.commons.ssl.org.bouncycastle.asn1.ASN1TaggedObject;
-import org.apache.commons.ssl.org.bouncycastle.asn1.DERPrintableString;
-import org.apache.commons.ssl.org.bouncycastle.asn1.DERSequence;
-import org.apache.commons.ssl.org.bouncycastle.asn1.DERSet;
-import org.apache.commons.ssl.org.bouncycastle.asn1.DERTaggedObject;
-import org.apache.commons.ssl.org.bouncycastle.asn1.DLSequence;
+import org.bouncycastle.asn1.ASN1Encodable;
+import org.bouncycastle.asn1.ASN1InputStream;
+import org.bouncycastle.asn1.ASN1Integer;
+import org.bouncycastle.asn1.ASN1ObjectIdentifier;
+import org.bouncycastle.asn1.ASN1OctetString;
+import org.bouncycastle.asn1.ASN1Sequence;
+import org.bouncycastle.asn1.ASN1Set;
+import org.bouncycastle.asn1.ASN1TaggedObject;
+import org.bouncycastle.asn1.DERPrintableString;
+import org.bouncycastle.asn1.DERSequence;
+import org.bouncycastle.asn1.DERSet;
+import org.bouncycastle.asn1.DERTaggedObject;
+import org.bouncycastle.asn1.DLSequence;
 import org.apache.commons.ssl.util.Hex;
 
 /**
