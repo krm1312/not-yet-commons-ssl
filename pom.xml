@@ -59,4 +59,12 @@
       <scope>test</scope>
     </dependency>
   </dependencies>
+
+        <distributionManagement>
+                <repository>
+                        <id>perfectable-external</id>
+                        <name>Perfectable Repository External</name>
+                        <url>https://maven.perfectable.org/libs-release-external</url>
+                </repository>
+        </distributionManagement>
 </project>
